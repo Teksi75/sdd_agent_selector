@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Env / secrets
+.env
+.env.local
+.env.*.local
+
+# Tooling cache
+.eslintcache
+.turbo/
+.cache/
+
+# pnpm
+pnpm-store/
+.pnpm-debug.log*
+
+# Local artifacts (no van al repo)
+.mavis/
+.secrets/

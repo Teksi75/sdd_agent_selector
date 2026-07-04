@@ -1,0 +1,25 @@
+{
+  "name": "sdd-agent-selector",
+  "version": "4.0.0",
+  "private": true,
+  "type": "module",
+  "description": "SDD Agent Selector V4 — refactor modular del selector de modelos SDD",
+  "scripts": {
+    "dev": "node esbuild.config.js --watch",
+    "build": "node esbuild.config.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "^1.0.0",
+    "esbuild": "^0.20.0",
+    "jsdom": "^24.0.0",
+    "tailwindcss": "^3.4.0",
+    "vitest": "^1.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

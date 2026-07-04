@@ -1,0 +1,44 @@
+schema: spec-driven
+
+context: |
+  Project: SDD Model Picker — refactor of a 880-line monolithic HTML
+  into a modular Vite/ESBuild + Tailwind project with live data sync.
+  Source: `Modelos SDD - V3 - Lucide.html` (75KB, Tailwind CDN, Lucide CDN).
+  Target stack: ES modules, Tailwind, esbuild bundler, vitest, GitHub Actions.
+  Data layer: JSON files + GitHub Actions scrapers for OpenCode/GLM blog.
+  Distribution: single self-contained HTML via esbuild bundle.
+  Repo: Teksi75/sdd-model-picker (new GitHub repo, planned).
+
+rules:
+  proposal:
+    - Include rollback plan: revert by restoring v3-monolith-backup.html
+    - Document Tailwind vs CSS-pure decision explicitly
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+    - Each section of the V3 HTML MUST map to a SPEC requirement
+  design:
+    - Include module dependency graph
+    - Document data flow for sync layer
+    - Document data shape + versioning strategy for cache invalidation
+  tasks:
+    - Group by phase (0-4) with hierarchical numbering
+    - Mark "blocking" dependencies between tasks
+    - Each task completable in one session
+  apply:
+    - Follow existing HTML V3 rendering as source of truth for visual parity
+    - Strict TDD: write tests BEFORE implementation for `model-scorer.js`
+    tdd: true
+    test_command: "npm test"
+  verify:
+    - Visual parity check: V4 must render same output as V3 for same data
+    - All tests passing
+    - Build produces valid self-contained HTML
+    test_command: "npm test"
+    build_command: "npm run build"
+    coverage_threshold: 80
+  archive:
+    - Move change to archive/ with ISO date prefix
+    - Merge delta specs into main specs/model-picker/spec.md
+
+strict_tdd: true

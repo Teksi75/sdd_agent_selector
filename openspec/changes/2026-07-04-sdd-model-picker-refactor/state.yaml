@@ -1,0 +1,101 @@
+change: sdd-model-picker-refactor
+created: 2026-07-04
+status: ready-for-apply
+artifactStore: openspec
+
+phases:
+  proposal:
+    status: success
+    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/proposal.md
+    started: 2026-07-04
+    completed: 2026-07-04
+    revision_note: |
+      Updated 2026-07-04: added 18-agent scope, role matrix, twin judge
+      constraint, justification UI, and 5 strategy configs.
+  specs:
+    status: success
+    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/specs/model-picker/spec.md
+    started: 2026-07-04
+    completed: 2026-07-04
+    revision_note: |
+      Rewritten 2026-07-04: expanded from 10 to 18 agents, added
+      Agent Roles, Agent Request Profiles, Twin Judge Constraint,
+      Justification UI requirements. 18 total requirements.
+  design:
+    status: success
+    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/design.md
+    started: 2026-07-04
+    completed: 2026-07-04
+    revision_note: |
+      Rewritten 2026-07-04: hybrid constraint model (minReasoning +
+      costRatio), strategy configs, twin judge enforcement,
+      justification UI integration. 8 resolved open questions.
+  tasks:
+    status: success
+    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/tasks.md
+    started: 2026-07-04
+    completed: 2026-07-04
+    revision_note: |
+      Rewritten 2026-07-04: 53 tasks (up from 47), 10 PRs (same).
+      Phase 1 expanded to 5 JSON files + 12+ scoring tests.
+      Phase 2 added justification-ui and twin-judge test.
+  apply:
+    status: pending
+    depends_on: [tasks]
+    blocked_by: [repo-creation]
+    blocked_reasons:
+      - "Teksi75/sdd-model-picker repo not yet created on GitHub"
+  verify:
+    status: pending
+    depends_on: [apply]
+  archive:
+    status: pending
+    depends_on: [verify]
+
+next_recommended: apply (Phase 0: tooling foundation)
+blocked_reasons:
+  - "GitHub repo Teksi75/sdd-model-picker must be created before apply can start"
+
+awaiting_user: true
+last_phase_summary: |
+  All 4 SDD artifacts (proposal, spec, design, tasks) rewritten to reflect
+  the complete 18-agent SDD ecosystem (11 SDD + 3 JD + 4 Review).
+  Key additions vs V3 spec:
+  - 5 data files (was 3): +agent-roles.json, +agent-request-profiles.json
+  - Hybrid constraint model: minReasoning (abs) + costRatio (rel to ref)
+  - 5 config strategies (was hardcoded assignments)
+  - Twin judge constraint: jd-judge-a = jd-judge-b mandatory
+  - New justification-ui component: per-agent score, cost, role, checks
+  - 53 tasks across 10 PRs, all ≤ 400 lines
+  Awaiting user to create GitHub repo and approve apply start.
+
+alignment_notes: |
+  Format alignment with gentleman-ai/openspec/changes/opencode-sdd-profiles:
+  - Proposal: Intent → Scope → Capabilities → Approach → Affected Areas
+    → Risks → Rollback Plan → Dependencies → Success Criteria
+  - Spec: Purpose → Requirements (with Given/When/Then Scenarios)
+  - Design: Technical Approach → Architecture Decisions → Data Flow
+    → File Changes → Interfaces/Contracts → Testing Strategy
+    → Migration/Rollout → Open Questions
+  - Tasks: Phased with [RED]/[GREEN]/[REFACTOR] tags, hierarchical numbering,
+    400-line PR budget compliance
+
+  System alignment with gentleman-ai/openspec/specs/sdd-orchestrator-assets
+  and internal/assets/opencode/sdd-overlay-multi.json:
+  - 18 agents enumerated (11 SDD + 3 JD + 4 Review)
+  - Hybrid scoring: capacity (stable) + cost (scales with market)
+  - Twin judge constraint from opencode-sdd-profiles' Profile naming
+    convention, generalized
+  - 5 config strategies map to gentle-ai's preset patterns
+  (economico/balanceado/maximo/hibrido/experimental ≈ min/balanced/max/tier/experimental)
+
+  3 open questions documented in design.md (V3 backup location, data
+  repo split, Lucide icon set). 1 partially-resolved question on
+  strategy:tier-based behavior (option B chosen, full implementation
+  in Phase 2).
+
+delivery:
+  strategy: ask-on-risk
+  chain_strategy: null
+  pr_boundary: per-phase
+  size_exception: false
