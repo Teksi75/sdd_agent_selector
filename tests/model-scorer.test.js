@@ -92,11 +92,13 @@ const REQUEST_PROFILES = {
 
 describe('model-scorer — compositeScore', () => {
   test('GLM-5.2 with all benchmarks yields a high score (~80.7)', () => {
-    // Spec scenario: arena 1595, swePro 62.1, term 81.0 → ~80.7
-    // V4 implementation must score in [70, 90] to pass.
+    // Spec scenario (specs/model-picker/spec.md "GLM-5.2 with all
+    // benchmarks"): arena 1595, swePro 62.1, term 81.0 → ~80.7 (±0.1).
+    // This is the regression test that pins the algorithm: a stricter
+    // bound than the [70, 90] range originally used.
     const score = compositeScore(GLM52);
-    expect(score).toBeGreaterThan(70);
-    expect(score).toBeLessThan(90);
+    expect(score).toBeGreaterThan(80.6);
+    expect(score).toBeLessThan(80.8);
   });
 
   test('with only arena benchmark, redistributes weights to 100% arena', () => {
