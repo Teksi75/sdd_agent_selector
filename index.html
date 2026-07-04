@@ -5,9 +5,12 @@
   Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
 
   V3 visual reference (do NOT modify during V4 development):
-    v3-monolith-backup.html
-  This file is the verbatim copy of the V3 monolith — used for regression
-  visual diffs and as the canonical transcription source for data/*.json.
+    ../Modelos SDD - V3 - Lucide.html
+  The V3 monolith lives outside this repo (in the parent SDD/ directory)
+  to keep this PR focused on the V4 refactor. For local dev, copy it as
+  `v3-monolith-backup.html` to the project root to enable the data-integrity
+  regression test. CI sets `SDD_V3_BACKUP_PATH` for the same effect.
+  SHA256 of the V3 source: 8A89DE6C262ED3D1B7EB3DBFAB95E43FA1B6CAD87DFD088DE0C678D5AAB26FBD
 
   Pipeline (Phase 1):
     data/*.json → js/services/data-loader.js (fetch + sessionStorage cache)
