@@ -1,0 +1,100 @@
+{
+  "_meta": {
+    "lastSynced": "2026-07-04",
+    "source": "manual-spec-definition",
+    "schemaVersion": 1,
+    "notes": "18-agent role matrix: minReasoning (absolute) + costRatio (relative to reference model). Coverage: 11 SDD + 3 JD + 4 Review."
+  },
+  "roles": {
+    "gentle-orchestrator": {
+      "minReasoning": 95,
+      "costRatio": 1.0,
+      "role": "Orchestration: planning, delegation, meta-reasoning across the 18-agent ecosystem"
+    },
+    "sdd-init": {
+      "minReasoning": 60,
+      "costRatio": 0.10,
+      "role": "Initialize SDD context: scan openspec/, detect current agent, bootstrap scratchpad"
+    },
+    "sdd-explore": {
+      "minReasoning": 70,
+      "costRatio": 0.40,
+      "role": "Read-only exploration: codebase + canonical material mapping; uses search + read tools"
+    },
+    "sdd-propose": {
+      "minReasoning": 85,
+      "costRatio": 0.80,
+      "role": "Draft proposal.md: intent, scope, approach — needs high reasoning for architectural framing"
+    },
+    "sdd-spec": {
+      "minReasoning": 80,
+      "costRatio": 0.60,
+      "role": "Write Given/When/Then specs: structured requirement authoring with RFC 2119 keywords"
+    },
+    "sdd-design": {
+      "minReasoning": 88,
+      "costRatio": 0.80,
+      "role": "Architecture decisions: module boundaries, contracts, tradeoffs — high reasoning demand"
+    },
+    "sdd-tasks": {
+      "minReasoning": 65,
+      "costRatio": 0.30,
+      "role": "Decompose change into reviewable task units with dependencies and acceptance criteria"
+    },
+    "sdd-apply": {
+      "minReasoning": 75,
+      "costRatio": 1.0,
+      "role": "Implementation + tool calling: writes code, runs test/build/typecheck, may use large context"
+    },
+    "sdd-verify": {
+      "minReasoning": 80,
+      "costRatio": 0.70,
+      "role": "Validate the change against specs and acceptance criteria; produces verification report"
+    },
+    "sdd-archive": {
+      "minReasoning": 50,
+      "costRatio": 0.05,
+      "role": "Mechanically copy, format, and close change artifacts (cheapest role)"
+    },
+    "sdd-onboard": {
+      "minReasoning": 60,
+      "costRatio": 0.20,
+      "role": "First-time onboarding for a developer adopting the SDD workflow"
+    },
+    "jd-judge-a": {
+      "minReasoning": 90,
+      "costRatio": 0.85,
+      "role": "Blind twin judge (A): adversarial review against spec + code — uses large context"
+    },
+    "jd-judge-b": {
+      "minReasoning": 90,
+      "costRatio": 0.85,
+      "role": "Blind twin judge (B): identical to A but independent — enforces twin judge constraint"
+    },
+    "jd-fix-agent": {
+      "minReasoning": 80,
+      "costRatio": 0.70,
+      "role": "Apply fixes from judgement day findings; executes code changes based on twin judge consensus"
+    },
+    "review-risk": {
+      "minReasoning": 85,
+      "costRatio": 0.55,
+      "role": "Read-only risk review: identifies regressions, security concerns, edge cases"
+    },
+    "review-readability": {
+      "minReasoning": 70,
+      "costRatio": 0.40,
+      "role": "Read-only readability review: style, naming, structure, clarity of intent"
+    },
+    "review-reliability": {
+      "minReasoning": 80,
+      "costRatio": 0.50,
+      "role": "Read-only reliability review: error handling, idempotency, retry safety"
+    },
+    "review-resilience": {
+      "minReasoning": 78,
+      "costRatio": 0.50,
+      "role": "Read-only resilience review: failure modes, fallback strategies, graceful degradation"
+    }
+  }
+}

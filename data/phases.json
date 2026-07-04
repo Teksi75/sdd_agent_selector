@@ -1,0 +1,54 @@
+{
+  "_meta": {
+    "lastSynced": "2026-07-04",
+    "source": "manual-spec-definition",
+    "schemaVersion": 1
+  },
+  "phases": [
+    {
+      "id": "init",
+      "name": "sdd-init",
+      "desc": "Inicializar el contexto SDD: cargar openspec/, detectar agente actual, preparar scratchpad"
+    },
+    {
+      "id": "explore",
+      "name": "sdd-explore",
+      "desc": "Lectura de código y material canónico: búsqueda, relevamiento, mapeo"
+    },
+    {
+      "id": "propose",
+      "name": "sdd-propose",
+      "desc": "Crear proposal.md con intent, scope y approach del cambio"
+    },
+    {
+      "id": "spec",
+      "name": "sdd-spec",
+      "desc": "Escribir specs Given/When/Then (RFC 2119) con requirements + scenarios"
+    },
+    {
+      "id": "design",
+      "name": "sdd-design",
+      "desc": "Arquitectura y module dependency graph; contratos entre módulos"
+    },
+    {
+      "id": "tasks",
+      "name": "sdd-tasks",
+      "desc": "Descomponer en tareas concretas, work units, dependencias"
+    },
+    {
+      "id": "apply",
+      "name": "sdd-apply",
+      "desc": "Implementación + tool calling + verificaciones (test/build/typecheck)"
+    },
+    {
+      "id": "verify",
+      "name": "sdd-verify",
+      "desc": "Validación contra specs: tests, criterios de aceptación, manual diff"
+    },
+    {
+      "id": "archive",
+      "name": "sdd-archive",
+      "desc": "Mover change a openspec/changes/archive/, mergear delta specs, cerrar PR"
+    }
+  ]
+}
