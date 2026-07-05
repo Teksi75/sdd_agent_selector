@@ -222,3 +222,17 @@ export function clearCache() {
   }
   inMemory = null;
 }
+
+/**
+ * Invalidate ONLY the in-memory memo, leaving sessionStorage intact.
+ *
+ * Use this from data-sync.refresh() after writing fresh data to
+ * sessionStorage — the next loadAll() call must re-read from
+ * sessionStorage (returning the freshly-written payload) instead of
+ * returning the stale in-memory memo.
+ *
+ * @returns {void}
+ */
+export function invalidateMemoryCache() {
+  inMemory = null;
+}
