@@ -34,17 +34,14 @@
 </head>
 <body class="bg-surface text-on-surface">
   <div id="app">
-    <!-- Phase 1 pilot section — ref-table.
-         The mount div is intentionally placed in <main> so the rest of the
-         page can grow around it without the ref-table re-locating. -->
     <main class="mx-auto max-w-6xl px-6 py-8 space-y-6">
       <header class="space-y-1">
-        <h1 class="text-2xl font-bold text-slate-100">SDD Agent Selector V4 — Ref-Table (Phase 1 pilot)</h1>
+        <h1 class="text-2xl font-bold text-slate-100">SDD Agent Selector V4</h1>
         <p class="text-sm text-slate-400">
-          Tabla de modelos activos, ordenada por score compuesto. Modelos de referencia (tier=reference) se excluyen.
-          Fuente de verdad visual: <code class="text-xs">v3-monolith-backup.html</code>.
+          Selector modular de modelos SDD. Fuente de verdad visual: <code class="text-xs">v3-monolith-backup.html</code>.
         </p>
       </header>
+      <section id="config-mount" aria-label="Selector de configuración"></section>
       <section id="ref-table-mount" aria-label="Tabla de modelos activos"></section>
     </main>
     <noscript>
