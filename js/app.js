@@ -25,6 +25,7 @@ import {
 } from './components/config-selector.js';
 import { render as renderWorkflowTable } from './components/workflow-table.js';
 import { render as renderCompositeChart } from './components/composite-chart.js';
+import { render as renderPricingChart } from './components/pricing-chart.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -152,6 +153,31 @@ function mountCompositeChart(data) {
 }
 
 /**
+ * Mount the pricing bar chart (Phase 2d). Pure render — does not depend
+ * on the active config, so it runs once after data load. Uses
+ * `costEstimate(model)` from the scoring service with the default profile
+ * `{ inputTokens: 1000, outputTokens: 500 }`.
+ *
+ * @param {Object} data
+ */
+function mountPricingChart(data) {
+  const mount = document.getElementById('pricing-chart-mount');
+  if (!mount) {
+    console.warn('js/app.js: #pricing-chart-mount not found in DOM — skipping pricing-chart render');
+    return;
+  }
+  try {
+    const summary = renderPricingChart(mount, data.models);
+    console.log(
+      `js/app.js: pricing-chart rendered ${summary.bars} bar(s), maxCost=${summary.maxCost?.toFixed?.(6) ?? 'n/a'}`
+    );
+  } catch (err) {
+    console.error('js/app.js: pricing-chart mount failed', err);
+    mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando pricing-chart — revisá la consola.</div>`;
+  }
+}
+
+/**
  * Top-level orchestrator — load data once, mount all sections.
  * @returns {Promise<void>}
  */
@@ -161,6 +187,7 @@ async function bootAll() {
     mountRefTable(data);
     mountConfigSelector(data);
     mountCompositeChart(data);
+    mountPricingChart(data);
   } catch (err) {
     console.error('js/app.js: data load failed', err);
   }
