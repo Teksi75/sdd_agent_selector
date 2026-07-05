@@ -23,6 +23,7 @@ import {
   render as renderConfigSelector,
   setData as setSelectorData,
 } from './components/config-selector.js';
+import { render as renderWorkflowTable } from './components/workflow-table.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -51,11 +52,35 @@ function mountRefTable(data) {
 }
 
 /**
+ * Mount the workflow-table (Phase 2b). Wired into the config-selector
+ * onSelect callback so it re-renders whenever the active config changes.
+ *
+ * @param {Object} data
+ * @returns {(assignments: Object) => void} callback to render the table for a given assignment set
+ */
+function makeWorkflowRenderer(data) {
+  const mount = document.getElementById('workflow-mount');
+  if (!mount) {
+    console.warn('js/app.js: #workflow-mount not found in DOM — skipping workflow-table render');
+    return () => {};
+  }
+  return (assignments) => {
+    try {
+      const summary = renderWorkflowTable(mount, assignments, data.models, data.phases);
+      console.log(`js/app.js: workflow-table rendered ${summary.rows} phase row(s)`);
+    } catch (err) {
+      console.error('js/app.js: workflow-table render failed', err);
+      mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando workflow-table — revisá la consola.</div>`;
+    }
+  };
+}
+
+/**
  * Mount the config-selector (Phase 2a).
  *
  * Pipeline: setData({models, roleMatrix, profiles}) + render(mount, configs, onSelect).
- * The onSelect callback is a placeholder for Phase 2b/e — workflow-table
- * and justification-ui will subscribe to recompute per-agent cards.
+ * The onSelect callback re-renders the workflow-table with the 9-phase
+ * subset of the 18-agent assignment set.
  *
  * @param {Object} data
  */
@@ -65,11 +90,20 @@ function mountConfigSelector(data) {
     console.warn('js/app.js: #config-mount not found in DOM — skipping config-selector render');
     return;
   }
+  const renderWorkflow = makeWorkflowRenderer(data);
   try {
     setSelectorData({ models: data.models, roleMatrix: data.roles, profiles: data.profiles });
     renderConfigSelector(mount, data.configs, (assignments) => {
-      const assigned = Object.values(assignments).filter((a) => a && a.key).length;
-      console.log(`js/app.js: config selected — ${assigned}/${Object.keys(assignments).length} agents assigned`);
+      const phaseIds = new Set((data.phases || []).map((p) => p.id));
+      const phaseAssignments = {};
+      for (const [agent, a] of Object.entries(assignments || {})) {
+        if (phaseIds.has(agent)) phaseAssignments[agent] = a;
+      }
+      renderWorkflow(phaseAssignments);
+      const assigned = Object.values(phaseAssignments).filter((a) => a && a.key).length;
+      console.log(
+        `js/app.js: config selected — ${assigned}/${phaseIds.size} phase row(s) assigned`
+      );
     });
     console.log(`js/app.js: config-selector rendered ${data.configs.length} button(s)`);
   } catch (err) {
