@@ -20,7 +20,7 @@
 
 import { build, context } from 'esbuild';
 import { spawnSync } from 'node:child_process';
-import { readFileSync, writeFileSync, mkdirSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, unlinkSync, cpSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
@@ -34,6 +34,8 @@ const JS_INPUT = resolve(__dirname, 'js/app.js');
 const JS_OUTPUT = resolve(DIST, '_bundle.js');
 const HTML_INPUT = resolve(__dirname, 'index.html');
 const HTML_OUTPUT = resolve(DIST, 'index.html');
+const DATA_SRC = resolve(__dirname, 'data');
+const DATA_DST = resolve(DIST, 'data');
 
 mkdirSync(DIST, { recursive: true });
 
@@ -111,16 +113,28 @@ function cleanup() {
   }
 }
 
+/** Copy data/*.json into dist/data/ so the inlined bundle's fetch('data/models.json')
+ *  resolves at runtime. The deploy-pages.yml workflow only ships dist/, so without
+ *  this step the data fetches would 404 silently and the UI would render empty. */
+function copyData() {
+  // Clean stale copy to avoid stale-data cache on subsequent builds.
+  try { rmSync(DATA_DST, { recursive: true, force: true }); } catch { /* ignore */ }
+  cpSync(DATA_SRC, DATA_DST, { recursive: true });
+  console.log(`[esbuild] copied ${DATA_SRC} → ${DATA_DST}`);
+}
+
 /** Run the full pipeline once. */
 async function runBuild() {
-  console.log('[esbuild] step 1/3 — tailwindcss');
+  console.log('[esbuild] step 1/4 — tailwindcss');
   buildTailwind();
-  console.log('[esbuild] step 2/3 — esbuild bundle');
+  console.log('[esbuild] step 2/4 — esbuild bundle');
   await buildJs();
-  console.log('[esbuild] step 3/3 — inline HTML');
+  console.log('[esbuild] step 3/4 — inline HTML');
   inlineHtml();
+  console.log('[esbuild] step 4/4 — copy data/ for runtime fetch');
+  copyData();
   cleanup();
-  console.log('[esbuild] build complete — dist/index.html (self-contained)');
+  console.log('[esbuild] build complete — dist/index.html + dist/data/');
 }
 
 if (isWatch) {
