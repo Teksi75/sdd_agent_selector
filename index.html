@@ -10,9 +10,9 @@
   The V3 source lives at ../SDD/Modelos SDD - V3 - Lucide.html.
 
   Build pipeline (Phase 4):
-    css/tokens.css  -->  tailwindcss CLI  -->  dist/_tailwind.css (inlined)
-    js/app.js       -->  esbuild bundle   -->  dist/_bundle.js   (inlined)
-    index.html      -->  read & inject    -->  dist/index.html (self-contained)
+    css/tokens.css  ⇒  tailwindcss CLI  ⇒  dist/_tailwind.css (inlined)
+    js/app.js       ⇒  esbuild bundle   ⇒  dist/_bundle.js   (inlined)
+    index.html      ⇒  read & inject    ⇒  dist/index.html (self-contained)
 
   Placeholders replaced at build time:
     <!-- __INLINE_CSS__ -->   replaced with minified style block (tailwind+v3 tokens)

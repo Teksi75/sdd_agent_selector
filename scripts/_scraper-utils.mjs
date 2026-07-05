@@ -123,11 +123,30 @@ export function stripHtml(html) {
 }
 
 /**
+ * Default cooldown between HTTP requests, in milliseconds. The jitter
+ * (500 ms) spreads scrapers across the cron window so 6 scrapers firing
+ * at the same moment don't hit upstream at once. Range: 1000–1500 ms.
+ *
+ * Polite to upstream (OpenAI pricing page, Anthropic, LMArena, etc.) —
+ * the prior T7 advisory noted that the OpenAI page in particular was
+ * seeing bursts of scraper traffic without spacing.
+ *
+ * Honor per-call override via `options.cooldownMs` (set to 0 to skip).
+ */
+const DEFAULT_COOLDOWN_MS = 1000;
+const COOLDOWN_JITTER_MS = 500;
+
+/**
  * Fetch a URL and return the response text. Throws on non-2xx with a
  * descriptive error. Uses the global `fetch` (Node 18+).
  *
+ * Politespace between calls via a randomized cooldown (~1.0–1.5 s) so
+ * upstream providers (OpenAI, Anthropic, LMArena, etc.) don't see
+ * bursts of scraper traffic. Override with `options.cooldownMs: 0` to
+ * skip (used by tests).
+ *
  * @param {string} url
- * @param {{timeoutMs?: number}} [options]
+ * @param {{timeoutMs?: number, cooldownMs?: number}} [options]
  * @returns {Promise<string>}
  */
 export async function fetchText(url, options) {
@@ -142,6 +161,13 @@ export async function fetchText(url, options) {
     return await r.text();
   } finally {
     clearTimeout(timer);
+    // Politeness cooldown: wait 1.0–1.5 s (jittered) before returning
+    // so callers chained in the cron workflow don't hammer upstream.
+    const cooldownMs = Number.isFinite(opts.cooldownMs) ? opts.cooldownMs : DEFAULT_COOLDOWN_MS;
+    if (cooldownMs > 0) {
+      const wait = cooldownMs + Math.floor(Math.random() * COOLDOWN_JITTER_MS);
+      await new Promise((resolve) => setTimeout(resolve, wait));
+    }
   }
 }
 
