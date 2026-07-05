@@ -69,9 +69,10 @@ beforeEach(() => {
 });
 
 describe('ref-table — render()', () => {
-  test('excludes reference-tier models from the visible rows', () => {
+  test('includes reference-tier models at the bottom of the visible rows', () => {
     const summary = render(target, FIXTURE);
-    expect(summary.rows).toBe(2);
+    // Now includes ALL models (active + reference). 2 active + 2 reference = 4.
+    expect(summary.rows).toBe(4);
     const tbody = target.querySelector('tbody');
     expect(tbody).not.toBeNull();
     const visibleKeys = Array.from(tbody.querySelectorAll('tr')).map(
@@ -79,11 +80,20 @@ describe('ref-table — render()', () => {
     );
     expect(visibleKeys).toContain('alpha');
     expect(visibleKeys).toContain('beta');
-    expect(visibleKeys).not.toContain('gamma');
-    expect(visibleKeys).not.toContain('delta');
+    expect(visibleKeys).toContain('gamma');   // reference - now visible
+    expect(visibleKeys).toContain('delta');   // reference - now visible
+    // Reference rows sink to the bottom of the table (active rows above),
+    // sorted among themselves by composite score desc (delta > gamma: delta
+    // has only arena=1690 → score=100 after clamp, gamma has arena=1700 +
+    // swePro=75 → redistributed score≈88; arena-only models win the
+    // reference-tier sort because their single-benchmark score is the max
+    // of the [0,100] clamp).
+    expect(visibleKeys.slice(0, 2)).toEqual(['alpha', 'beta']);
+    expect(visibleKeys.indexOf('delta')).toBeLessThan(visibleKeys.indexOf('gamma'));
+    expect(visibleKeys.slice(2)).toEqual(['delta', 'gamma']);
   });
 
-  test('sorts rows by composite score descending', () => {
+  test('sorts active rows by composite score descending, references last', () => {
     const summary = render(target, FIXTURE);
     const tbody = target.querySelector('tbody');
     const keys = Array.from(tbody.querySelectorAll('tr')).map(

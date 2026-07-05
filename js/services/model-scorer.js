@@ -303,6 +303,30 @@ export function getBestFor(
   }
 
   if (eligible.length === 0) {
+    // Soft fallback: if the role explicitly opts into a per-role reference
+    //   (referenceModelId), and that reference clears the role's hard cost
+    //   ceiling, surface it as a 'soft-recommended' pick so the UI doesn't
+    //   show a no-models critical warning for roles like gentle-orchestrator
+    //   where the user has designated a specific reference by hand.
+    const roleRefKey = modified.referenceModelId;
+    if (roleRefKey && models && models[roleRefKey]) {
+      const roleRefModel = models[roleRefKey];
+      const roleRefScore = compositeScore(roleRefModel);
+      const roleRefCost = costEstimate(roleRefModel, profile);
+      if (roleRefCost <= effectiveMaxCost) {
+        return {
+          key: roleRefKey,
+          model: roleRefModel,
+          score: roleRefScore,
+          cost: roleRefCost,
+          effectiveMaxCost,
+          softFallback: true,
+          reason: `Soft fallback to role-designated reference (${roleRefKey}); score ${roleRefScore.toFixed(1)} < minReasoning ${modified.minReasoning} but cost within ceiling`,
+          alternatives: [],
+        };
+      }
+    }
+
     // Distinguish "only reference models" vs "threshold not met" so UI can
     //   render an actionable message.
     const onlyRefs =

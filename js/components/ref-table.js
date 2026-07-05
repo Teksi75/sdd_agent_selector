@@ -99,17 +99,26 @@ function sourceBadges(m) {
 }
 
 /**
- * Filter out reference-tier models and sort the remaining rows by
- * composite score descending. Deterministic tie-breaker: cheaper models
- * win ties (matches the V3 sort order in the source).
+ * Sort models by composite score descending, then by cheaper input price.
+ * Reference models are included alongside active models so the user can see
+ * the comparison baseline (e.g. GPT-5.5, Claude Opus 4.8) right in the
+ * same table — flagged with a "REFERENCE" tier badge.
+ *
+ * Deterministic tie-breaker: cheaper models win ties (matches the V3 sort
+ * order in the source).
  *
  * @param {Object<string, Object>} models
  * @returns {Array<[string, Object]>}
  */
 function rowsFor(models) {
   return Object.entries(models)
-    .filter(([, m]) => m && m.tier !== 'reference' && m.isReference !== true)
+    .filter(([, m]) => m)
     .sort((a, b) => {
+      // Reference models sink to the bottom of the table so the active
+      // selection pool is read top-down.
+      const aRef = a[1].tier === 'reference' || a[1].isReference === true;
+      const bRef = b[1].tier === 'reference' || b[1].isReference === true;
+      if (aRef !== bRef) return aRef ? 1 : -1;
       const sa = compositeScore(a[1]);
       const sb = compositeScore(b[1]);
       if (sb !== sa) return sb - sa;
@@ -158,13 +167,20 @@ export function render(targetEl, models) {
   const body = rows
     .map(([key, m]) => {
       const score = compositeScore(m).toFixed(1);
+      const isRef = m.tier === 'reference' || m.isReference === true;
       const newBadge = m.isNew === true
         ? ' <span class="src-badge src-new">NEW</span>'
         : '';
+      const tierCell = isRef
+        ? `<span class="src-badge" style="background:rgba(244,63,94,.15);color:#fda4af;">REFERENCE</span>`
+        : escapeHtml(m.tier || '—');
+      const rowClass = isRef
+        ? 'opacity-80 bg-slate-900/30'
+        : 'hover:bg-slate-800/30 transition';
       return `
-        <tr class="hover:bg-slate-800/30 transition" data-model-key="${escapeAttr(key)}">
+        <tr class="${rowClass}" data-model-key="${escapeAttr(key)}">
           <td class="py-2.5 px-3 font-medium">${escapeHtml(m.name || key)}${newBadge}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-xs">${escapeHtml(m.tier || '—')}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-xs">${tierCell}</td>
           <td class="py-2.5 px-3 text-center font-mono text-xs">${score}</td>
           <td class="py-2.5 px-3 text-center">${badge('arena', m.arena ?? '—')}</td>
           <td class="py-2.5 px-3 text-center">${badge('swePro', m.swePro != null ? `${fmt(m.swePro)}%` : '—')}</td>
@@ -176,6 +192,9 @@ export function render(targetEl, models) {
         </tr>`;
     })
     .join('');
+
+  const activeCount = rows.filter(([, m]) => m.tier !== 'reference' && m.isReference !== true).length;
+  const refCount = rows.length - activeCount;
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
@@ -200,8 +219,9 @@ export function render(targetEl, models) {
       </table>
     </div>
     <p class="mt-3 text-xs text-slate-500">
-      Showing ${rows.length} active model${rows.length === 1 ? '' : 's'} · sorted by composite score (desc) ·
-      reference models excluded.
+      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${refCount > 0 ? ` + ${refCount} reference` : ''} ·
+      sorted by composite score (desc) ·
+      reference rows appear at the bottom for comparison baseline.
     </p>
   `;
 

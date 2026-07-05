@@ -9,6 +9,7 @@
     "gentle-orchestrator": {
       "minReasoning": 95,
       "costRatio": 1.0,
+      "referenceModelId": "gpt55",
       "role": "Orchestration: planning, delegation, meta-reasoning across the 18-agent ecosystem"
     },
     "sdd-init": {
