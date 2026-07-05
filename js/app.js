@@ -4,7 +4,11 @@
  *
  * Pipeline:
  *   1. Load the 5 data/*.json files via data-loader (cache via sessionStorage).
- *   2. Mount ref-table (#ref-table-mount) and config-selector (#config-mount).
+ *   2. Mount ref-table (#ref-table-mount), config-selector (#config-mount),
+ *      workflow-table (#workflow-mount), cli-mirror-table (#cli-mirror-mount),
+ *      justification-ui (#justification-mount), composite-chart
+ *      (#composite-chart-mount), pricing-chart (#pricing-chart-mount),
+ *      freshness-badge (#freshness-mount).
  *
  * Source of truth (single source of truth):
  *   openspec/changes/2026-07-04-sdd-model-picker-refactor/
@@ -26,6 +30,9 @@ import {
 import { render as renderWorkflowTable } from './components/workflow-table.js';
 import { render as renderCompositeChart } from './components/composite-chart.js';
 import { render as renderPricingChart } from './components/pricing-chart.js';
+import { render as renderCliMirrorTable } from './components/cli-mirror-table.js';
+import { render as renderFreshnessBadge } from './components/freshness-badge.js';
+import { render as renderJustificationUI } from './components/justification-ui.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -81,8 +88,9 @@ function makeWorkflowRenderer(data) {
  * Mount the config-selector (Phase 2a).
  *
  * Pipeline: setData({models, roleMatrix, profiles}) + render(mount, configs, onSelect).
- * The onSelect callback re-renders the workflow-table with the 9-phase
- * subset of the 18-agent assignment set.
+ * The onSelect callback re-renders the workflow-table (9 SDD phases),
+ * the cli-mirror-table (all 18 agents), and the justification-ui
+ * (per-agent cards) with the new assignment set.
  *
  * ID convention bridge: `data/phases.json` carries bare IDs (init,
  * explore, propose, ...), but the assignments object returned by
@@ -101,6 +109,8 @@ function mountConfigSelector(data) {
     return;
   }
   const renderWorkflow = makeWorkflowRenderer(data);
+  const renderCliMirror = makeCliMirrorRenderer(data);
+  const renderJustification = makeJustificationRenderer(data);
   try {
     setSelectorData({ models: data.models, roleMatrix: data.roles, profiles: data.profiles });
     renderConfigSelector(mount, data.configs, (assignments) => {
@@ -112,6 +122,8 @@ function mountConfigSelector(data) {
         }
       }
       renderWorkflow(phaseAssignments);
+      renderCliMirror(assignments);
+      renderJustification(assignments);
       const assigned = Object.values(phaseAssignments).filter((a) => a && a.key).length;
       console.log(
         `js/app.js: config selected — ${assigned}/${(data.phases || []).length} phase row(s) assigned`
@@ -122,6 +134,71 @@ function mountConfigSelector(data) {
     console.error('js/app.js: config-selector mount failed', err);
     mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando config-selector — revisá la consola.</div>`;
   }
+}
+
+/**
+ * Make a renderer for the cli-mirror-table (Phase 2e). Returns a no-op if
+ * the mount element is missing so production wiring stays simple.
+ *
+ * @param {Object} data
+ * @returns {(assignments: Object) => void}
+ */
+function makeCliMirrorRenderer(data) {
+  const mount = document.getElementById('cli-mirror-mount');
+  if (!mount) {
+    console.warn('js/app.js: #cli-mirror-mount not found in DOM — skipping cli-mirror-table render');
+    return () => {};
+  }
+  // Initial empty-state paint (no assignment until selectConfig runs).
+  try {
+    renderCliMirrorTable(mount, {}, data.roles);
+    console.log('js/app.js: cli-mirror-table mounted (empty state — awaiting config selection)');
+  } catch (err) {
+    console.error('js/app.js: cli-mirror-table initial render failed', err);
+  }
+  return (assignments) => {
+    try {
+      const summary = renderCliMirrorTable(mount, assignments, data.roles);
+      console.log(
+        `js/app.js: cli-mirror-table re-rendered ${summary.withAssignment}/18 agent(s) with assignment`
+      );
+    } catch (err) {
+      console.error('js/app.js: cli-mirror-table render failed', err);
+      mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando cli-mirror-table — revisá la consola.</div>`;
+    }
+  };
+}
+
+/**
+ * Make a renderer for the justification-ui (Phase 2e). Initial empty-state
+ * paint, then re-renders whenever selectConfig fires.
+ *
+ * @param {Object} data
+ * @returns {(assignments: Object) => void}
+ */
+function makeJustificationRenderer(data) {
+  const mount = document.getElementById('justification-mount');
+  if (!mount) {
+    console.warn('js/app.js: #justification-mount not found in DOM — skipping justification-ui render');
+    return () => {};
+  }
+  try {
+    renderJustificationUI(mount, {}, data.roles, data.models);
+    console.log('js/app.js: justification-ui mounted (empty state — awaiting config selection)');
+  } catch (err) {
+    console.error('js/app.js: justification-ui initial render failed', err);
+  }
+  return (assignments) => {
+    try {
+      const summary = renderJustificationUI(mount, assignments, data.roles, data.models);
+      console.log(
+        `js/app.js: justification-ui re-rendered ${summary.withAssignment}/18 agent(s) with justification`
+      );
+    } catch (err) {
+      console.error('js/app.js: justification-ui render failed', err);
+      mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando justification-ui — revisá la consola.</div>`;
+    }
+  };
 }
 
 /** Minimal HTML escaper — used only for the error messages above. */
@@ -178,6 +255,42 @@ function mountPricingChart(data) {
 }
 
 /**
+ * Mount the freshness badge (Phase 2e). The data-loader strips `_meta`
+ * from the loaded payload (intentional, to keep the boot payload clean),
+ * so we re-fetch `data/models.json` once just to read the `_meta.lastSynced`
+ * stamp. The Phase 3 data-sync service will own this properly; for now a
+ * direct fetch is acceptable because the badge is purely informational.
+ *
+ * @param {Object} data - composed payload from data-loader (currently unused)
+ */
+function mountFreshnessBadge(data) {
+  const mount = document.getElementById('freshness-mount');
+  if (!mount) {
+    console.warn('js/app.js: #freshness-mount not found in DOM — skipping freshness-badge render');
+    return;
+  }
+  const onRefresh = () => {
+    // Phase 2e: placeholder. Real dataSync.refresh() wires in Phase 3.
+    console.log('js/app.js: refresh clicked (Phase 3 wiring pending)');
+  };
+  // Fetch the raw models.json (re-uses sessionStorage cache transparently).
+  fetch('data/models.json')
+    .then((r) => (r.ok ? r.json() : null))
+    .then((raw) => {
+      const meta = (raw && raw._meta) || { lastSynced: new Date().toISOString().slice(0, 10) };
+      const summary = renderFreshnessBadge(mount, meta, { onRefresh });
+      console.log(
+        `js/app.js: freshness-badge rendered (${summary.daysOld}d old, warning=${summary.warning})`
+      );
+    })
+    .catch((err) => {
+      console.error('js/app.js: freshness-badge meta fetch failed', err);
+      // Fallback: render with today's date so the badge still appears.
+      renderFreshnessBadge(mount, { lastSynced: new Date().toISOString().slice(0, 10) }, { onRefresh });
+    });
+}
+
+/**
  * Top-level orchestrator — load data once, mount all sections.
  * @returns {Promise<void>}
  */
@@ -188,6 +301,7 @@ async function bootAll() {
     mountConfigSelector(data);
     mountCompositeChart(data);
     mountPricingChart(data);
+    mountFreshnessBadge(data);
   } catch (err) {
     console.error('js/app.js: data load failed', err);
   }
