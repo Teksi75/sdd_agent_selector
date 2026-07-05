@@ -1,4 +1,22 @@
 <!DOCTYPE html>
+<!--
+  SDD Agent Selector V4
+  ============================================================================
+  Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
+
+  V3 visual reference (do NOT modify during V4 development):
+    v3-monolith-backup.html
+  This file is the verbatim copy of the V3 monolith — used for regression
+  visual diffs and as the canonical transcription source for data/*.json.
+  SHA256: 8A89DE6C262ED3D1B7EB3DBFAB95E43FA1B6CAD87DFD088DE0C678D5AAB26FBD
+  The V3 source lives at ../SDD/Modelos SDD - V3 - Lucide.html.
+
+  Pipeline (Phase 1):
+    data/*.json → js/services/data-loader.js (fetch + sessionStorage cache)
+                → js/services/model-scorer.js (pure scoring + selection)
+                → js/components/ref-table.js (pilot section, this PR)
+                → js/app.js (bootstrap)
+-->
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -16,8 +34,19 @@
 </head>
 <body class="bg-surface text-on-surface">
   <div id="app">
-    <!-- Bootstrap de la app: js/app.js monta el shell acá.
-         Estructura detallada en openspec/changes/2026-07-04-sdd-model-picker-refactor/design.md -->
+    <!-- Phase 1 pilot section — ref-table.
+         The mount div is intentionally placed in <main> so the rest of the
+         page can grow around it without the ref-table re-locating. -->
+    <main class="mx-auto max-w-6xl px-6 py-8 space-y-6">
+      <header class="space-y-1">
+        <h1 class="text-2xl font-bold text-slate-100">SDD Agent Selector V4 — Ref-Table (Phase 1 pilot)</h1>
+        <p class="text-sm text-slate-400">
+          Tabla de modelos activos, ordenada por score compuesto. Modelos de referencia (tier=reference) se excluyen.
+          Fuente de verdad visual: <code class="text-xs">v3-monolith-backup.html</code>.
+        </p>
+      </header>
+      <section id="ref-table-mount" aria-label="Tabla de modelos activos"></section>
+    </main>
     <noscript>
       <p>Esta app necesita JavaScript habilitado para funcionar.</p>
     </noscript>

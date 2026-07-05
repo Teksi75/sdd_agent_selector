@@ -1,0 +1,82 @@
+{
+  "_meta": {
+    "lastSynced": "2026-07-04",
+    "source": "manual-spec-definition",
+    "schemaVersion": 1,
+    "notes": "Asymmetric profiles for read-only reviewers (inputTokens >= 3x outputTokens). Short profiles for archival/init. Large profiles for code-execution agents."
+  },
+  "profiles": {
+    "gentle-orchestrator": {
+      "inputTokens": 4000,
+      "outputTokens": 2000
+    },
+    "sdd-init": {
+      "inputTokens": 600,
+      "outputTokens": 400
+    },
+    "sdd-explore": {
+      "inputTokens": 2500,
+      "outputTokens": 1200
+    },
+    "sdd-propose": {
+      "inputTokens": 3000,
+      "outputTokens": 2500
+    },
+    "sdd-spec": {
+      "inputTokens": 2500,
+      "outputTokens": 3000
+    },
+    "sdd-design": {
+      "inputTokens": 3500,
+      "outputTokens": 3000
+    },
+    "sdd-tasks": {
+      "inputTokens": 2000,
+      "outputTokens": 2000
+    },
+    "sdd-apply": {
+      "inputTokens": 6000,
+      "outputTokens": 3500
+    },
+    "sdd-verify": {
+      "inputTokens": 3000,
+      "outputTokens": 2000
+    },
+    "sdd-archive": {
+      "inputTokens": 900,
+      "outputTokens": 500
+    },
+    "sdd-onboard": {
+      "inputTokens": 1500,
+      "outputTokens": 1500
+    },
+    "jd-judge-a": {
+      "inputTokens": 5500,
+      "outputTokens": 1200
+    },
+    "jd-judge-b": {
+      "inputTokens": 5500,
+      "outputTokens": 1200
+    },
+    "jd-fix-agent": {
+      "inputTokens": 5500,
+      "outputTokens": 3000
+    },
+    "review-risk": {
+      "inputTokens": 5000,
+      "outputTokens": 1000
+    },
+    "review-readability": {
+      "inputTokens": 4500,
+      "outputTokens": 1200
+    },
+    "review-reliability": {
+      "inputTokens": 5000,
+      "outputTokens": 1100
+    },
+    "review-resilience": {
+      "inputTokens": 5000,
+      "outputTokens": 1100
+    }
+  }
+}

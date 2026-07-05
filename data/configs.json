@@ -1,0 +1,39 @@
+{
+  "_meta": {
+    "lastSynced": "2026-07-04",
+    "source": "manual-spec-definition",
+    "schemaVersion": 1
+  },
+  "configs": [
+    {
+      "key": "economico",
+      "name": "Económico",
+      "description": "Reduce costRatio por 50% — selección restrictiva por precio.",
+      "strategy": "min-cost"
+    },
+    {
+      "key": "balanceado",
+      "name": "Balanceado",
+      "description": "Usa la matriz de roles sin modificadores — punto de partida recomendado.",
+      "strategy": "balanced"
+    },
+    {
+      "key": "maximo",
+      "name": "Máxima calidad",
+      "description": "Suma +10 al minReasoning de cada rol — restricción por razonamiento.",
+      "strategy": "max-quality"
+    },
+    {
+      "key": "hibrido",
+      "name": "Híbrido (tier-based)",
+      "description": "Filtra por tier esperado por rol: high/reference para orquestación, balanced para apply/spec, budget para archive.",
+      "strategy": "tier-based"
+    },
+    {
+      "key": "experimental",
+      "name": "Experimental",
+      "description": "Como maximo pero incluye modelos nuevos (isNew: true). Útil para validar alternativas recientes.",
+      "strategy": "experimental"
+    }
+  ]
+}

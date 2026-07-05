@@ -1,0 +1,217 @@
+{
+  "_meta": {
+    "lastSynced": "2026-07-04",
+    "source": "manual-import-v3",
+    "nextSync": "2026-07-09",
+    "schemaVersion": 1
+  },
+  "models": {
+    "glm52": {
+      "name": "GLM-5.2",
+      "arena": 1595,
+      "swePro": 62.1,
+      "sweVer": 77.8,
+      "term": 81.0,
+      "input": 1.40,
+      "output": 4.40,
+      "cacheRead": 0.26,
+      "tier": "high",
+      "isNew": true,
+      "notes": "MIT, 1M ctx, #2 Arena WebDev, #1 long-horizon open",
+      "sources": [
+        { "url": "https://huggingface.co/blog/zai-org/glm-52-blog", "date": "2026-07-04" }
+      ]
+    },
+    "qwen37max": {
+      "name": "Qwen3.7 Max",
+      "arena": 1680,
+      "swePro": 60.6,
+      "sweVer": 80.4,
+      "term": 69.7,
+      "input": 2.50,
+      "output": 7.50,
+      "cacheRead": 0.50,
+      "tier": "high"
+    },
+    "glm51": {
+      "name": "GLM-5.1",
+      "arena": 1532,
+      "swePro": 58.4,
+      "sweVer": null,
+      "term": 63.5,
+      "input": 1.40,
+      "output": 4.40,
+      "cacheRead": 0.26,
+      "tier": "high"
+    },
+    "minimaxm3": {
+      "name": "MiniMax M3",
+      "arena": 1521,
+      "swePro": 59.0,
+      "sweVer": 80.5,
+      "term": 65.0,
+      "input": 0.30,
+      "output": 1.20,
+      "cacheRead": 0.06,
+      "tier": "balanced"
+    },
+    "kimik27c": {
+      "name": "Kimi K2.7 Code",
+      "arena": null,
+      "swePro": null,
+      "sweVer": 60.4,
+      "term": null,
+      "input": 0.95,
+      "output": 4.00,
+      "cacheRead": 0.19,
+      "tier": "balanced",
+      "isNew": true,
+      "notes": "30% menos tokens, 12 jun 2026"
+    },
+    "kimik25": {
+      "name": "Kimi K2.5",
+      "arena": 1515,
+      "swePro": null,
+      "sweVer": 80.2,
+      "term": null,
+      "input": 0.60,
+      "output": 3.00,
+      "cacheRead": 0.16,
+      "tier": "balanced"
+    },
+    "kimik26": {
+      "name": "Kimi K2.6",
+      "arena": null,
+      "swePro": 58.6,
+      "sweVer": 80.2,
+      "term": 66.7,
+      "input": 0.95,
+      "output": 4.00,
+      "cacheRead": 0.16,
+      "tier": "balanced"
+    },
+    "deepseekv4p": {
+      "name": "DeepSeek V4 Pro",
+      "arena": 1462,
+      "swePro": 55.4,
+      "sweVer": 80.6,
+      "term": 67.9,
+      "input": 1.74,
+      "output": 3.48,
+      "cacheRead": 0.0145,
+      "tier": "high"
+    },
+    "mimo25pro": {
+      "name": "MiMo V2.5 Pro",
+      "arena": 1468,
+      "swePro": 57.2,
+      "sweVer": 78.9,
+      "term": 68.4,
+      "input": 1.74,
+      "output": 3.48,
+      "cacheRead": 0.0145,
+      "tier": "high"
+    },
+    "qwen37plus": {
+      "name": "Qwen3.7 Plus",
+      "arena": null,
+      "swePro": null,
+      "sweVer": null,
+      "term": null,
+      "input": 0.40,
+      "output": 1.60,
+      "cacheRead": 0.04,
+      "tier": "balanced"
+    },
+    "qwen36plus": {
+      "name": "Qwen3.6 Plus",
+      "arena": 1464,
+      "swePro": null,
+      "sweVer": 78.8,
+      "term": null,
+      "input": 0.50,
+      "output": 3.00,
+      "cacheRead": 0.05,
+      "tier": "balanced"
+    },
+    "minimaxm27": {
+      "name": "MiniMax M2.7",
+      "arena": 1395,
+      "swePro": null,
+      "sweVer": null,
+      "term": null,
+      "input": 0.30,
+      "output": 1.20,
+      "cacheRead": 0.06,
+      "tier": "budget"
+    },
+    "mimo25": {
+      "name": "MiMo V2.5",
+      "arena": 1435,
+      "swePro": null,
+      "sweVer": null,
+      "term": null,
+      "input": 0.14,
+      "output": 0.28,
+      "cacheRead": 0.0028,
+      "tier": "budget"
+    },
+    "minimaxm25": {
+      "name": "MiniMax M2.5",
+      "arena": null,
+      "swePro": null,
+      "sweVer": 80.2,
+      "term": null,
+      "input": 0.30,
+      "output": 1.20,
+      "cacheRead": 0.06,
+      "tier": "budget"
+    },
+    "deepseekv4f": {
+      "name": "DeepSeek V4 Flash",
+      "arena": null,
+      "swePro": null,
+      "sweVer": 79.0,
+      "term": null,
+      "input": 0.14,
+      "output": 0.28,
+      "cacheRead": 0.0028,
+      "tier": "budget"
+    },
+    "glm5": {
+      "name": "GLM-5",
+      "arena": null,
+      "swePro": null,
+      "sweVer": 77.8,
+      "term": null,
+      "input": 1.00,
+      "output": 3.20,
+      "tier": "budget"
+    },
+    "opus48": {
+      "name": "Claude Opus 4.8",
+      "arena": 1567,
+      "swePro": 69.2,
+      "sweVer": 88.6,
+      "term": 85.0,
+      "input": 5.00,
+      "output": 25.00,
+      "tier": "reference",
+      "isReference": true,
+      "notes": "Anthropic flagship, 28 may 2026. No en Go."
+    },
+    "gpt55": {
+      "name": "GPT-5.5",
+      "arena": 2123,
+      "swePro": 58.6,
+      "sweVer": 83.4,
+      "term": 84.0,
+      "input": 5.00,
+      "output": 30.00,
+      "cacheRead": 0.50,
+      "tier": "reference",
+      "isReference": true,
+      "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
+    }
+  }
+}
