@@ -1,0 +1,78 @@
+/* css/tokens.css
+ * V4 SDD Agent Selector — design tokens + Tailwind layers + V3 custom classes.
+ *
+ * Build (Phase 4): tailwindcss CLI compiles this file (scanning index.html
+ * + js/**) into a single minified CSS that esbuild.config.js then inlines
+ * into dist/index.html.
+ *
+ * Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
+ *                   design.md (Phase 4 — Build & Deploy)
+ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-surface: #020617;
+  --color-surface-elevated: #0f172a;
+  --color-on-surface: #e2e8f0;
+  --color-on-surface-muted: #94a3b8;
+  --color-border: #1e293b;
+  --color-accent: #6366f1;
+  --color-accent-hover: #818cf8;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Tag tier tokens (consumed via getComputedStyle('--tag-X-bg')) */
+  --tag-optimal-bg: rgba(16, 185, 129, 0.15);
+  --tag-optimal-fg: #6ee7b7;
+  --tag-optimal-border: rgba(16, 185, 129, 0.25);
+  --tag-balanced-bg: rgba(99, 102, 241, 0.15);
+  --tag-balanced-fg: #c4b5fd;
+  --tag-balanced-border: rgba(99, 102, 241, 0.25);
+  --tag-max-bg: rgba(245, 158, 11, 0.15);
+  --tag-max-fg: #fcd34d;
+  --tag-max-border: rgba(245, 158, 11, 0.25);
+
+  /* Chart tier tokens (consumed via getComputedStyle('--X-tier-Y')) */
+  --pricing-tier-high: #6ee7b7;
+  --pricing-tier-balanced: #a5b4fc;
+  --pricing-tier-budget: #fbbf24;
+  --composite-tier-high: #6ee7b7;
+  --composite-tier-balanced: #a5b4fc;
+  --composite-tier-budget: #fbbf24;
+}
+
+/* V3 visual-parity classes — DO NOT MODIFY without re-running the
+   visual-diff in Phase 5 (tasks.md 5.4). Transcribed verbatim from
+   v3-monolith-backup.html lines 9-35. */
+*{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.gradient-text{background:linear-gradient(120deg,#a855f7,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent}
+.config-btn{transition:all .2s ease;border:2px solid transparent}
+.config-btn:hover{transform:translateY(-1px)}
+.config-btn.active{border-color:currentColor;box-shadow:0 0 20px -5px currentColor}
+.workflow-row{transition:all .25s ease;opacity:0;transform:translateY(8px)}
+.workflow-row.visible{opacity:1;transform:translateY(0)}
+.bar-track{background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+.scroll-fade{mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent)}
+.export-btn{transition:all .15s ease}
+.export-btn:hover{background:rgba(255,255,255,0.1)}
+.src-badge{font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap}
+.src-arena{background:rgba(16,185,129,0.15);color:#6ee7b7}
+.src-swe{background:rgba(99,102,241,0.15);color:#a5b4fc}
+.src-term{background:rgba(236,72,153,0.15);color:#f9a8d4}
+.src-none{background:rgba(148,163,184,0.1);color:#94a3b8;font-style:italic}
+.src-new{background:rgba(168,85,247,0.18);color:#d8b4fe;font-weight:600}
+.cost-rank{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600}
+.rank-1{background:rgba(16,185,129,0.15);color:#6ee7b7}
+.rank-2{background:rgba(99,102,241,0.12);color:#a5b4fc}
+.rank-3{background:rgba(245,158,11,0.1);color:#fbbf24}
+
+/* Tag tiers — semantic shortcuts for workflow-table / pricing-chart /
+   composite-chart. JS reads these via getComputedStyle('--tag-X-bg'). */
+.tag-optimal{background:var(--tag-optimal-bg);color:var(--tag-optimal-fg);border:1px solid var(--tag-optimal-border)}
+.tag-balanced{background:var(--tag-balanced-bg);color:var(--tag-balanced-fg);border:1px solid var(--tag-balanced-border)}
+.tag-max{background:var(--tag-max-bg);color:var(--tag-max-fg);border:1px solid var(--tag-max-border)}

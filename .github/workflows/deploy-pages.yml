@@ -1,0 +1,122 @@
+# .github/workflows/deploy-pages.yml
+# ============================================================================
+# Phase 4 — Deploy the self-contained dist/index.html to GitHub Pages on push
+# to main.
+#
+# Triggers:
+#   - push to main:    deploy the latest build
+#   - workflow_dispatch: manual re-deploy (useful if the Pages service had a
+#                        hiccup or you want to re-publish a previous main)
+#
+# Build pipeline (mirrors `pnpm run build` locally):
+#   1. Setup Node 20 + pnpm 9.
+#   2. pnpm install — fetches esbuild, tailwindcss, vitest, jsdom.
+#   3. pnpm run build — produces dist/index.html (single self-contained file
+#      with CSS + JS inlined, no runtime CDN).
+#   4. actions/upload-pages-artifact@v3 — bundles dist/ for the deploy job.
+#   5. actions/deploy-pages@v4 — publishes to the GitHub Pages CDN.
+#
+# Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
+#                   tasks.md 4.5-4.7 + design.md (Phase 4 — Build & Deploy)
+
+name: deploy-pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Only one deploy at a time — kill any in-flight redeploy to avoid wasted CI
+# minutes when pushes land in quick succession.
+concurrency:
+  group: deploy-pages
+  cancel-in-progress: true
+
+# Required for actions/deploy-pages@v4 and the GitHub Pages deployment API.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't keep a stale deploy alive when this branch is deleted.
+if: github.event_name != 'pull_request'
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm 9
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+          run_install: false
+
+      - name: Get pnpm store directory
+        id: store-path
+        run: |
+          echo "store-path=$(pnpm config get store-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.store-path.outputs.store-path }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build (esbuild + tailwindcss -> dist/index.html)
+        run: pnpm run build
+
+      - name: Verify dist/index.html exists
+        run: |
+          test -f dist/index.html || (echo "dist/index.html missing" && exit 1)
+          ls -la dist/
+
+      - name: Verify dist/index.html is CDN-free at runtime
+        run: |
+          # The build already enforces this in esbuild.config.js, but the
+          # workflow re-checks as a defense in depth so a config regression
+          # can't ship a broken page.
+          if grep -E '<script[^>]+src=["'"'"']https?:' dist/index.html; then
+            echo "ERROR: dist/index.html contains a remote <script src=...>"
+            exit 1
+          fi
+          if grep -E '<link[^>]+href=["'"'"']https?:' dist/index.html; then
+            echo "ERROR: dist/index.html contains a remote <link href=...>"
+            exit 1
+          fi
+          if grep -E '@import[[:space:]]+url\(["'"'"']?https?:' dist/index.html; then
+            echo "ERROR: dist/index.html contains @import url(https://...)"
+            exit 1
+          fi
+          echo "CDN-free check passed."
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
