@@ -9,7 +9,7 @@ Refactor modular del selector de modelos SDD — monolito V3 → módulos V4 con
 - **Tests:** vitest ^1.0 + jsdom ^24
 - **CSS:** Tailwind 3.4 + `css/tokens.css` (custom CSS variables sobre Tailwind)
 - **Lenguaje UI:** español rioplatense ("vos", "hiciste", "querés")
-- **Distribución:** HTML self-contained via esbuild bundle
+- **Distribución:** HTML self-contained via esbuild bundle + GitHub Pages
 - **Branch:** `main`
 
 ## Desarrollo local
@@ -24,7 +24,7 @@ pnpm install
 # Correr los tests
 pnpm test
 
-# Build de producción (placeholder por ahora, full build en Phase 4)
+# Build de producción — produce dist/index.html (CSS+JS inlined, sin CDN)
 pnpm run build
 
 # Watch mode (rebuild automático al editar js/app.js)
@@ -37,15 +37,20 @@ Requisitos: Node.js >= 18 (recomendado 20 LTS), pnpm >= 8.
 
 ```
 sdd_agent_selector/
-├─ index.html              # Shell HTML — Phase 4 va a bundlearlo con Tailwind offline
+├─ index.html              # Shell HTML — Vite placeholders inlined at build time
 ├─ js/
-│  └─ app.js               # Bootstrap entry (Phase 0 placeholder)
-├─ tests/
-│  └─ boot.test.js         # Vitest smoke test (placeholder Phase 0)
-├─ css/                    # (Phase 1) tokens.css custom
-├─ data/                   # (Phase 1) JSON con catálogo de modelos
-├─ dist/                   # Output de esbuild (gitignored)
+│  ├─ app.js               # Bootstrap entry (Phase 1+)
+│  ├─ components/          # ref-table, config-selector, workflow-table, etc.
+│  └─ services/            # data-loader, model-scorer, data-sync
+├─ tests/                  # Vitest suite (16 files, 129 tests)
+├─ css/tokens.css          # Tailwind layers + V3 custom classes + CSS tokens
+├─ assets/icons/*.svg      # Lucide icon set (~33) — V3 visual-parity, static
+├─ data/                   # JSON con catálogo de modelos, configs, fases, roles
+├─ dist/                   # Output de esbuild (gitignored, single self-contained HTML)
 ├─ coverage/               # Output de vitest --coverage (gitignored)
+├─ .github/workflows/
+│  ├─ sync-benchmarks.yml  # Phase 3 — auto-sync upstream data every 5 days
+│  └─ deploy-pages.yml     # Phase 4 — deploy dist/index.html to GitHub Pages
 ├─ openspec/               # Artefactos SDD — fuente de verdad del refactor
 │  ├─ config.yaml
 │  └─ changes/
@@ -85,7 +90,15 @@ La distribución de la app es via GitHub Pages. **Pablo tiene que habilitarlo ma
 2. En **Source**, elegir **GitHub Actions** (NO "Deploy from a branch")
 3. Guardar
 
-A partir de ahí, cada `git push origin main` que pase CI va a deployar automáticamente a `https://Teksi75.github.io/sdd_agent_selector/`. El workflow de GitHub Actions viene en Phase 4 — por ahora la build de `pnpm run build` solo genera el bundle local.
+A partir de ahí, cada `git push origin main` que pase CI va a deployar automáticamente a `https://Teksi75.github.io/sdd_agent_selector/`. El workflow vive en `.github/workflows/deploy-pages.yml` y ejecuta `pnpm install && pnpm run build` antes de publicar `dist/index.html` (single self-contained file).
+
+Build local equivalente:
+
+```bash
+pnpm install
+pnpm run build           # produce dist/index.html (~56 KB, CSS+JS inlined)
+# Abrir dist/index.html en el browser — totalmente offline (sin CDN runtime)
+```
 
 ## Convenciones
 

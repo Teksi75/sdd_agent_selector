@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "node esbuild.config.js --watch",
     "build": "node esbuild.config.js",
+    "css:build": "tailwindcss -i css/tokens.css -o dist/_tailwind.css --minify",
+    "prebuild": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\"",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage"
   },

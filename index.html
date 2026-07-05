@@ -1,21 +1,25 @@
 <!DOCTYPE html>
 <!--
-  SDD Agent Selector V4
+  SDD Agent Selector V4 — index.html
   ============================================================================
   Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
 
   V3 visual reference (do NOT modify during V4 development):
     v3-monolith-backup.html
-  This file is the verbatim copy of the V3 monolith — used for regression
-  visual diffs and as the canonical transcription source for data/*.json.
   SHA256: 8A89DE6C262ED3D1B7EB3DBFAB95E43FA1B6CAD87DFD088DE0C678D5AAB26FBD
   The V3 source lives at ../SDD/Modelos SDD - V3 - Lucide.html.
 
-  Pipeline (Phase 1):
-    data/*.json → js/services/data-loader.js (fetch + sessionStorage cache)
-                → js/services/model-scorer.js (pure scoring + selection)
-                → js/components/ref-table.js (pilot section, this PR)
-                → js/app.js (bootstrap)
+  Build pipeline (Phase 4):
+    css/tokens.css  -->  tailwindcss CLI  -->  dist/_tailwind.css (inlined)
+    js/app.js       -->  esbuild bundle   -->  dist/_bundle.js   (inlined)
+    index.html      -->  read & inject    -->  dist/index.html (self-contained)
+
+  Placeholders replaced at build time:
+    <!-- __INLINE_CSS__ -->   replaced with minified style block (tailwind+v3 tokens)
+    <!-- __INLINE_JS__ -->    replaced with minified script block (bundle)
+
+  Runtime is CDN-free — no remote script src, no remote link href, no remote
+  @import url. All assets are bundled into the single HTML.
 -->
 <html lang="es">
 <head>
@@ -24,13 +28,13 @@
   <meta name="description" content="SDD Agent Selector V4 — selector modular de modelos SDD" />
   <title>SDD Agent Selector V4</title>
 
-  <!-- Phase 0: Tailwind CDN como placeholder.
-       Phase 4 va a bundlear Tailwind offline vía esbuild + PostCSS.
-       Fuente de verdad: openspec/changes/2026-07-04-sdd-model-picker-refactor/ -->
-  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Tailwind + design tokens inlined by the build (Phase 4). -->
+  <!-- __INLINE_CSS__ -->
 
-  <!-- Placeholder para tokens.css (Phase 1):
-       <link rel="stylesheet" href="css/tokens.css" /> -->
+  <!-- Lucide icon set (~33 SVGs) lives in assets/icons/*.svg and is wired into
+       V4 components that opt to render icons. V3 used <i data-lucide="...">
+       via the runtime CDN; V4 keeps icons as static SVG assets so the page
+       remains CDN-free at runtime. -->
 </head>
 <body class="bg-surface text-on-surface">
   <div id="app">
@@ -55,6 +59,7 @@
     </noscript>
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <!-- Bundled app code inlined by the build (Phase 4). -->
+  <!-- __INLINE_JS__ -->
 </body>
 </html>
