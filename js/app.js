@@ -24,6 +24,7 @@ import {
   setData as setSelectorData,
 } from './components/config-selector.js';
 import { render as renderWorkflowTable } from './components/workflow-table.js';
+import { render as renderCompositeChart } from './components/composite-chart.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -128,7 +129,30 @@ function escapeHtml(s) {
 }
 
 /**
- * Top-level orchestrator — load data once, mount both sections.
+ * Mount the composite-score bar chart (Phase 2c). Pure render — does not
+ * depend on the active config, so it runs once after data load.
+ *
+ * @param {Object} data
+ */
+function mountCompositeChart(data) {
+  const mount = document.getElementById('composite-chart-mount');
+  if (!mount) {
+    console.warn('js/app.js: #composite-chart-mount not found in DOM — skipping composite-chart render');
+    return;
+  }
+  try {
+    const summary = renderCompositeChart(mount, data.models);
+    console.log(
+      `js/app.js: composite-chart rendered ${summary.bars} bar(s), maxScore=${summary.maxScore?.toFixed?.(2) ?? 'n/a'}`
+    );
+  } catch (err) {
+    console.error('js/app.js: composite-chart mount failed', err);
+    mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando composite-chart — revisá la consola.</div>`;
+  }
+}
+
+/**
+ * Top-level orchestrator — load data once, mount all sections.
  * @returns {Promise<void>}
  */
 async function bootAll() {
@@ -136,6 +160,7 @@ async function bootAll() {
     const data = await loadAll();
     mountRefTable(data);
     mountConfigSelector(data);
+    mountCompositeChart(data);
   } catch (err) {
     console.error('js/app.js: data load failed', err);
   }
