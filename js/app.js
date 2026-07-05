@@ -82,6 +82,14 @@ function makeWorkflowRenderer(data) {
  * The onSelect callback re-renders the workflow-table with the 9-phase
  * subset of the 18-agent assignment set.
  *
+ * ID convention bridge: `data/phases.json` carries bare IDs (init,
+ * explore, propose, ...), but the assignments object returned by
+ * config-selector is keyed by agent IDs (sdd-init, sdd-explore, ...).
+ * We bridge the two by (1) filtering the 18-agent assignment set to
+ * the 9 SDD phase agents via the `sdd-` prefix, then (2) renaming
+ * each key back to its bare phase id so the workflow-table component
+ * stays decoupled from the agent-id naming convention.
+ *
  * @param {Object} data
  */
 function mountConfigSelector(data) {
@@ -94,15 +102,17 @@ function mountConfigSelector(data) {
   try {
     setSelectorData({ models: data.models, roleMatrix: data.roles, profiles: data.profiles });
     renderConfigSelector(mount, data.configs, (assignments) => {
-      const phaseIds = new Set((data.phases || []).map((p) => p.id));
       const phaseAssignments = {};
-      for (const [agent, a] of Object.entries(assignments || {})) {
-        if (phaseIds.has(agent)) phaseAssignments[agent] = a;
+      for (const phase of data.phases || []) {
+        const agentId = `sdd-${phase.id}`;
+        if (assignments && assignments[agentId]) {
+          phaseAssignments[phase.id] = assignments[agentId];
+        }
       }
       renderWorkflow(phaseAssignments);
       const assigned = Object.values(phaseAssignments).filter((a) => a && a.key).length;
       console.log(
-        `js/app.js: config selected — ${assigned}/${phaseIds.size} phase row(s) assigned`
+        `js/app.js: config selected — ${assigned}/${(data.phases || []).length} phase row(s) assigned`
       );
     });
     console.log(`js/app.js: config-selector rendered ${data.configs.length} button(s)`);

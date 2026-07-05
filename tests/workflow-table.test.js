@@ -2,6 +2,12 @@
 // Phase 2b — workflow-table TDD. jsdom + read data/*.json from disk.
 // Asserts the 9-row contract from spec.md "UI Component - Workflow Table".
 //
+// Note on ID conventions (matters for the wiring in js/app.js):
+//   data/phases.json    -> phase.id is bare ('init', 'explore', ...)
+//   data/agent-roles.json -> keys are agent IDs ('sdd-init', 'sdd-explore', ...)
+//   getBestFor returns an object keyed by AGENT id, so we call it with
+//   'sdd-' + phase.id — same shape the production wiring produces.
+//
 // Imports declared at the bottom so the test file reads top-down.
 
 import { describe, test, expect, beforeEach } from 'vitest';
@@ -39,13 +45,18 @@ describe('workflow-table — 9-row contract (spec.md)', () => {
     ({ render, resetForTests } = await import('../js/components/workflow-table.js'));
     resetForTests();
 
-    // Compute assignments for the 9 core SDD phases using the
-    // balanced strategy (matches how config-selector wires it).
+    // Mirror the production wiring: getBestFor is called per AGENT
+    // (sdd-init, sdd-explore, ...), so the assignments object is
+    // keyed by agent id, NOT by bare phase id. The wiring in
+    // js/app.js translates between the two conventions before
+    // handing the subset to render(). Here we exercise that same
+    // translation so the table renders real model assignments.
     const { getBestFor } = await import('../js/services/model-scorer.js');
     const assignments = {};
     for (const phase of PHASES) {
+      const agentId = `sdd-${phase.id}`;
       assignments[phase.id] = getBestFor(
-        phase.id,
+        agentId,
         MODELS,
         ROLE_MATRIX,
         PROFILES,
