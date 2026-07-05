@@ -34,18 +34,37 @@
 </head>
 <body class="bg-surface text-on-surface">
   <div id="app">
-    <!-- Phase 1 pilot section — ref-table.
-         The mount div is intentionally placed in <main> so the rest of the
-         page can grow around it without the ref-table re-locating. -->
     <main class="mx-auto max-w-6xl px-6 py-8 space-y-6">
       <header class="space-y-1">
-        <h1 class="text-2xl font-bold text-slate-100">SDD Agent Selector V4 — Ref-Table (Phase 1 pilot)</h1>
+        <h1 class="text-2xl font-bold text-slate-100">SDD Agent Selector V4</h1>
         <p class="text-sm text-slate-400">
-          Tabla de modelos activos, ordenada por score compuesto. Modelos de referencia (tier=reference) se excluyen.
-          Fuente de verdad visual: <code class="text-xs">v3-monolith-backup.html</code>.
+          Selector modular de modelos SDD. Fuente de verdad: <code class="text-xs">openspec/changes/2026-07-04-sdd-model-picker-refactor/</code>.
+          V3 visual: <code class="text-xs">v3-monolith-backup.html</code>.
         </p>
       </header>
-      <section id="ref-table-mount" aria-label="Tabla de modelos activos"></section>
+
+      <!-- Phase 2a — config-selector (5 strategy presets with twin judge validation). -->
+      <section aria-label="Configuración de presets" class="space-y-2">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">
+          Configuración
+        </h2>
+        <div id="config-mount"></div>
+        <p class="text-xs text-slate-500">
+          Seleccioná un preset para recalcular los assignments de los 18 agentes.
+          Los <code class="text-xs">jd-judge-a</code> y <code class="text-xs">jd-judge-b</code>
+          deben resolver al mismo modelo (twin judge constraint).
+        </p>
+      </section>
+
+      <!-- Phase 1 pilot section — ref-table.
+           The mount div is intentionally placed AFTER the config-selector so
+           it's the last rendered region (still in <main> for layout consistency). -->
+      <section aria-label="Tabla de modelos activos" class="space-y-2">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-300">
+          Modelos activos
+        </h2>
+        <div id="ref-table-mount"></div>
+      </section>
     </main>
     <noscript>
       <p>Esta app necesita JavaScript habilitado para funcionar.</p>
