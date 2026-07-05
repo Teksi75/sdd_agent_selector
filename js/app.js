@@ -33,6 +33,7 @@ import { render as renderPricingChart } from './components/pricing-chart.js';
 import { render as renderCliMirrorTable } from './components/cli-mirror-table.js';
 import { render as renderFreshnessBadge } from './components/freshness-badge.js';
 import { render as renderJustificationUI } from './components/justification-ui.js';
+import { refresh as dataSyncRefresh, isStale } from './services/data-sync.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -100,40 +101,107 @@ function makeWorkflowRenderer(data) {
  * each key back to its bare phase id so the workflow-table component
  * stays decoupled from the agent-id naming convention.
  *
+ * Returns a `reRender(freshData?)` function so the data-sync refresh
+ * path can re-validate the active config without forcing the user to
+ * re-click the button.
+ *
  * @param {Object} data
+ * @returns {(freshData?: Object) => void} reRender — re-renders with the
+ *   current active config. `freshData` (optional) updates the data
+ *   layer before re-rendering.
  */
 function mountConfigSelector(data) {
   const mount = document.getElementById('config-mount');
   if (!mount) {
     console.warn('js/app.js: #config-mount not found in DOM — skipping config-selector render');
-    return;
+    return () => {};
   }
+  let activeKey = null;
   const renderWorkflow = makeWorkflowRenderer(data);
   const renderCliMirror = makeCliMirrorRenderer(data);
   const renderJustification = makeJustificationRenderer(data);
+
+  /**
+   * Bridge assignments → render the three downstream sections.
+   * Pulled out so the revalidate path can call it without re-doing the
+   * ID-convention dance.
+   *
+   * @param {Object} assignments - keyed by agent id (sdd-init, jd-judge-a, ...)
+   */
+  function renderDownstream(assignments) {
+    const phaseAssignments = {};
+    for (const phase of data.phases || []) {
+      const agentId = `sdd-${phase.id}`;
+      if (assignments && assignments[agentId]) {
+        phaseAssignments[phase.id] = assignments[agentId];
+      }
+    }
+    renderWorkflow(phaseAssignments);
+    renderCliMirror(assignments);
+    renderJustification(assignments);
+    const assigned = Object.values(phaseAssignments).filter((a) => a && a.key).length;
+    console.log(
+      `js/app.js: config revalidated — ${assigned}/${(data.phases || []).length} phase row(s) assigned`
+    );
+  }
+
   try {
     setSelectorData({ models: data.models, roleMatrix: data.roles, profiles: data.profiles });
     renderConfigSelector(mount, data.configs, (assignments) => {
-      const phaseAssignments = {};
-      for (const phase of data.phases || []) {
-        const agentId = `sdd-${phase.id}`;
-        if (assignments && assignments[agentId]) {
-          phaseAssignments[phase.id] = assignments[agentId];
-        }
-      }
-      renderWorkflow(phaseAssignments);
-      renderCliMirror(assignments);
-      renderJustification(assignments);
-      const assigned = Object.values(phaseAssignments).filter((a) => a && a.key).length;
+      // Capture which key produced this assignment set. The config-selector
+      //   module stores _activeKey internally — we mirror it here so the
+      //   reRender path can replay the same key.
+      // The simplest way to know the key: each config button has
+      //   data-config-key; we read it from the .active button. If the
+      //   user hasn't clicked yet (initial paint), skip.
+      const activeBtn = mount.querySelector('button.active[data-config-key]');
+      if (activeBtn) activeKey = activeBtn.dataset.configKey;
+      renderDownstream(assignments);
+      const assigned = Object.keys(assignments || {}).filter(
+        (k) => assignments[k] && assignments[k].key
+      ).length;
       console.log(
-        `js/app.js: config selected — ${assigned}/${(data.phases || []).length} phase row(s) assigned`
+        `js/app.js: config selected (${activeKey}) — ${assigned}/${Object.keys(data.roles || {}).length} agent(s) assigned`
       );
     });
     console.log(`js/app.js: config-selector rendered ${data.configs.length} button(s)`);
   } catch (err) {
     console.error('js/app.js: config-selector mount failed', err);
     mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando config-selector — revisá la consola.</div>`;
+    return () => {};
   }
+
+  /**
+   * Re-render the active config using the current (or fresh) data layer.
+   * Called from data-sync refresh path so the user sees fresh assignments
+   * without having to re-click.
+   *
+   * @param {Object} [freshData] - optional fresh payload from loadAll()
+   * @returns {void}
+   */
+  return function reRender(freshData) {
+    const d = freshData || data;
+    // If freshData is supplied, re-inject it into config-selector so
+    //   getBestFor picks up new prices/benchmarks.
+    if (freshData) {
+      try {
+        setSelectorData({
+          models: d.models,
+          roleMatrix: d.roles,
+          profiles: d.profiles,
+        });
+      } catch (err) {
+        console.warn('js/app.js: reRender setData failed', err);
+        return;
+      }
+    }
+    if (!activeKey) return; // user hasn't picked a config yet
+    const btn = mount.querySelector(`button[data-config-key="${activeKey}"]`);
+    if (btn) {
+      // Trigger the same click handler config-selector wired up.
+      btn.click();
+    }
+  };
 }
 
 /**
@@ -255,53 +323,150 @@ function mountPricingChart(data) {
 }
 
 /**
- * Mount the freshness badge (Phase 2e). The data-loader strips `_meta`
- * from the loaded payload (intentional, to keep the boot payload clean),
- * so we re-fetch `data/models.json` once just to read the `_meta.lastSynced`
- * stamp. The Phase 3 data-sync service will own this properly; for now a
- * direct fetch is acceptable because the badge is purely informational.
+ * Mount the freshness badge (Phase 3 wiring). The data-loader strips
+ * `_meta` from the loaded payload (intentional, to keep the boot payload
+ * clean), so we re-fetch `data/models.json` once just to read the
+ * `_meta.lastSynced` stamp. The badge exposes a manual refresh button
+ * wired to `dataSync.refresh()`; after a successful refresh we re-validate
+ * the active config and re-render the justification-ui (in case the
+ * reference model price changed and the cost ceilings shifted).
  *
- * @param {Object} data - composed payload from data-loader (currently unused)
+ * Forced-refresh on boot: if the cached meta is stale (>7 days), we run
+ * ONE refresh attempt per session so the user sees fresh data without
+ * having to click the button. Failures are silent (console.warn only)
+ * — the cached data stays usable.
+ *
+ * @param {Object} data - composed payload from data-loader
+ * @param {() => void} [revalidate] - callback to re-run selectConfig with
+ *   the currently active key (so justification + workflow re-render after
+ *   a refresh). Wired by bootAll.
  */
-function mountFreshnessBadge(data) {
+function mountFreshnessBadge(data, revalidate) {
   const mount = document.getElementById('freshness-mount');
   if (!mount) {
     console.warn('js/app.js: #freshness-mount not found in DOM — skipping freshness-badge render');
     return;
   }
-  const onRefresh = () => {
-    // Phase 2e: placeholder. Real dataSync.refresh() wires in Phase 3.
-    console.log('js/app.js: refresh clicked (Phase 3 wiring pending)');
-  };
-  // Fetch the raw models.json (re-uses sessionStorage cache transparently).
-  fetch('data/models.json')
-    .then((r) => (r.ok ? r.json() : null))
-    .then((raw) => {
-      const meta = (raw && raw._meta) || { lastSynced: new Date().toISOString().slice(0, 10) };
-      const summary = renderFreshnessBadge(mount, meta, { onRefresh });
+
+  /**
+   * Pull `lastSynced` from a raw models.json payload (the data-loader
+   * strips `_meta` from the cached payload, so we need the raw form).
+   *
+   * @param {Object|null} raw
+   * @returns {{lastSynced: string}}
+   */
+  function metaFromRaw(raw) {
+    if (raw && raw._meta && typeof raw._meta.lastSynced === 'string') {
+      return { lastSynced: raw._meta.lastSynced };
+    }
+    return { lastSynced: new Date().toISOString().slice(0, 10) };
+  }
+
+  /**
+   * Fetch the raw models.json from disk (NOT the data-sync upstream URL).
+   * This is local and synchronous-with-cache; used purely to read the
+   * `_meta` block.
+   *
+   * @returns {Promise<Object|null>}
+   */
+  async function fetchRawMeta() {
+    try {
+      const r = await fetch('data/models.json');
+      if (!r.ok) return null;
+      return await r.json();
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Re-render the badge after a state change (manual refresh or
+   * forced-refresh). Pulls `_meta` from the freshest available source.
+   */
+  async function repaintBadge() {
+    const raw = await fetchRawMeta();
+    const meta = metaFromRaw(raw);
+    renderFreshnessBadge(mount, meta, { onRefresh: handleRefreshClick });
+  }
+
+  /**
+   * Click handler for the refresh button. Delegates to data-sync.
+   * On success: repaint the badge + invoke the parent's revalidate
+   * callback so the workflow + justification re-render with the
+   * freshest data (e.g., if the reference model price changed and the
+   * cost ceilings shifted).
+   */
+  async function handleRefreshClick() {
+    console.log('js/app.js: refresh clicked — calling dataSync.refresh()');
+    const result = await dataSyncRefresh();
+    if (result.ok) {
+      console.log(`js/app.js: dataSync.refresh() OK — ${result.files} files updated`);
+      try {
+        const fresh = await loadAll();
+        // Re-inject the fresh data into the selectors so getBestFor uses the
+        //   new prices/benchmarks.
+        setSelectorData({ models: fresh.models, roleMatrix: fresh.roles, profiles: fresh.profiles });
+        if (typeof revalidate === 'function') revalidate(fresh);
+      } catch (err) {
+        console.warn('js/app.js: re-load after refresh failed', err);
+      }
+    } else {
+      console.warn(`js/app.js: dataSync.refresh() failed (${result.error}) — keeping cached data`);
+    }
+    await repaintBadge();
+  }
+
+  // First paint of the badge. Then, if the meta is stale, fire ONE
+  // forced refresh per session.
+  (async () => {
+    const raw = await fetchRawMeta();
+    const meta = metaFromRaw(raw);
+    renderFreshnessBadge(mount, meta, { onRefresh: handleRefreshClick });
+    console.log(
+      `js/app.js: freshness-badge rendered (lastSynced=${meta.lastSynced})`
+    );
+
+    if (isStale(meta, 7)) {
       console.log(
-        `js/app.js: freshness-badge rendered (${summary.daysOld}d old, warning=${summary.warning})`
+        `js/app.js: data is stale — forcing one refresh per session (lastSynced=${meta.lastSynced})`
       );
-    })
-    .catch((err) => {
-      console.error('js/app.js: freshness-badge meta fetch failed', err);
-      // Fallback: render with today's date so the badge still appears.
-      renderFreshnessBadge(mount, { lastSynced: new Date().toISOString().slice(0, 10) }, { onRefresh });
-    });
+      // Fire-and-forget; the handleRefreshClick path is reused so the
+      //   repaint + revalidate happen automatically on success.
+      handleRefreshClick().catch((err) => {
+        console.warn('js/app.js: forced refresh threw', err);
+      });
+    }
+  })();
 }
 
 /**
  * Top-level orchestrator — load data once, mount all sections.
+ *
+ * Phase 3 wiring: mountConfigSelector returns a `reRender()` function
+ * (the active selectConfig + onSelect chain) so the freshness-badge
+ * forced-refresh path can re-validate the active config and re-render
+ * workflow + cli-mirror + justification without forcing the user to
+ * re-click the config button.
+ *
  * @returns {Promise<void>}
  */
 async function bootAll() {
   try {
     const data = await loadAll();
+    const reRender = mountConfigSelector(data);
+    const revalidate = (freshData) => {
+      if (typeof reRender === 'function') {
+        try {
+          reRender(freshData);
+        } catch (err) {
+          console.warn('js/app.js: revalidate after refresh failed', err);
+        }
+      }
+    };
     mountRefTable(data);
-    mountConfigSelector(data);
     mountCompositeChart(data);
     mountPricingChart(data);
-    mountFreshnessBadge(data);
+    mountFreshnessBadge(data, revalidate);
   } catch (err) {
     console.error('js/app.js: data load failed', err);
   }
