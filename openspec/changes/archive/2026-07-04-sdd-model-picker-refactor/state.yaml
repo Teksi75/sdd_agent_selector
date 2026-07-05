@@ -1,12 +1,13 @@
 change: sdd-model-picker-refactor
 created: 2026-07-04
-status: ready-for-apply
+archived: 2026-07-05
+status: archived
 artifactStore: openspec
 
 phases:
   proposal:
     status: success
-    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/proposal.md
+    artifact: openspec/changes/archive/2026-07-04-sdd-model-picker-refactor/proposal.md
     started: 2026-07-04
     completed: 2026-07-04
     revision_note: |
@@ -14,16 +15,18 @@ phases:
       constraint, justification UI, and 5 strategy configs.
   specs:
     status: success
-    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/specs/model-picker/spec.md
+    artifact: openspec/specs/model-picker/spec.md
     started: 2026-07-04
     completed: 2026-07-04
+    archived_to: openspec/specs/model-picker/spec.md
     revision_note: |
       Rewritten 2026-07-04: expanded from 10 to 18 agents, added
       Agent Roles, Agent Request Profiles, Twin Judge Constraint,
       Justification UI requirements. 18 total requirements.
+      Archived 2026-07-05: spec merged to openspec/specs/model-picker/spec.md.
   design:
     status: success
-    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/design.md
+    artifact: openspec/changes/archive/2026-07-04-sdd-model-picker-refactor/design.md
     started: 2026-07-04
     completed: 2026-07-04
     revision_note: |
@@ -32,7 +35,7 @@ phases:
       justification UI integration. 8 resolved open questions.
   tasks:
     status: success
-    artifact: openspec/changes/2026-07-04-sdd-model-picker-refactor/tasks.md
+    artifact: openspec/changes/archive/2026-07-04-sdd-model-picker-refactor/tasks.md
     started: 2026-07-04
     completed: 2026-07-04
     revision_note: |
@@ -40,34 +43,59 @@ phases:
       Phase 1 expanded to 5 JSON files + 12+ scoring tests.
       Phase 2 added justification-ui and twin-judge test.
   apply:
-    status: pending
-    depends_on: [tasks]
-    blocked_by: [repo-creation]
-    blocked_reasons:
-      - "Teksi75/sdd-model-picker repo not yet created on GitHub"
+    status: success
+    started: 2026-07-04
+    completed: 2026-07-05
+    pr_count: 10
+    final_sha: 067143b86874440a3bb15ee7a5d14744da461d0a
+    base_commit: 836c1be
+    revision_note: |
+      All 10 PRs merged into main (Phase 0-4): tooling foundation,
+      skeleton + pilot, config-selector, workflow-table, composite-chart,
+      pricing-chart, remaining components, auto-sync + 6 scrapers, build
+      + GitHub Pages deploy. Final main commit 067143b (squash-merge of
+      feat/phase-4-build-deploy via PR #10).
   verify:
-    status: pending
-    depends_on: [apply]
+    status: success
+    started: 2026-07-05
+    completed: 2026-07-05
+    artifact: verify-report.md
+    revision_note: |
+      Phase 5 verify passed:
+      - 129/129 tests pass (16 files, 7.64s)
+      - model-scorer.js 94.61% lines coverage (target >=80%)
+      - pnpm run build: 3.46s, dist/index.html 56,347 bytes, 0 CDN refs
+      - Visual parity V3 vs V4: same dark theme, same data, V4 enhancements
+        (justification-ui, freshness-badge, expanded pricing/cli-mirror) are
+        spec-mandated, not regressions
+      - 15/16 acceptance criteria PASS, 1 marked WARN (pixel-perfect diff
+        impossible given spec mandates new V4 sections)
   archive:
-    status: pending
-    depends_on: [verify]
+    status: success
+    started: 2026-07-05
+    completed: 2026-07-05
+    archived_to: openspec/changes/archive/2026-07-04-sdd-model-picker-refactor/
+    merged_spec: openspec/specs/model-picker/spec.md
+    revision_note: |
+      Change moved to openspec/changes/archive/. Delta spec merged to
+      openspec/specs/model-picker/spec.md. SDD lifecycle complete.
 
-next_recommended: apply (Phase 0: tooling foundation)
-blocked_reasons:
-  - "GitHub repo Teksi75/sdd-model-picker must be created before apply can start"
+next_recommended: null
+blocked_reasons: []
 
-awaiting_user: true
+awaiting_user: false
 last_phase_summary: |
-  All 4 SDD artifacts (proposal, spec, design, tasks) rewritten to reflect
-  the complete 18-agent SDD ecosystem (11 SDD + 3 JD + 4 Review).
-  Key additions vs V3 spec:
-  - 5 data files (was 3): +agent-roles.json, +agent-request-profiles.json
-  - Hybrid constraint model: minReasoning (abs) + costRatio (rel to ref)
-  - 5 config strategies (was hardcoded assignments)
-  - Twin judge constraint: jd-judge-a = jd-judge-b mandatory
-  - New justification-ui component: per-agent score, cost, role, checks
-  - 53 tasks across 10 PRs, all ≤ 400 lines
-  Awaiting user to create GitHub repo and approve apply start.
+  V4 launched 2026-07-05. All 10 PRs merged into main. Phase 5 verify
+  passed (129/129 tests, 94.61% model-scorer coverage, 3.46s build,
+  0 CDN refs, visual parity preserved with documented V4 enhancements).
+  Delta spec archived to openspec/specs/model-picker/spec.md.
+
+  Final V4 surface area:
+  - 5 data JSON files (models, phases, configs, agent-roles, agent-request-profiles)
+  - 11 modules (3 services + 8 components + utils)
+  - 16 test files, 129 tests
+  - 4 GitHub Actions workflows (sync + deploy + lint)
+  - Single self-contained dist/index.html (56KB, CDN-free)
 
 alignment_notes: |
   Format alignment with gentleman-ai/openspec/changes/opencode-sdd-profiles:
