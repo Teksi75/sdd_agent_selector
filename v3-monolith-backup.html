@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>SDD Model Picker — Benchmark-Driven</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        *{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+        .gradient-text{background:linear-gradient(120deg,#a855f7,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent}
+        .config-btn{transition:all .2s ease;border:2px solid transparent}
+        .config-btn:hover{transform:translateY(-1px)}
+        .config-btn.active{border-color:currentColor;box-shadow:0 0 20px -5px currentColor}
+        .workflow-row{transition:all .25s ease;opacity:0;transform:translateY(8px)}
+        .workflow-row.visible{opacity:1;transform:translateY(0)}
+        .bar-track{background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden}
+        .bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+        .tag-optimal{background:rgba(16,185,129,0.15);color:#6ee7b7;border:1px solid rgba(16,185,129,0.25)}
+        .tag-balanced{background:rgba(99,102,241,0.15);color:#c4b5fd;border:1px solid rgba(99,102,241,0.25)}
+        .tag-max{background:rgba(245,158,11,0.15);color:#fcd34d;border:1px solid rgba(245,158,11,0.25)}
+        .scroll-fade{mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent)}
+        .export-btn{transition:all .15s ease}
+        .export-btn:hover{background:rgba(255,255,255,0.1)}
+        .src-badge{font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap}
+        .src-arena{background:rgba(16,185,129,0.15);color:#6ee7b7}
+        .src-swe{background:rgba(99,102,241,0.15);color:#a5b4fc}
+        .src-term{background:rgba(236,72,153,0.15);color:#f9a8d4}
+        .src-none{background:rgba(148,163,184,0.1);color:#94a3b8;font-style:italic}
+        .src-new{background:rgba(168,85,247,0.18);color:#d8b4fe;font-weight:600}
+        .cost-rank{display:inline-flex;align-items:center;gap:3px;font-size:10px;padding:1px 6px;border-radius:4px;font-weight:600}
+        .rank-1{background:rgba(16,185,129,0.15);color:#6ee7b7}
+        .rank-2{background:rgba(99,102,241,0.12);color:#a5b4fc}
+        .rank-3{background:rgba(245,158,11,0.1);color:#fbbf24}
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-slate-200 antialiased min-h-screen">
+
+<div class="fixed inset-0 overflow-hidden pointer-events-none opacity-15">
+    <div class="absolute top-0 -left-40 w-96 h-96 bg-purple-700/20 rounded-full blur-[100px]"></div>
+    <div class="absolute bottom-0 right-0 w-[32rem] h-[32rem] bg-blue-600/20 rounded-full blur-[120px]"></div>
+</div>
+
+<div class="relative max-w-6xl mx-auto px-5 py-10 md:py-14">
+
+    <div class="text-center mb-8">
+        <div class="inline-flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-full px-4 py-1.5 border border-white/10 text-sm text-slate-300 mb-5">
+            <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+            <span>SDD Model Picker · LMSYS Arena + SWE-Bench + HF Blog oficial GLM-5.2</span>
+        </div>
+        <h1 class="text-3xl md:text-5xl font-bold tracking-tight mb-3">
+            <span class="gradient-text">¿Qué modelo uso</span><br>en cada fase <span class="italic font-medium text-white/90">SDD</span>?
+        </h1>
+        <p class="text-slate-400 max-w-xl mx-auto text-base">
+            Benchmarks reales: Arena ELO + SWE-Bench Pro/Verified + Terminal-Bench. Precios OpenCode Go.
+        </p>
+    </div>
+
+    <!-- Data Transparency Banner -->
+    <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 mb-8 text-xs text-slate-400">
+        <div class="flex items-start gap-3">
+            <i data-lucide="database" class="w-4 h-4 text-slate-300 mt-0.5 shrink-0"></i>
+            <div>
+                <p class="font-semibold text-slate-300 mb-1">Fuentes de datos (todas verificadas, 18 jun 2026)</p>
+                <ul class="space-y-1 list-disc list-inside">
+                    <li><strong class="text-emerald-400">OpenCode Go (precios + límites)</strong> — <a href="https://opencode.ai/docs/es/go/#usage-limits" class="text-blue-400 hover:underline" target="_blank">doc oficial</a> · 13 modelos en suscripción Go.</li>
+                    <li><strong class="text-emerald-400">GLM-5.2 (blog oficial)</strong> — <a href="https://huggingface.co/blog/zai-org/glm-52-blog" class="text-blue-400 hover:underline" target="_blank">HF Blog Z.AI</a> · 17 jun 2026, 753B MoE, MIT, 1M context. SWE-bench Pro 62.1%, Terminal-Bench 2.1 81.0%, HLE 40.5.</li>
+                    <li><strong class="text-emerald-400">LMSYS Arena WebDev</strong> — <a href="https://arena.ai/leaderboard/code/webdev" class="text-blue-400 hover:underline" target="_blank">arena.ai</a> · ELO scores para coding. GLM-5.2 (Max) #2 con 1595.</li>
+                    <li><strong class="text-emerald-400">SWE-Bench Pro/Verified + Rating</strong> — <a href="https://llm-stats.com/" class="text-blue-400 hover:underline" target="_blank">llm-stats.com</a> · leaderboard continuo.</li>
+                    <li><strong class="text-emerald-400">Kimi K2.7 Code + MiMo V2.5 Pro</strong> — blogs oficiales Moonshot/Xiaomi (jun 2026).</li>
+                    <li><strong class="text-amber-400">⚠️ Inconsistencia reportada a OpenCode</strong> — <a href="https://github.com/anomalyco/opencode/issues/24723" class="text-blue-400 hover:underline" target="_blank">issue #24723</a> (mi duplicado #32928 cerrado). La tabla de "estimated request count" no es internamente consistente con los precios por 1M publicados en la misma página. Ver sección de notas más abajo. Datos de req/mes mantenidos tal como los publica OpenCode hasta que respondan.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Config Selector -->
+    <div class="mb-10">
+        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4 text-center flex items-center justify-center gap-2"><i data-lucide="sliders-horizontal" class="w-4 h-4"></i>Elegí tu configuración</h2>
+        <div class="flex flex-col sm:flex-row gap-3 justify-center items-stretch sm:items-stretch">
+            <button onclick="selectConfig('optimal')" id="btn-optimal" class="config-btn group bg-slate-900/60 rounded-2xl p-5 text-left border border-slate-800 hover:border-emerald-500/50 flex-1 max-w-xs">
+                <div class="flex items-center gap-2 mb-2"><i data-lucide="zap" class="w-4 h-4 text-emerald-400"></i><span class="font-semibold text-emerald-400">Óptima</span></div>
+                <p class="text-xs text-slate-400 mb-3">Max score/dollar. Más requests por limit.</p>
+                <div class="text-2xl font-bold text-emerald-400 mb-1">~$0.019</div>
+                <div class="text-[11px] text-slate-500">por ciclo SDD completo</div>
+                <div class="mt-3 flex flex-wrap gap-1">
+                    <span class="model-tag tag-optimal">Qwen3.7 Plus</span>
+                    <span class="model-tag tag-optimal">MiniMax M3</span>
+                    <span class="model-tag tag-optimal">MiMo V2.5</span>
+                </div>
+            </button>
+            <button onclick="selectConfig('balanced')" id="btn-balanced" class="config-btn group bg-slate-900/60 rounded-2xl p-5 text-left border border-slate-800 hover:border-indigo-500/50 flex-1 max-w-xs">
+                <div class="flex items-center gap-2 mb-2"><i data-lucide="scale" class="w-4 h-4 text-indigo-400"></i><span class="font-semibold text-indigo-400">Balanced</span></div>
+                <p class="text-xs text-slate-400 mb-3">Score alto + precio moderado. GLM-5.2 para lo crítico.</p>
+                <div class="text-2xl font-bold text-indigo-400 mb-1">~$0.052</div>
+                <div class="text-[11px] text-slate-500">por ciclo SDD completo</div>
+                <div class="mt-3 flex flex-wrap gap-1">
+                    <span class="model-tag tag-balanced">GLM-5.1</span>
+                    <span class="model-tag tag-balanced">Qwen3.7 Max</span>
+                    <span class="model-tag tag-balanced">MiniMax M3</span>
+                </div>
+            </button>
+            <button onclick="selectConfig('maxquality')" id="btn-maxquality" class="config-btn group bg-slate-900/60 rounded-2xl p-5 text-left border border-slate-800 hover:border-amber-500/50 flex-1 max-w-xs">
+                <div class="flex items-center gap-2 mb-2"><i data-lucide="crown" class="w-4 h-4 text-amber-400"></i><span class="font-semibold text-amber-400">Max Quality</span></div>
+                <p class="text-xs text-slate-400 mb-3">GLM-5.2 #2 Arena + Qwen3.7 Max. Para cambios críticos.</p>
+                <div class="text-2xl font-bold text-amber-400 mb-1">~$0.135</div>
+                <div class="text-[11px] text-slate-500">por ciclo SDD completo</div>
+                <div class="mt-3 flex flex-wrap gap-1">
+                    <span class="model-tag tag-max">GLM-5.2</span>
+                    <span class="model-tag tag-max">Qwen3.7 Max</span>
+                    <span class="model-tag tag-max">GLM-5.1</span>
+                </div>
+            </button>
+            <button onclick="selectConfig('pre_utn_u3')" id="btn-pre_utn_u3" class="config-btn group bg-slate-900/60 rounded-2xl p-5 text-left border border-slate-800 hover:border-cyan-500/50 flex-1 max-w-xs">
+                <div class="flex items-center gap-2 mb-2"><i data-lucide="graduation-cap" class="w-4 h-4 text-cyan-400"></i><span class="font-semibold text-cyan-400">Pedagógica · pre-utn U3</span></div>
+                <p class="text-xs text-slate-400 mb-3">Issue #44. GPT-5.5 (Plus) en 3 fases críticas + Go en el resto.</p>
+                <div class="text-2xl font-bold text-cyan-400 mb-1">~$0.142 + Plus</div>
+                <div class="text-[11px] text-slate-500">por ciclo · 3× GPT-5.5 + 6× Go</div>
+                <div class="mt-3 flex flex-wrap gap-1">
+                    <span class="model-tag" style="background:rgba(34,211,238,0.15);color:#67e8f9;border:1px solid rgba(34,211,238,0.25)">GLM-5.2</span>
+                    <span class="model-tag" style="background:rgba(34,211,238,0.15);color:#67e8f9;border:1px solid rgba(34,211,238,0.25)">GPT-5.5</span>
+                    <span class="model-tag" style="background:rgba(34,211,238,0.15);color:#67e8f9;border:1px solid rgba(34,211,238,0.25)">Qwen3.7</span>
+                </div>
+            </button>
+            <button onclick="selectConfig('pre_utn_u3_balanced')" id="btn-pre_utn_u3_balanced" class="config-btn group bg-slate-900/60 rounded-2xl p-5 text-left border border-slate-800 hover:border-violet-500/50 flex-1 max-w-xs">
+                <div class="flex items-center gap-2 mb-2"><i data-lucide="scale" class="w-4 h-4 text-violet-400"></i><span class="font-semibold text-violet-400">Pedagógica · pre-utn U3 · Balanced</span></div>
+                <p class="text-xs text-slate-400 mb-3">Agresiva con Plus: GPT-5.5 en 5 fases + Kimi K2.7 Code (#1 open visual coding) en apply.</p>
+                <div class="text-2xl font-bold text-violet-400 mb-1">~$0.075 + Plus</div>
+                <div class="text-[11px] text-slate-500">por ciclo · 5× GPT-5.5 + 4× Go (incl. Kimi K2.7 Code)</div>
+                <div class="mt-3 flex flex-wrap gap-1">
+                    <span class="model-tag" style="background:rgba(167,139,250,0.15);color:#c4b5fd;border:1px solid rgba(167,139,250,0.25)">GPT-5.5</span>
+                    <span class="model-tag" style="background:rgba(167,139,250,0.15);color:#c4b5fd;border:1px solid rgba(167,139,250,0.25)">Kimi K2.7</span>
+                    <span class="model-tag" style="background:rgba(167,139,250,0.15);color:#c4b5fd;border:1px solid rgba(167,139,250,0.25)">MiniMax M3</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Espejo CLI · Asignación actual de los 14 SDD -->
+    <div class="mb-14">
+        <div class="flex items-baseline justify-between flex-wrap gap-2 mb-5">
+            <h2 class="text-lg font-semibold flex items-center gap-2"><i data-lucide="square-terminal" class="w-5 h-5 text-slate-300"></i> Espejo CLI · 14 SDD actuales <span class="src-badge" style="background:rgba(148,163,184,0.18);color:#cbd5e1">ASIGNACIÓN REAL</span></h2>
+            <span class="text-xs bg-slate-800/50 px-2 py-1 rounded-md">OpenCode · 23 jun 2026</span>
+        </div>
+        <p class="text-xs text-slate-500 mb-4 max-w-3xl">
+            Esta tabla refleja <strong class="text-slate-300">exactamente</strong> la asignación actual de cada SDD en el CLI de OpenCode. Los presets de arriba (Óptima / Balanced / Max Quality / Pedagógica) son <em>recomendaciones</em> alternativas; este espejo es el <strong class="text-slate-300">estado real</strong> que corre ahora mismo.
+        </p>
+        <div class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/50 backdrop-blur-sm">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-800 bg-slate-900/80">
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300 w-8">#</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Fase SDD</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Rol</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Modelo</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Plan / Proveedor</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Notas</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50">
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">1</td><td class="py-2.5 px-4"><span class="font-mono text-amber-300 inline-flex items-center gap-1.5"><i data-lucide="target" class="w-3.5 h-3.5"></i>gentle-orchestrator</span></td><td class="py-2.5 px-4 text-xs"><span class="src-badge" style="background:rgba(245,158,11,0.15);color:#fcd34d">coordinator</span></td><td class="py-2.5 px-4 font-medium">GPT-5.5 <span class="src-badge" style="background:rgba(239,68,68,0.15);color:#fca5a5">REF</span></td><td class="py-2.5 px-4 text-xs text-slate-400">OpenAI</td><td class="py-2.5 px-4 text-xs text-slate-400">Máxima calidad de orquestación</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">2</td><td class="py-2.5 px-4"><span class="font-mono text-sky-300 inline-flex items-center gap-1.5"><i data-lucide="hammer" class="w-3.5 h-3.5"></i>sdd-init</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Inicialización</td><td class="py-2.5 px-4 font-medium">MiniMax M2.7 highspeed</td><td class="py-2.5 px-4 text-xs text-slate-400">MiniMax Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Init ligero · scaffolding rápido</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">3</td><td class="py-2.5 px-4"><span class="font-mono text-indigo-300 inline-flex items-center gap-1.5"><i data-lucide="search" class="w-3.5 h-3.5"></i>sdd-explore</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Exploración</td><td class="py-2.5 px-4 font-medium text-emerald-300">MiniMax M3 ⭐</td><td class="py-2.5 px-4 text-xs text-slate-400">MiniMax Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Lectura de código · best value (SWE-Pro 59%)</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">4</td><td class="py-2.5 px-4"><span class="font-mono text-purple-300 inline-flex items-center gap-1.5"><i data-lucide="lightbulb" class="w-3.5 h-3.5"></i>sdd-propose</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Propuesta</td><td class="py-2.5 px-4 font-medium">Kimi K2.7 Code <span class="src-badge src-new ml-1">NEW</span></td><td class="py-2.5 px-4 text-xs text-slate-400">OpenCode Go</td><td class="py-2.5 px-4 text-xs text-slate-400">Decisión estructurada · −30% thinking tokens</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">5</td><td class="py-2.5 px-4"><span class="font-mono text-pink-300 inline-flex items-center gap-1.5"><i data-lucide="file-text" class="w-3.5 h-3.5"></i>sdd-spec</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Spec</td><td class="py-2.5 px-4 font-medium">GPT-5.5 <span class="src-badge" style="background:rgba(239,68,68,0.15);color:#fca5a5">REF</span></td><td class="py-2.5 px-4 text-xs text-slate-400">OpenAI</td><td class="py-2.5 px-4 text-xs text-slate-400">Escritura estructurada top-tier</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">6</td><td class="py-2.5 px-4"><span class="font-mono text-pink-300 inline-flex items-center gap-1.5"><i data-lucide="layout-template" class="w-3.5 h-3.5"></i>sdd-design</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Diseño</td><td class="py-2.5 px-4 font-medium">GPT-5.5 <span class="src-badge" style="background:rgba(239,68,68,0.15);color:#fca5a5">REF</span></td><td class="py-2.5 px-4 text-xs text-slate-400">OpenAI</td><td class="py-2.5 px-4 text-xs text-slate-400">Arquitectura · decisiones top-tier</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">7</td><td class="py-2.5 px-4"><span class="font-mono text-emerald-300 inline-flex items-center gap-1.5"><i data-lucide="list-checks" class="w-3.5 h-3.5"></i>sdd-tasks</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Tareas</td><td class="py-2.5 px-4 font-medium text-emerald-300">MiniMax M3 ⭐</td><td class="py-2.5 px-4 text-xs text-slate-400">MiniMax Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Descomposición mecánica · barato ($0.30/$1.20)</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">8</td><td class="py-2.5 px-4"><span class="font-mono text-amber-300 inline-flex items-center gap-1.5"><i data-lucide="wrench" class="w-3.5 h-3.5"></i>sdd-apply</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Implementación</td><td class="py-2.5 px-4 font-medium">MiMo V2.5 Pro</td><td class="py-2.5 px-4 text-xs text-slate-400">Xiaomi Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Tool calling · SWE-Pro 57.2% · Term-B 68.4%</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">9</td><td class="py-2.5 px-4"><span class="font-mono text-emerald-300 inline-flex items-center gap-1.5"><i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>sdd-verify</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Verificación</td><td class="py-2.5 px-4 font-medium">MiMo V2.5 Pro</td><td class="py-2.5 px-4 text-xs text-slate-400">Xiaomi Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Validación vs spec · Term-B 68.4%</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">10</td><td class="py-2.5 px-4"><span class="font-mono text-slate-300 inline-flex items-center gap-1.5"><i data-lucide="archive" class="w-3.5 h-3.5"></i>sdd-archive</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Archivado</td><td class="py-2.5 px-4 font-medium">MiMo V2.5</td><td class="py-2.5 px-4 text-xs text-slate-400">Xiaomi Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Bajo coste · $0.14/$0.28 · 30k req/5h</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">11</td><td class="py-2.5 px-4"><span class="font-mono text-cyan-300 inline-flex items-center gap-1.5"><i data-lucide="graduation-cap" class="w-3.5 h-3.5"></i>sdd-onboard</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Onboarding</td><td class="py-2.5 px-4 font-medium">MiMo V2.5 Pro</td><td class="py-2.5 px-4 text-xs text-slate-400">Xiaomi Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Flujo onboarding · UX conversacional</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">12</td><td class="py-2.5 px-4"><span class="font-mono text-purple-300 inline-flex items-center gap-1.5"><i data-lucide="gavel" class="w-3.5 h-3.5"></i>jd-judge-a</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Juez principal</td><td class="py-2.5 px-4 font-medium">Kimi K2.7 Code <span class="src-badge src-new ml-1">NEW</span></td><td class="py-2.5 px-4 text-xs text-slate-400">OpenCode Go</td><td class="py-2.5 px-4 text-xs text-slate-400">Revisión adversarial · coding-focused</td></tr>
+                    <tr class="hover:bg-slate-800/30"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">13</td><td class="py-2.5 px-4"><span class="font-mono text-emerald-300 inline-flex items-center gap-1.5"><i data-lucide="scale" class="w-3.5 h-3.5"></i>jd-judge-b</span></td><td class="py-2.5 px-4 text-xs text-slate-400">Juez secundario</td><td class="py-2.5 px-4 font-medium text-emerald-300">MiniMax M3 ⭐</td><td class="py-2.5 px-4 text-xs text-slate-400">MiniMax Token Plan</td><td class="py-2.5 px-4 text-xs text-slate-400">Diversidad vs juez A · ahorro</td></tr>
+                    <tr class="hover:bg-slate-800/30 bg-red-500/5"><td class="py-2.5 px-4 text-slate-500 font-mono text-xs">14</td><td class="py-2.5 px-4"><span class="font-mono text-red-300 inline-flex items-center gap-1.5"><i data-lucide="wrench" class="w-3.5 h-3.5"></i>jd-fix-agent</span></td><td class="py-2.5 px-4 text-xs"><span class="src-badge" style="background:rgba(239,68,68,0.15);color:#fca5a5">auto-fix</span></td><td class="py-2.5 px-4 font-medium">MiMo V2.5 Pro</td><td class="py-2.5 px-4 text-xs text-slate-400">Xiaomi Token Plan</td><td class="py-2.5 px-4 text-xs text-red-300 font-semibold inline-flex items-center gap-1"><i data-lucide="zap" class="w-3 h-3"></i>High priority · correcciones</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-4 grid sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+                <div class="text-slate-500 uppercase tracking-wide mb-1">Modelos únicos</div>
+                <div class="text-2xl font-bold text-white">6</div>
+                <div class="text-slate-400 mt-1">GPT-5.5 · M3 · M2.7 · K2.7 Code · MiMo V2.5 · MiMo V2.5 Pro</div>
+            </div>
+            <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+                <div class="text-slate-500 uppercase tracking-wide mb-1">Proveedores</div>
+                <div class="text-2xl font-bold text-white">4</div>
+                <div class="text-slate-400 mt-1">OpenAI · MiniMax · Xiaomi · OpenCode Go</div>
+            </div>
+            <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+                <div class="text-slate-500 uppercase tracking-wide mb-1">Fases con GPT-5.5</div>
+                <div class="text-2xl font-bold text-amber-300">3</div>
+                <div class="text-slate-400 mt-1">orchestrator · spec · design</div>
+            </div>
+            <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-3">
+                <div class="text-slate-500 uppercase tracking-wide mb-1">Fases con Xiaomi</div>
+                <div class="text-2xl font-bold text-emerald-300">4</div>
+                <div class="text-slate-400 mt-1">apply · verify · archive · onboard</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SDD Workflow Generated -->
+    <div id="workflow-section" class="mb-14 hidden">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold flex items-center gap-2"><i data-lucide="workflow" class="w-5 h-5 text-slate-300"></i> Tu workflow SDD — <span id="config-label" class="gradient-text"></span></h2>
+            <button onclick="exportWorkflow()" class="export-btn flex items-center gap-1.5 text-xs text-slate-400 bg-slate-800/50 px-3 py-1.5 rounded-lg border border-slate-700">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/></svg>
+                Copiar
+            </button>
+        </div>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-2xl overflow-hidden backdrop-blur-sm">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="border-b border-slate-800 bg-slate-900/80">
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300 w-8">#</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Fase</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Modelo</th>
+                        <th class="text-center py-3 px-4 font-semibold text-slate-300">Arena<br><span class="text-[10px] font-normal text-slate-500">WebDev</span></th>
+                        <th class="text-center py-3 px-4 font-semibold text-slate-300">SWE-Pro<br><span class="text-[10px] font-normal text-slate-500">%</span></th>
+                        <th class="text-center py-3 px-4 font-semibold text-slate-300">Term-B<br><span class="text-[10px] font-normal text-slate-500">%</span></th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-300">Input</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-300">Output</th>
+                        <th class="text-right py-3 px-4 font-semibold text-slate-300">Req/5h</th>
+                        <th class="text-left py-3 px-4 font-semibold text-slate-300">Criterio</th>
+                    </tr>
+                </thead>
+                <tbody id="workflow-body" class="divide-y divide-slate-800/50"></tbody>
+            </table>
+        </div>
+        <div id="workflow-summary" class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-3"></div>
+    </div>
+
+    <!-- New Models Highlights (GLM-5.2 + Kimi K2.7 Code) -->
+    <div class="mb-14">
+        <h2 class="text-lg font-semibold mb-1 flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-5 h-5 text-purple-400"></i> Modelos nuevos en Go (jun 2026)
+            <span class="src-badge src-new inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NUEVO</span>
+        </h2>
+        <p class="text-xs text-slate-500 mb-5">
+            Dos modelos recién agregados a la lista de OpenCode Go. Benchmarks verificados contra fuentes oficiales.
+        </p>
+        <div class="grid md:grid-cols-2 gap-4">
+            <!-- GLM-5.2 Card -->
+            <div class="bg-slate-900/50 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-base font-semibold text-white">GLM-5.2</span>
+                            <span class="src-badge src-new inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NEW</span>
+                            <span class="text-[10px] text-slate-500">Z.AI · 17 jun 2026</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">753B MoE · 40B activos · 1M context · <strong class="text-emerald-400">MIT open source</strong></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">SWE-Pro</div>
+                        <div class="text-lg font-bold text-emerald-400">62.1%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Term-B 2.1</div>
+                        <div class="text-lg font-bold text-pink-400">81.0%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Arena #</div>
+                        <div class="text-lg font-bold text-indigo-400">2</div>
+                    </div>
+                </div>
+                <ul class="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+                    <li><strong>Long-horizon #1 open-source</strong>: FrontierSWE 74.4% (#2 absoluto, sólo detrás de Opus 4.8 75.1%).</li>
+                    <li><strong>HLE 40.5</strong>, <strong>HLE w/tools 54.7</strong>, <strong>AIME 2026 99.2</strong>.</li>
+                    <li><strong>ProgramBench 63.7</strong> (vs Qwen3.7-Max: -, vs GLM-5.1: 50.9).</li>
+                    <li>Precios: <strong>$1.40 in / $4.40 out</strong> (igual que 5.1).</li>
+                </ul>
+            </div>
+            <!-- Kimi K2.7 Code Card -->
+            <div class="bg-slate-900/50 border border-purple-500/30 rounded-2xl p-5 backdrop-blur-sm">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-base font-semibold text-white">Kimi K2.7 Code</span>
+                            <span class="src-badge src-new inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NEW</span>
+                            <span class="text-[10px] text-slate-500">Moonshot · 12 jun 2026</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Coding-focused · <strong class="text-emerald-400">30% menos thinking tokens</strong> que K2.6</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">SWE-Ver</div>
+                        <div class="text-lg font-bold text-emerald-400">60.4%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Kimi CB</div>
+                        <div class="text-lg font-bold text-pink-400">+21.8%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">vs K2.6</div>
+                        <div class="text-lg font-bold text-indigo-400">↑</div>
+                    </div>
+                </div>
+                <ul class="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+                    <li><strong>Optimizado para long-context coding</strong>: mejor instruction following + menos over-thinking.</li>
+                    <li><strong>Program-Bench +11%</strong>, <strong>MLS Bench Lite +31.5%</strong>, <strong>Kimi Code Bench v2 +21.8%</strong>.</li>
+                    <li><strong>Agent benchmarks +10%</strong>: Claw 24/7, MCP Atlas, MCP Mark Verified.</li>
+                    <li>Precios: <strong>$0.95 in / $4.00 out</strong> (mismo que K2.6), 1,350 req/5h.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Closed-Source Reference: Claude Opus 4.8 + GPT-5.5 -->
+    <div class="mb-14">
+        <h2 class="text-lg font-semibold mb-1 flex items-center gap-2">
+            <i data-lucide="trophy" class="w-5 h-5 text-red-300"></i> Techo del mercado — modelos cerrados de referencia
+            <span class="src-badge inline-flex items-center gap-1" style="background:rgba(239,68,68,0.15);color:#fca5a5"><i data-lucide="lock" class="w-2.5 h-2.5"></i>NO EN GO</span>
+        </h2>
+        <p class="text-xs text-slate-500 mb-5">
+            Para tener el <strong>techo del mercado</strong> como referencia. Estos modelos <strong class="text-red-300">no están en el catálogo de OpenCode Go</strong> — se muestran solo para que compares los modelos del catálogo contra el estado del arte de los modelos cerrados. Benchmarks del blog oficial de GLM-5.2 (Z.AI) y de Anthropic/OpenAI, verificados al 18 jun 2026.
+        </p>
+        <div class="grid md:grid-cols-2 gap-4">
+            <!-- Claude Opus 4.8 Card -->
+            <div class="bg-slate-900/50 border border-amber-500/30 rounded-2xl p-5 backdrop-blur-sm">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-base font-semibold text-white">Claude Opus 4.8</span>
+                            <span class="src-badge" style="background:rgba(239,68,68,0.18);color:#fca5a5;font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="lock" class="w-2.5 h-2.5"></i>REFERENCIA</span>
+                            <span class="text-[10px] text-slate-500">Anthropic · 28 may 2026</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Flagship cerrado de Anthropic · 1M context · <strong class="text-amber-300">$5 in / $25 out por 1M</strong></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">SWE-Pro</div>
+                        <div class="text-lg font-bold text-emerald-400">69.2%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Term-B 2.1</div>
+                        <div class="text-lg font-bold text-pink-400">85.0%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">SWE-Ver</div>
+                        <div class="text-lg font-bold text-indigo-400">88.6%</div>
+                    </div>
+                </div>
+                <ul class="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+                    <li><strong>Top #1 en long-horizon</strong>: FrontierSWE 75.1% (GLM-5.2 74.4% está 0.7 puntos atrás).</li>
+                    <li><strong>ProgramBench 71.9</strong> (el más alto entre los comparados).</li>
+                    <li><strong>HLE 49.8</strong>, <strong>AIME 2026 95.7</strong>, <strong>GPQA-Diamond 93.6</strong>.</li>
+                    <li>Único modelo que completa todos los casos del <strong>Super-Agent benchmark</strong> de Anthropic.</li>
+                    <li><a href="https://www.anthropic.com/news/claude-opus-4-8" class="text-blue-400 hover:underline" target="_blank">Anthropic blog</a> · <a href="https://www.vellum.ai/blog/claude-opus-4-8-benchmarks-explained" class="text-blue-400 hover:underline" target="_blank">Vellum analysis</a></li>
+                </ul>
+            </div>
+            <!-- GPT-5.5 Card -->
+            <div class="bg-slate-900/50 border border-amber-500/30 rounded-2xl p-5 backdrop-blur-sm">
+                <div class="flex items-start justify-between mb-3">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-base font-semibold text-white">GPT-5.5</span>
+                            <span class="src-badge" style="background:rgba(239,68,68,0.18);color:#fca5a5;font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="lock" class="w-2.5 h-2.5"></i>REFERENCIA</span>
+                            <span class="text-[10px] text-slate-500">OpenAI · 23 abr 2026</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Flagship cerrado de OpenAI · 1.05M context · <strong class="text-amber-300">$5 in / $30 out por 1M</strong></p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">SWE-Pro</div>
+                        <div class="text-lg font-bold text-emerald-400">58.6%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">Term-B 2.1</div>
+                        <div class="text-lg font-bold text-pink-400">84.0%</div>
+                    </div>
+                    <div class="bg-slate-950/50 rounded-lg p-2.5 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase">SWE-Ver</div>
+                        <div class="text-lg font-bold text-indigo-400">83.4%</div>
+                    </div>
+                </div>
+                <ul class="text-[11px] text-slate-300 space-y-1 list-disc list-inside">
+                    <li><strong>DeepSWE 70% (xhigh)</strong> — el más alto en coding agent loops largos.</li>
+                    <li><strong>HLE w/tools 52.2</strong>, <strong>AIME 2026 98.3</strong>, <strong>GPQA-Diamond 93.6</strong>.</li>
+                    <li><strong>FrontierSWE 72.6</strong> (atrás de Opus 4.8 75.1 y GLM-5.2 74.4).</li>
+                    <li>Pro tier: <strong>$30 in / $180 out</strong> por 1M (cuando OpenAI lanza la API gpt-5.5-pro).</li>
+                    <li><a href="https://openai.com/index/introducing-gpt-5-5/" class="text-blue-400 hover:underline" target="_blank">OpenAI blog</a> · <a href="https://openai.com/api/pricing/" class="text-blue-400 hover:underline" target="_blank">Pricing oficial</a></li>
+                </ul>
+            </div>
+        </div>
+        <p class="text-[10px] text-slate-500 mt-3 text-center">
+            Comparativa de referencia: GLM-5.2 (open-source) está a <strong>~0.7 puntos de FrontierSWE</strong> de Opus 4.8 (cerrado flagship Anthropic). El estado del arte en coding abierto ya está al nivel de los cerrados top-tier.
+        </p>
+    </div>
+
+    <!-- Composite Benchmark Chart (Arena + SWE-Pro + Terminal-B) -->
+    <div class="mb-14">
+        <h2 class="text-lg font-semibold mb-1 flex items-center gap-2">
+            <i data-lucide="bar-chart-3" class="w-5 h-5 text-slate-300"></i> Composite benchmark — Modelos Go
+            <span class="src-badge src-arena inline-flex items-center gap-1"><i data-lucide="badge-check" class="w-2.5 h-2.5"></i>verificado</span>
+        </h2>
+        <p class="text-xs text-slate-500 mb-5">
+            Score compuesto: <strong>Arena WebDev ELO</strong> + <strong>SWE-bench Pro</strong> + <strong>Terminal-Bench 2.0/2.1</strong>. Cada barra muestra el score compuesto (0-100) calculado en <code class="text-slate-300">buildCompositeChart()</code>.
+        </p>
+        <div class="bg-slate-900/50 border border-slate-800 rounded-xl p-5 backdrop-blur-sm">
+            <div id="composite-chart" class="space-y-2.5"></div>
+        </div>
+    </div>
+
+    <!-- Pricing -->
+    <div class="mb-14">
+        <h2 class="text-lg font-semibold mb-1 flex items-center gap-2"><i data-lucide="circle-dollar-sign" class="w-5 h-5 text-slate-300"></i> Comparativa de precios (OpenCode Go)</h2>
+        <p class="text-xs text-slate-500 mb-5">Coste por request (1k in + 500 out). Ordenado de mayor a menor precio. Precios verificados contra <a href="https://opencode.ai/docs/es/go/#usage-limits" class="text-blue-400 hover:underline" target="_blank">doc oficial</a> 18 jun 2026.</p>
+        <div id="pricing-chart" class="space-y-2"></div>
+    </div>
+
+    <!-- Data Consistency Note (issue #24723) -->
+    <div class="mb-14">
+        <h2 class="text-lg font-semibold mb-1 flex items-center gap-2">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-400"></i> Nota sobre consistencia de datos
+            <span class="src-badge" style="background:rgba(245,158,11,0.15);color:#fcd34d;display:inline-flex;align-items:center;gap:3px"><i data-lucide="alert-circle" class="w-2.5 h-2.5"></i>REPORTADO</span>
+        </h2>
+        <p class="text-xs text-slate-500 mb-5">
+            Disclaimer de transparencia: los req/mes que se muestran arriba son los publicados por OpenCode, aunque hay una
+            <strong>inconsistencia interna en su propia documentación</strong>. Detalle y análisis cuantitativo reportados a OpenCode en
+            <a href="https://github.com/anomalyco/opencode/issues/24723" class="text-blue-400 hover:underline" target="_blank">issue #24723</a>.
+        </p>
+        <div class="bg-slate-900/50 border border-amber-500/20 rounded-xl p-5 backdrop-blur-sm">
+            <div class="grid md:grid-cols-2 gap-5">
+                <div>
+                    <p class="text-sm font-semibold text-amber-300 mb-2">El cálculo típico de $/request no cuadra con los req/mes declarados</p>
+                    <p class="text-xs text-slate-400 mb-3">Usando los precios y los tokens típicos publicados por la propia doc de OpenCode para dos modelos flagship:</p>
+                    <table class="w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400">
+                                <th class="text-left py-1.5 font-medium">Modelo</th>
+                                <th class="text-right py-1.5 font-medium">$/req típico</th>
+                                <th class="text-right py-1.5 font-medium">req/5h con $12</th>
+                                <th class="text-right py-1.5 font-medium">Doc dice</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-slate-300">
+                            <tr class="border-b border-slate-800/40">
+                                <td class="py-1.5">GLM-5.2</td>
+                                <td class="py-1.5 text-right font-mono">$0.01516</td>
+                                <td class="py-1.5 text-right font-mono">~791</td>
+                                <td class="py-1.5 text-right font-mono text-amber-400">880</td>
+                            </tr>
+                            <tr>
+                                <td class="py-1.5">Qwen3.7 Max</td>
+                                <td class="py-1.5 text-right font-mono">$0.03555</td>
+                                <td class="py-1.5 text-right font-mono">~338</td>
+                                <td class="py-1.5 text-right font-mono text-amber-400">950</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <p class="text-[11px] text-slate-500 mt-3">
+                        Qwen3.7 Max es ~2.3× más caro por request típico, pero la doc le asigna más req/mes que GLM-5.2. El signo está invertido.
+                    </p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold text-amber-300 mb-2">¿Por qué este picker usa los datos "oficiales" de todos modos?</p>
+                    <ul class="text-xs text-slate-300 space-y-2 list-disc list-inside">
+                        <li>Los <strong>precios por 1M tokens</strong> sí están bien y son lo que OpenCode cobra — usá esa columna para estimar costes por ciclo.</li>
+                        <li>Los <strong>req/mes</strong> de la tabla son los publicados por OpenCode, los tomamos como referencia hasta que corrijan la doc.</li>
+                        <li>Si OpenCode responde al issue, este picker se actualizará con los números reconciliados.</li>
+                        <li>Mientras tanto, <strong class="text-amber-300">no confíes en el ranking de "más req/mes = mejor deal"</strong>: usá la columna de precios y la sección de <em>Composite benchmark</em> para tomar decisiones.</li>
+                    </ul>
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <a href="https://github.com/anomalyco/opencode/issues/24723" target="_blank" class="export-btn inline-flex items-center gap-1.5 text-xs text-slate-300 bg-slate-800/70 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700">
+                            <i data-lucide="github" class="w-3.5 h-3.5"></i> OpenCode issue #24723
+                        </a>
+                        <a href="https://github.com/anomalyco/opencode/issues/32928" target="_blank" class="export-btn inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-800/40 hover:bg-slate-800/70 px-3 py-1.5 rounded-lg border border-slate-700">
+                            <i data-lucide="corner-down-left" class="w-3.5 h-3.5"></i> #32928 (cerrado como dup)
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reference Table -->
+    <div class="mb-10">
+        <h2 class="text-lg font-semibold mb-4 flex items-center gap-2"><i data-lucide="table-2" class="w-5 h-5 text-slate-300"></i> Referencia completa — modelos Go</h2>
+        <div class="overflow-x-auto scroll-fade rounded-xl border border-slate-800 bg-slate-900/50">
+            <table class="w-full text-xs md:text-sm whitespace-nowrap">
+                <thead>
+                    <tr class="border-b border-slate-800 bg-slate-900/80">
+                        <th class="text-left py-3 px-3 font-semibold text-slate-300">Modelo</th>
+                        <th class="text-center py-3 px-3 font-semibold text-slate-300">Rating<br><span class="text-[10px] font-normal text-slate-500">llm-stats</span></th>
+                        <th class="text-center py-3 px-3 font-semibold text-slate-300">Arena<br><span class="text-[10px] font-normal text-slate-500">WebDev</span></th>
+                        <th class="text-center py-3 px-3 font-semibold text-slate-300">SWE-Pro<br><span class="text-[10px] font-normal text-slate-500">%</span></th>
+                        <th class="text-center py-3 px-3 font-semibold text-slate-300">Term-B<br><span class="text-[10px] font-normal text-slate-500">2.0/2.1</span></th>
+                        <th class="text-right py-3 px-3 font-semibold text-slate-300">Input</th>
+                        <th class="text-right py-3 px-3 font-semibold text-slate-300">Output</th>
+                        <th class="text-center py-3 px-3 font-semibold text-slate-300">Req/5h</th>
+                        <th class="text-center py-3 px-3 font-semibold text-slate-300">Req/mes</th>
+                        <th class="text-left py-3 px-3 font-semibold text-slate-300">Mejor para</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/50" id="ref-table-body"></tbody>
+            </table>
+        </div>
+        <p class="text-[10px] text-slate-600 mt-2 text-center">Fuentes: LMSYS Arena · llm-stats.com · HuggingFace Blog GLM-5.2 · OpenCode Go docs (jun 2026)</p>
+    </div>
+
+    <div class="text-xs text-slate-500 border-t border-slate-800/50 pt-6 text-center space-y-1">
+        <p class="flex flex-wrap justify-center items-center gap-x-4 gap-y-1">
+            <span class="inline-flex items-center gap-1.5 text-slate-400"><i data-lucide="bar-chart-3" class="w-3 h-3"></i>Arena</span><a href="https://arena.ai/leaderboard/code/webdev" class="text-blue-400 hover:underline inline-flex items-center gap-1" target="_blank">arena.ai <i data-lucide="external-link" class="w-2.5 h-2.5"></i></a> ·
+            <span class="inline-flex items-center gap-1.5 text-slate-400"><i data-lucide="code-2" class="w-3 h-3"></i>SWE-Bench</span><a href="https://llm-stats.com/" class="text-blue-400 hover:underline inline-flex items-center gap-1" target="_blank">llm-stats <i data-lucide="external-link" class="w-2.5 h-2.5"></i></a> ·
+            <span class="inline-flex items-center gap-1.5 text-slate-400"><i data-lucide="newspaper" class="w-3 h-3"></i>GLM-5.2</span><a href="https://huggingface.co/blog/zai-org/glm-52-blog" class="text-blue-400 hover:underline inline-flex items-center gap-1" target="_blank">HF Blog <i data-lucide="external-link" class="w-2.5 h-2.5"></i></a> ·
+            <span class="inline-flex items-center gap-1.5 text-slate-400"><i data-lucide="circle-dollar-sign" class="w-3 h-3"></i>Precios</span><a href="https://opencode.ai/docs/es/go/#usage-limits" class="text-blue-400 hover:underline inline-flex items-center gap-1" target="_blank">OpenCode Go <i data-lucide="external-link" class="w-2.5 h-2.5"></i></a>
+        </p>
+    </div>
+</div>
+
+<script>
+// ── Model Database ──
+// OpenCode Go:  https://opencode.ai/docs/es/go/#usage-limits  (18 jun 2026)
+// GLM-5.2 blog: https://huggingface.co/blog/zai-org/glm-52-blog (17 jun 2026, full benchmark table)
+// SWE-Bench:    https://llm-stats.com/  +  https://www.swebench.com/
+// Arena ELO:    https://arena.ai/leaderboard/code/webdev
+// Kimi K2.7:    https://news.qq.com/rain/a/20260613A02Z2C00  (12 jun 2026)
+// MiMo V2.5:    https://mimo.xiaomi.com/mimo-v2-5-pro/
+// Composite score: 40% Arena ELO (normalized 1380-1700) + 35% SWE-bench Pro + 25% Terminal-Bench
+const MODELS = {
+    'glm52':       { name:'GLM-5.2',           rating:59.0, arena:1595, swePro:62.1, sweVer:77.8, term:81.0, input:1.40,  output:4.40,  cacheRead:0.26,  cacheWrite:null,  req5h:880,   reqMonth:4300,   tier:'high',  isNew:true,  notes:'MIT, 1M ctx, #2 Arena WebDev, #1 long-horizon open' },
+    'qwen37max':   { name:'Qwen3.7 Max',       rating:54.4, arena:1680, swePro:60.6, sweVer:80.4, term:69.7, input:2.50,  output:7.50,  cacheRead:0.50,  cacheWrite:3.125, req5h:950,   reqMonth:4770,   tier:'high' },
+    'glm51':       { name:'GLM-5.1',           rating:42.4, arena:1532, swePro:58.4, sweVer:null,  term:63.5, input:1.40,  output:4.40,  cacheRead:0.26,  cacheWrite:null,  req5h:880,   reqMonth:4300,   tier:'high' },
+    'minimaxm3':   { name:'MiniMax M3',        rating:45.5, arena:1521, swePro:59.0, sweVer:80.5, term:65.0, input:0.30,  output:1.20,  cacheRead:0.06,  cacheWrite:null,  req5h:3200,  reqMonth:16000,  tier:'mid' },
+    'kimik27c':    { name:'Kimi K2.7 Code',    rating:null, arena:null,  swePro:null,  sweVer:60.4, term:null, input:0.95,  output:4.00,  cacheRead:0.19,  cacheWrite:null,  req5h:1350,  reqMonth:9250,   tier:'mid',   isNew:true,  notes:'30% menos tokens, 12 jun 2026' },
+    'kimik25':     { name:'Kimi K2.5',         rating:43.1, arena:1515, swePro:null,  sweVer:80.2, term:null, input:0.60,  output:3.00,  cacheRead:0.16,  cacheWrite:null,  req5h:1850,  reqMonth:9250,   tier:'mid' },
+    'kimik26':     { name:'Kimi K2.6',         rating:null, arena:null,  swePro:58.6, sweVer:80.2, term:66.7, input:0.95,  output:4.00,  cacheRead:0.16,  cacheWrite:null,  req5h:1150,  reqMonth:5750,   tier:'mid' },
+    'deepseekv4p': { name:'DeepSeek V4 Pro',   rating:42.7, arena:1462, swePro:55.4, sweVer:80.6, term:67.9, input:1.74,  output:3.48,  cacheRead:0.0145,cacheWrite:null,  req5h:3450,  reqMonth:17150,  tier:'high' },
+    'mimo25pro':   { name:'MiMo V2.5 Pro',     rating:41.7, arena:1468, swePro:57.2, sweVer:78.9, term:68.4, input:1.74,  output:3.48,  cacheRead:0.0145,cacheWrite:null,  req5h:3250,  reqMonth:16300,  tier:'high' },
+    'qwen37plus':  { name:'Qwen3.7 Plus',      rating:null, arena:null,  swePro:null,  sweVer:null, term:null, input:0.40,  output:1.60,  cacheRead:0.04,  cacheWrite:0.50,  req5h:4300,  reqMonth:21600,  tier:'mid' },
+    'qwen36plus':  { name:'Qwen3.6 Plus',      rating:40.7, arena:1464, swePro:null,  sweVer:78.8, term:null, input:0.50,  output:3.00,  cacheRead:0.05,  cacheWrite:0.625, req5h:3300,  reqMonth:16300,  tier:'mid' },
+    'minimaxm27':  { name:'MiniMax M2.7',      rating:38.1, arena:1395, swePro:null,  sweVer:null, term:null, input:0.30,  output:1.20,  cacheRead:0.06,  cacheWrite:0.375, req5h:3400,  reqMonth:17000,  tier:'budget' },
+    'mimo25':      { name:'MiMo V2.5',         rating:37.9, arena:1435, swePro:null,  sweVer:null, term:null, input:0.14,  output:0.28,  cacheRead:0.0028,cacheWrite:null,  req5h:30100, reqMonth:150400, tier:'budget' },
+    'minimaxm25':  { name:'MiniMax M2.5',      rating:37.3, arena:null,  swePro:null,  sweVer:80.2, term:null, input:0.30,  output:1.20,  cacheRead:0.06,  cacheWrite:0.375, req5h:6300,  reqMonth:31800,  tier:'budget' },
+    'deepseekv4f': { name:'DeepSeek V4 Flash', rating:36.8, arena:null,  swePro:null,  sweVer:79.0, term:null, input:0.14,  output:0.28,  cacheRead:0.0028,cacheWrite:null,  req5h:31650, reqMonth:158150, tier:'budget' },
+    'glm5':        { name:'GLM-5',             rating:35.4, arena:null,  swePro:null,  sweVer:77.8, term:null, input:1.00,  output:3.20,  cacheRead:null,  cacheWrite:null,  req5h:1150,  reqMonth:5750,   tier:'budget' },
+
+    // ── Reference: closed-source frontier (NOT in OpenCode Go) ──
+    // Only shown for benchmark context. Do NOT include in workflows/pricing/composite.
+    'opus48':      { name:'Claude Opus 4.8',   rating:61.3, arena:1567, swePro:69.2, sweVer:88.6, term:85.0, input:5.00,  output:25.00, cacheRead:null,  cacheWrite:null,  req5h:null,  reqMonth:null,   tier:'reference', isReference:true, notes:'Anthropic flagship, 28 may 2026. No en Go.' },
+    'gpt55':       { name:'GPT-5.5',           rating:56.2, arena:2123, swePro:58.6, sweVer:83.4, term:84.0, input:5.00,  output:30.00, cacheRead:0.50,  cacheWrite:null,  req5h:null,  reqMonth:null,   tier:'reference', isReference:true, notes:'OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena.' },
+};
+
+// Compute a composite score (0-100) for the chart
+//   - 40% Arena ELO  (normalized 1380..1700 → 0..100)
+//   - 35% SWE-bench Pro
+//   - 25% Terminal-Bench 2.0/2.1
+function compositeScore(m) {
+    const arenaPart = m.arena ? Math.max(0, Math.min(100, ((m.arena - 1380) / (1700 - 1380)) * 100)) : 0;
+    const sweProPart = m.swePro ?? 0;
+    const termPart   = m.term ?? 0;
+    return (arenaPart * 0.40) + (sweProPart * 0.35) + (termPart * 0.25);
+}
+
+const PHASES = [
+    { id:'explore',   name:'sdd-explore',   icon:'search',          desc:'Lectura de código, búsqueda' },
+    { id:'propose',   name:'sdd-propose',   icon:'lightbulb',       desc:'Decisiones arquitectónicas' },
+    { id:'spec',      name:'sdd-spec',      icon:'file-text',       desc:'Escritura estructurada' },
+    { id:'design',    name:'sdd-design',    icon:'layout-template', desc:'Arquitectura y tradeoffs' },
+    { id:'tasks',     name:'sdd-tasks',     icon:'list-checks',     desc:'Descomposición en tareas' },
+    { id:'apply',     name:'sdd-apply',     icon:'wrench',          desc:'Implementación + tool calling' },
+    { id:'verify',    name:'sdd-verify',    icon:'check-circle-2',  desc:'Validación contra spec' },
+    { id:'archive',   name:'sdd-archive',   icon:'archive',         desc:'Copiar, formatear, cerrar' },
+    { id:'judge',     name:'jd-judge',      icon:'gavel',           desc:'Revisión adversarial' },
+];
+
+const CONFIGS = {
+    optimal: {
+        label: 'Óptima', color: 'emerald', cost: '~$0.019',
+        rationale: 'Qwen3.7 Plus ($0.40) + MiniMax M3 (SWE-Ver 80.5%, SWE-Pro 59.0%) + MiMo V2.5 ($0.14). Mejor score/dollar sin sacrificar calidad.',
+        assignments: {
+            explore:  'minimaxm3',    // 80.5% SWE-Ver, 59.0% SWE-Pro, $0.30 — best value
+            propose:  'qwen37plus',   // más barato que Qwen3.6, 4.3k req/5h
+            spec:     'qwen37plus',
+            design:   'qwen37plus',
+            tasks:    'minimaxm3',
+            apply:    'mimo25pro',    // 57.2% SWE-Pro, 78.9% SWE-Ver, Terminal-B 68.4
+            verify:   'mimo25pro',
+            archive:  'mimo25',       // 30,100 req/5h, $0.14
+            judge:    'kimik25',      // 1515 Arena, 80.2% SWE-Ver
+        }
+    },
+    balanced: {
+        label: 'Balanced', color: 'indigo', cost: '~$0.052',
+        rationale: 'GLM-5.1 (SWE-Pro 58.4%, $1.40) para design/judge. Qwen3.7 Max (Arena 1680, SWE-Pro 60.6%) para apply cuando importa.',
+        assignments: {
+            explore:  'minimaxm3',
+            propose:  'glm51',        // 1532 Arena, 58.4% SWE-Pro
+            spec:     'deepseekv4p',  // 55.4% SWE-Pro, 80.6% SWE-Ver
+            design:   'glm51',
+            tasks:    'minimaxm3',
+            apply:    'qwen37max',    // 1680 Arena, 60.6% SWE-Pro, 80.4% SWE-Ver
+            verify:   'mimo25pro',
+            archive:  'mimo25',
+            judge:    'glm51',
+        }
+    },
+    maxquality: {
+        label: 'Max Quality', color: 'amber', cost: '~$0.135',
+        rationale: 'GLM-5.2 (#2 Arena WebDev 1595, SWE-Pro 62.1%, Terminal-B 81.0%, 1M context) + Qwen3.7 Max para todo lo crítico. Top-tier open-source.',
+        assignments: {
+            explore:  'glm52',        // top open-weights
+            propose:  'glm52',
+            spec:     'glm52',
+            design:   'glm52',        // 1M context + 1595 Arena = ideal para decisiones de arquitectura
+            tasks:    'qwen37max',    // 1680 Arena, mejor descomposición
+            apply:    'glm52',        // SWE-Pro 62.1% (open-source SOTA), Terminal-B 81.0%
+            verify:   'glm52',
+            archive:  'mimo25',       // archive barato
+            judge:    'qwen37max',    // jd-judge: 2do modelo top para diversidad
+        }
+    },
+    pre_utn_u3: {
+        label: 'Pedagógica · pre-utn U3', color: 'cyan', cost: '~$0.142 + ChatGPT Plus',
+        rationale: 'Preset específico para Issue #44 de Teksi75/pre_utn (Unidad 3 visualizaciones pedagógicas). GPT-5.5 (vía ChatGPT Plus, sin coste adicional) en las 3 fases pedagógicamente más críticas: spec (qué debe mostrar cada visualización), design (arquitectura del componente parametrizable) y jd-judge (revisión adversarial top-tier). Las 6 fases restantes con OpenCode Go: GLM-5.2 en propose+apply (1M context), Qwen3.7 Max en tasks (descomposición), MiniMax M3 en explore (best value), MiMo V2.5 Pro en verify (validación), MiMo V2.5 en archive.',
+        assignments: {
+            explore:  'minimaxm3',    // Go: leer código + material_canonico + specs U1/U2 (best value, SWE-Pro 59.0%)
+            propose:  'glm52',        // Go: proposal del change SDD (1M context = leer todo el material de una)
+            spec:     'gpt55',        // ChatGPT Plus: spec pedagógica detallada de cada visualización (top-tier, vale la pena)
+            design:   'gpt55',        // ChatGPT Plus: diseño del componente React/SVG reutilizable (4 sub-casos de valor absoluto en 1 parametrizable)
+            tasks:    'qwen37max',    // Go: descomposición en tareas para las 8 visualizaciones
+            apply:    'glm52',        // Go: implementación del piloto (valor absoluto) — fase más cara
+            verify:   'mimo25pro',    // Go: typecheck + test:run + build + revisión pedagógica vs spec
+            archive:  'mimo25',       // Go: archive barato
+            judge:    'gpt55',        // ChatGPT Plus: jd-judge adversarial con modelo top-tier cerrado (diversidad vs los open del ciclo)
+        }
+    },
+    pre_utn_u3_balanced: {
+        label: 'Pedagógica · pre-utn U3 · Balanced', color: 'violet', cost: '~$0.075 + ChatGPT Plus',
+        rationale: 'Variante más agresiva con ChatGPT Plus: GPT-5.5 en 5 fases (spec, design, verify, judge + 1 backup) y Kimi K2.7 Code en apply (#1 open-source en visual coding según blog Moonshot — K2.5 explícitamente lidera generación de sitios web con imagen de referencia). 4 fases de "scaffolding" (explore, propose, tasks, archive) con Go. Aprovecha al máximo el Plus — 5 fases con GPT-5.5 sin coste marginal, y la fase crítica de implementación con el open-source top en visual coding.',
+        assignments: {
+            explore:  'minimaxm3',    // Go: lectura eficiente del código y material canónico (best value, SWE-Pro 59.0%)
+            propose:  'qwen37max',    // Go: propuesta estructurada del change SDD (Arena 1680, fuerte en planning)
+            spec:     'gpt55',        // Plus: spec pedagógica detallada de cada visualización (top-tier, 1.05M context)
+            design:   'gpt55',        // Plus: arquitectura del componente parametrizable (4 sub-casos de valor absoluto)
+            tasks:    'minimaxm3',    // Go: descomposición mecánica (no necesita top-tier, M3 es suficiente y barato)
+            apply:    'kimik27c',     // Go: Kimi K2.7 Code — #1 open-source en visual coding (heredado de K2.5/K2.6 lineage Moonshot), 30% menos thinking tokens que K2.6, optimizado para coding
+            verify:   'gpt55',        // Plus: validación vs criterios pedagógicos del issue #44 (typecheck + test:run + build + revisión)
+            archive:  'mimo25',       // Go: archive barato (formateo + commit + STATUS.json)
+            judge:    'gpt55',        // Plus: revisión adversarial top-tier (diversidad vs los open del ciclo)
+        }
+    }
+};
+
+function scoreBadge(m) {
+    let parts = [];
+    if (m.arena) parts.push(`<span class="src-badge src-arena">Arena ${m.arena}</span>`);
+    if (m.swePro) parts.push(`<span class="src-badge src-swe">SWE-Pro ${m.swePro}%</span>`);
+    if (m.term) parts.push(`<span class="src-badge src-term">Term-B ${m.term}%</span>`);
+    if (!m.arena && !m.swePro && !m.term) parts.push(`<span class="src-badge src-none">sin datos</span>`);
+    return parts.join(' ');
+}
+
+let currentConfig = null;
+
+function selectConfig(key) {
+    currentConfig = key;
+    const cfg = CONFIGS[key];
+    document.querySelectorAll('.config-btn').forEach(b => { b.classList.remove('active'); b.style.borderColor = 'transparent'; });
+    const btn = document.getElementById(`btn-${key}`);
+    btn.classList.add('active');
+    const colors = { optimal:'rgb(16,185,129)', balanced:'rgb(99,102,241)', maxquality:'rgb(245,158,11)', pre_utn_u3:'rgb(34,211,238)', pre_utn_u3_balanced:'rgb(167,139,250)' };
+    btn.style.borderColor = colors[key];
+
+    document.getElementById('workflow-section').classList.remove('hidden');
+    document.getElementById('config-label').textContent = cfg.label;
+
+    const tbody = document.getElementById('workflow-body');
+    tbody.innerHTML = '';
+    let totalCost = 0, totalReq = Infinity;
+
+    PHASES.forEach((phase, i) => {
+        const m = MODELS[cfg.assignments[phase.id]];
+        const costPerReq = m.input * 0.001 + m.output * 0.0005;
+        totalCost += costPerReq;
+        if (m.req5h != null) totalReq = Math.min(totalReq, m.req5h);
+
+const row = document.createElement('tr');
+        row.className = 'workflow-row hover:bg-slate-800/30';
+        const newBadge = m.isNew ? ' <span class="src-badge src-new inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NEW</span>' : '';
+        const plusBadge = m.isReference ? ' <span class="src-badge" style="background:rgba(34,211,238,0.18);color:#67e8f9;font-weight:600;display:inline-flex;align-items:center;gap:3px"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>Plus</span>' : '';
+        const req5hDisplay = m.req5h != null ? m.req5h.toLocaleString() : '—';
+        row.innerHTML = `
+            <td class="py-3 px-4 text-slate-500 font-mono text-xs">${i+1}</td>
+            <td class="py-3 px-4"><span class="font-medium inline-flex items-center gap-1.5"><i data-lucide="${phase.icon}" class="w-3.5 h-3.5 text-slate-300"></i>${phase.name}</span><br><span class="text-[11px] text-slate-500">${phase.desc}</span></td>
+            <td class="py-3 px-4"><span class="font-medium text-white">${m.name}</span>${newBadge}${plusBadge}</td>
+            <td class="py-3 px-4 text-center font-mono text-xs">${m.arena || '—'}</td>
+            <td class="py-3 px-4 text-center font-mono text-xs">${m.swePro ? m.swePro + '%' : '—'}</td>
+            <td class="py-3 px-4 text-center font-mono text-xs">${m.term ? m.term + '%' : '—'}</td>
+            <td class="py-3 px-4 text-right font-mono text-xs">$${m.input.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right font-mono text-xs">$${m.output.toFixed(2)}</td>
+            <td class="py-3 px-4 text-right font-mono text-xs">${req5hDisplay}</td>
+            <td class="py-3 px-4 text-xs text-slate-400 max-w-[280px]">${m.arena ? 'Arena ' + m.arena : ''}${m.swePro ? ' · SWE-Pro ' + m.swePro + '%' : ''}${m.term ? ' · Term-B ' + m.term + '%' : ''} · $${m.input}/$${m.output} · ${req5hDisplay} req/5h</td>
+        `;
+        tbody.appendChild(row);
+        setTimeout(() => row.classList.add('visible'), 60 * i);
+    });
+    lucide.createIcons();
+
+    const uniqueModels = [...new Set(Object.values(cfg.assignments).map(k => MODELS[k].name))];
+    document.getElementById('workflow-summary').innerHTML = `
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+            <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Modelos únicos</div>
+            <div class="text-2xl font-bold text-white">${uniqueModels.length}</div>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+            <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Req bottleneck (5h)</div>
+            <div class="text-2xl font-bold text-white">~${totalReq.toLocaleString()}</div>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+            <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Coste/request</div>
+            <div class="text-2xl font-bold text-white">$${totalCost.toFixed(4)}</div>
+        </div>
+        <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 text-center">
+            <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">Coste por ciclo</div>
+            <div class="text-2xl font-bold text-${colors[key]}-400">${cfg.cost}</div>
+        </div>
+    `;
+}
+
+function buildCompositeChart() {
+    const container = document.getElementById('composite-chart');
+    const entries = Object.entries(MODELS)
+        .filter(([k,m]) => !m.isReference)  // only Go models in this chart
+        .map(([k,m]) => ({k, m, score: compositeScore(m)}))
+        .filter(e => e.score > 0)
+        .sort((a,b) => b.score - a.score);
+
+    const maxScore = Math.max(...entries.map(e => e.score));
+    const minScore = Math.min(...entries.map(e => e.score));
+    const range = Math.max(1, maxScore - minScore);
+
+    entries.forEach(({k, m, score}) => {
+        const width = ((score - minScore) / range) * 80 + 20;
+        const color = m.tier === 'high' ? 'bg-emerald-500' : m.tier === 'mid' ? 'bg-indigo-500' : 'bg-amber-500';
+        const newBadge = m.isNew ? ' <span class="src-badge src-new ml-1 inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NEW</span>' : '';
+
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3';
+        div.innerHTML = `
+            <div class="w-36 md:w-40 text-xs font-medium text-slate-300 truncate">${m.name}${newBadge}</div>
+            <div class="flex-1 bar-track">
+                <div class="bar-fill ${color}" style="width:${width}%"></div>
+            </div>
+            <div class="w-14 text-right text-xs font-mono text-emerald-400">${score.toFixed(1)}</div>
+            <div class="w-16 text-right text-[10px] text-slate-500">${m.arena || '—'} · ${m.swePro || '—'}% · ${m.term || '—'}%</div>
+        `;
+        container.appendChild(div);
+    });
+    lucide.createIcons();
+}
+
+function buildPricingChart() {
+    const container = document.getElementById('pricing-chart');
+    const sorted = Object.entries(MODELS)
+        .filter(([k,m]) => !m.isReference)  // only Go models in pricing chart
+        .map(([k,m]) => ({...m, key:k, costPerReq: m.input * 0.001 + m.output * 0.0005}))
+        .sort((a,b) => b.costPerReq - a.costPerReq);
+
+    const maxCost = sorted[0].costPerReq;
+
+    sorted.forEach((m, i) => {
+        const width = (m.costPerReq / maxCost) * 100;
+        const rankClass = i < 3 ? 'rank-3' : i < 7 ? 'rank-2' : 'rank-1';
+        const barColor = i < 3 ? 'bg-amber-500' : i < 7 ? 'bg-indigo-500' : 'bg-emerald-500';
+        const newBadge = m.isNew ? ' <span class="src-badge src-new ml-1 inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NEW</span>' : '';
+
+        const div = document.createElement('div');
+        div.className = 'flex items-center gap-3';
+        div.innerHTML = `
+            <div class="w-36 md:w-40 text-xs font-medium text-slate-300 truncate">${m.name}${newBadge}</div>
+            <div class="flex-1 bar-track">
+                <div class="bar-fill ${barColor}" style="width:${width}%"></div>
+            </div>
+            <div class="w-20 text-right"><span class="cost-rank ${rankClass}">$${m.costPerReq.toFixed(4)}</span></div>
+            <div class="w-20 text-right text-[11px] text-slate-500">${m.req5h.toLocaleString()}/5h</div>
+        `;
+        container.appendChild(div);
+    });
+    lucide.createIcons();
+}
+
+function buildRefTable() {
+    const tbody = document.getElementById('ref-table-body');
+    const sorted = Object.entries(MODELS)
+        .filter(([k,m]) => !m.isReference)  // only Go models in reference table
+        .sort((a,b) => compositeScore(b[1]) - compositeScore(a[1]));
+
+    sorted.forEach(([mk, m]) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-800/30 transition';
+        const newBadge = m.isNew ? ' <span class="src-badge src-new inline-flex items-center gap-1"><i data-lucide="sparkles" class="w-2.5 h-2.5"></i>NEW</span>' : '';
+        tr.innerHTML = `
+            <td class="py-2.5 px-3 font-medium">${m.name}${newBadge}</td>
+            <td class="py-2.5 px-3 text-center font-mono text-xs">${m.rating || '—'}</td>
+            <td class="py-2.5 px-3 text-center">${m.arena ? `<span class="src-badge src-arena">${m.arena}</span>` : `<span class="src-badge src-none">—</span>`}</td>
+            <td class="py-2.5 px-3 text-center">${m.swePro ? `<span class="src-badge src-swe">${m.swePro}%</span>` : `<span class="src-badge src-none">—</span>`}</td>
+            <td class="py-2.5 px-3 text-center">${m.term ? `<span class="src-badge src-term">${m.term}%</span>` : `<span class="src-badge src-none">—</span>`}</td>
+            <td class="py-2.5 px-3 text-right font-mono text-xs">$${m.input.toFixed(2)}</td>
+            <td class="py-2.5 px-3 text-right font-mono text-xs">$${m.output.toFixed(2)}</td>
+            <td class="py-2.5 px-3 text-center font-mono text-xs">${m.req5h.toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-center font-mono text-xs">${m.reqMonth.toLocaleString()}</td>
+            <td class="py-2.5 px-3 text-xs text-slate-400">${getBestFor(mk)}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+    lucide.createIcons();
+}
+
+function getBestFor(mk) {
+    const map = {
+        glm52:      'sdd-design, sdd-apply (Arena #2, SWE-Pro 62.1%, Term-B 81.0%, 1M ctx, MIT)',
+        qwen37max:  'sdd-apply, sdd-tasks (Arena 1680, SWE-Pro 60.6%, SWE-Ver 80.4%)',
+        glm51:      'sdd-design, jd-judge (Arena 1532, SWE-Pro 58.4%, $1.40)',
+        minimaxm3:  'sdd-tasks, sdd-explore (SWE-Pro 59.0%, SWE-Ver 80.5%, $0.30 — best value)',
+        kimik27c:   'sdd-apply long-context (SWE-Ver 60.4%, 30% menos tokens)',
+        kimik25:    'jd-judge (Arena 1515, SWE-Ver 80.2%)',
+        kimik26:    'sdd-apply (SWE-Pro 58.6%, SWE-Ver 80.2%, Term-B 66.7%)',
+        deepseekv4p:'sdd-spec, sdd-apply (SWE-Pro 55.4%, SWE-Ver 80.6%, Term-B 67.9%)',
+        mimo25pro:  'sdd-verify, sdd-apply (Arena 1468, SWE-Pro 57.2%, Term-B 68.4%, $1.74)',
+        qwen37plus: 'sdd-spec, sdd-propose (4.3k req/5h, $0.40 in)',
+        qwen36plus: 'sdd-spec (Arena 1464, SWE-Ver 78.8%)',
+        minimaxm27: 'sdd-onboard (Arena 1395, $0.30)',
+        mimo25:     'sdd-archive (Arena 1435, $0.14, 30,100 req/5h)',
+        minimaxm25: 'Batch (SWE-Ver 80.2%)',
+        deepseekv4f:'sdd-archive, retrieval (SWE-Ver 79.0%, $0.14, 31,650 req/5h)',
+        glm5:       'Budget general (SWE-Ver 77.8%)',
+    };
+    return map[mk] || '—';
+}
+
+function exportWorkflow() {
+    if (!currentConfig) return;
+    const cfg = CONFIGS[currentConfig];
+    let text = `SDD Workflow — ${cfg.label} (${cfg.cost}/ciclo)\n${cfg.rationale}\n${'='.repeat(78)}\n\n`;
+    PHASES.forEach((phase, i) => {
+        const m = MODELS[cfg.assignments[phase.id]];
+        const arena = m.arena ? ` [Arena ${m.arena}]` : '';
+        const swePro = m.swePro ? ` [SWE-Pro ${m.swePro}%]` : '';
+        const term = m.term ? ` [Term-B ${m.term}%]` : '';
+        const req5hDisplay = m.req5h != null ? m.req5h.toLocaleString() : '—';
+        const plusTag = m.isReference ? ' [ChatGPT Plus]' : '';
+        text += `${String(i+1).padStart(2)}. ${phase.name.padEnd(14)} → ${m.name.padEnd(20)} $${m.input.toFixed(2)}/$${m.output.toFixed(2)} ${req5hDisplay} req/5h${arena}${swePro}${term}${plusTag}\n`;
+    });
+    const reqValues = Object.values(cfg.assignments).map(k => MODELS[k].req5h).filter(v => v != null);
+    const bottleneckDisplay = reqValues.length > 0 ? Math.min(...reqValues).toLocaleString() : '—';
+    text += `\n${'='.repeat(78)}\nBottleneck (Go models only): ${bottleneckDisplay} req/5h\n`;
+    text += `Modelos únicos: ${[...new Set(Object.values(cfg.assignments).map(k => MODELS[k].name))].length}\n`;
+    text += `\nFuentes: LMSYS Arena · llm-stats.com · HF Blog GLM-5.2 · OpenCode Go docs (jun 2026)\n`;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.querySelector('.export-btn');
+        const orig = btn.innerHTML;
+        btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> Copiado!';
+        setTimeout(() => btn.innerHTML = orig, 2000);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    buildRefTable();
+    buildCompositeChart();
+    buildPricingChart();
+    selectConfig('optimal');
+    lucide.createIcons();
+});
+</script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+    // Initial render of any <i data-lucide="..."> in static HTML
+    if (window.lucide) lucide.createIcons();
+</script>
+</body>
+</html>
