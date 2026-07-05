@@ -40,7 +40,9 @@ permissions:
   id-token: write
 
 # Don't keep a stale deploy alive when this branch is deleted.
-if: github.event_name != 'pull_request'
+# Note: the `on: push: branches: - main` trigger already filters to main, so
+# no top-level `if:` is needed (and as of 2026-07 some Action parsers reject
+# a top-level `if:` with "Unexpected value 'if'" — keep it on jobs instead).
 
 jobs:
   build:
