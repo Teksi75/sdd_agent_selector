@@ -2,10 +2,9 @@
  * @file js/app.js
  * @description SDD Agent Selector V4 — bootstrap entry point.
  *
- * Pipeline (Phase 1 — pilot):
- *   1. Load the 5 data/*.json files via data-loader (with sessionStorage cache).
- *   2. Pull out `models` (the only payload the ref-table needs).
- *   3. Mount the ref-table component into `#ref-table-mount`.
+ * Pipeline:
+ *   1. Load the 5 data/*.json files via data-loader (cache via sessionStorage).
+ *   2. Mount ref-table (#ref-table-mount) and config-selector (#config-mount).
  *
  * Source of truth (single source of truth):
  *   openspec/changes/2026-07-04-sdd-model-picker-refactor/
@@ -15,62 +14,87 @@
  *     ├─ state.yaml    — estado vivo del change (SDD engine)
  *     └─ specs/model-picker/spec.md — Given/When/Then scenarios (RFC 2119)
  *
- * Convenciones de stack:
- *   - pnpm (NO npm/yarn)
- *   - esbuild como bundler
- *   - Tailwind 3.4 + tokens.css custom (Phase 1)
- *   - vitest + jsdom para tests
- *   - TDD strict para módulos con lógica (model-scorer.js, data-loader.js, etc.)
+ * Convenciones de stack: pnpm, esbuild, Tailwind 3.4, vitest + jsdom, TDD strict.
  */
 
 import { loadAll } from './services/data-loader.js';
 import { render as renderRefTable } from './components/ref-table.js';
+import {
+  render as renderConfigSelector,
+  setData as setSelectorData,
+} from './components/config-selector.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
 
 /**
- * Mount the ref-table pilot section once data is available. Failure is
- * surfaced inline (instead of a thrown error) so the rest of the page
- * (e.g. the empty <main>) still renders something.
+ * Mount the ref-table pilot section. Failure is surfaced inline (instead of
+ * a thrown error) so the rest of the page still renders something.
  *
- * @returns {Promise<void>}
+ * @param {Object} data - composed payload from data-loader
  */
-async function bootRefTable() {
+function mountRefTable(data) {
   const mount = document.getElementById('ref-table-mount');
   if (!mount) {
     console.warn('js/app.js: #ref-table-mount not found in DOM — skipping ref-table render');
     return;
   }
   try {
-    const data = await loadAll();
     const summary = renderRefTable(mount, data.models);
     console.log(
       `js/app.js: ref-table rendered ${summary.rows} model(s), top=${summary.topKey}`
     );
   } catch (err) {
     console.error('js/app.js: ref-table mount failed', err);
-    mount.innerHTML = `
-      <div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">
-        Error cargando data/*.json — revisá la consola. (${escapeHtml(String(err && err.message || err))})
-      </div>`;
+    mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando ref-table — revisá la consola.</div>`;
   }
 }
 
 /**
- * Minimal HTML escaper for the error message — avoids injecting a
- * template-string payload into the DOM via innerHTML.
+ * Mount the config-selector (Phase 2a).
  *
- * @param {string} s
- * @returns {string}
+ * Pipeline: setData({models, roleMatrix, profiles}) + render(mount, configs, onSelect).
+ * The onSelect callback is a placeholder for Phase 2b/e — workflow-table
+ * and justification-ui will subscribe to recompute per-agent cards.
+ *
+ * @param {Object} data
  */
+function mountConfigSelector(data) {
+  const mount = document.getElementById('config-mount');
+  if (!mount) {
+    console.warn('js/app.js: #config-mount not found in DOM — skipping config-selector render');
+    return;
+  }
+  try {
+    setSelectorData({ models: data.models, roleMatrix: data.roles, profiles: data.profiles });
+    renderConfigSelector(mount, data.configs, (assignments) => {
+      const assigned = Object.values(assignments).filter((a) => a && a.key).length;
+      console.log(`js/app.js: config selected — ${assigned}/${Object.keys(assignments).length} agents assigned`);
+    });
+    console.log(`js/app.js: config-selector rendered ${data.configs.length} button(s)`);
+  } catch (err) {
+    console.error('js/app.js: config-selector mount failed', err);
+    mount.innerHTML = `<div class="rounded-xl border border-rose-800 bg-rose-900/40 p-4 text-sm text-rose-200">Error montando config-selector — revisá la consola.</div>`;
+  }
+}
+
+/** Minimal HTML escaper — used only for the error messages above. */
 function escapeHtml(s) {
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return String(s).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+}
+
+/**
+ * Top-level orchestrator — load data once, mount both sections.
+ * @returns {Promise<void>}
+ */
+async function bootAll() {
+  try {
+    const data = await loadAll();
+    mountRefTable(data);
+    mountConfigSelector(data);
+  } catch (err) {
+    console.error('js/app.js: data load failed', err);
+  }
 }
 
 // Kick off the boot. We don't await at module top-level so import errors
@@ -78,8 +102,8 @@ function escapeHtml(s) {
 //   blocking the rest of the app.
 if (typeof window !== 'undefined') {
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootRefTable, { once: true });
+    document.addEventListener('DOMContentLoaded', bootAll, { once: true });
   } else {
-    bootRefTable();
+    bootAll();
   }
 }
