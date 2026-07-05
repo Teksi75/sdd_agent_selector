@@ -71,25 +71,35 @@ const NAME_PATTERNS = [
  */
 function parsePricingRows(html) {
   const rows = [];
-  // Find every quoted model name (the page embeds them as `"gpt-5.x ..."`).
-  const nameRe = /"((?:gpt|o\d|chatgpt)[a-z0-9.\\-]*(?:[ ][^"]{0,60})?)"/g;
+  // The Astro JSON is HTML-entity-encoded: `&quot;` instead of `"`.
+  // OpenAI's data island is OUTSIDE <script> tags (it's a JSON-stringified
+  // data attribute on a regular element), so a global decode is the
+  // simplest approach. `&quot;` doesn't appear in normal English copy.
+  const decoded = html.replace(/&quot;/g, '"').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>');
+
+  // Find every quoted model name. Astro pricing-row prefix is
+  // exactly `[1,[[1,[[0,"name"],[0,N],[0,N],[0,N]]` (rows are nested
+  // under a category group).
+  const nameRe = /"((?:gpt|o\d|chatgpt)[a-z0-9.\-]*(?:[ ][^"]{0,60})?)"/g;
   let m;
-  while ((m = nameRe.exec(html)) !== null) {
+  while ((m = nameRe.exec(decoded)) !== null) {
     const name = m[1].trim();
     // Must contain a model family identifier.
     if (!/^(gpt|o\d|chatgpt)/.test(name)) continue;
     // Skip non-pricing contexts (e.g. model mentions in article excerpts).
-    // The pricing rows are always preceded by `[1,[[0,"...name...` — look
-    // backwards for the closest `[0,"...name...` whose preceding char is
-    // `[1,[[` (i.e., inside a rows table).
-    const ctx = html.slice(Math.max(0, m.index - 50), m.index + 800);
-    if (!/\[1,\[\[\d,\[\[0,"/.test(ctx)) continue;
+    // The pricing rows are always preceded by `[1,[[<digit>,[[0,"...name..."`
+    // (the row is nested under a category group). Look back far enough to
+    // catch both the very first row in the table AND subsequent rows that
+    // are preceded by sibling rows (which can be ~100 chars back when the
+    // preceding cells contain long numbers like 100+ digit costs).
+    const ctx = decoded.slice(Math.max(0, m.index - 300), m.index + 800);
+    if (!/\[1,\[\[\d+,\[\[0,"/.test(ctx)) continue;
 
     // Parse the 4 numeric cells that follow the name. Astro format:
     //   [0,"name"],[0,5],[0,0.5],[0,30]
     // We walk forward through brackets to collect them.
     const startIdx = m.index + m[0].length;
-    const cells = parseAstroCells(html, startIdx, 4);
+    const cells = parseAstroCells(decoded, startIdx, 4);
     if (cells.length < 3) continue;
     const input = numericCell(cells[0]);
     const cacheRead = numericCell(cells[1]);
@@ -112,8 +122,10 @@ function parseAstroCells(html, startIdx, count) {
   const cells = [];
   let i = startIdx;
   while (cells.length < count && i < html.length) {
-    // Skip whitespace and commas.
-    while (i < html.length && /[\s,]/.test(html[i])) i++;
+    // Skip whitespace, commas, and closing brackets (the model-name cell
+    // ends with `]` immediately after the closing quote, so we have to
+    // step past that before looking for the next `[`).
+    while (i < html.length && /[\s,\]]/.test(html[i])) i++;
     if (i >= html.length || html[i] !== '[') break;
     // Walk brackets.
     let depth = 0;
@@ -127,8 +139,6 @@ function parseAstroCells(html, startIdx, count) {
       i++;
     }
     cells.push(html.slice(cellStart, i));
-    // Stop if we hit a row terminator `],`.
-    if (html[i] === ',') continue;
   }
   return cells;
 }
@@ -136,10 +146,9 @@ function parseAstroCells(html, startIdx, count) {
 /** Coerce an Astro cell to a number (null if empty / dash). */
 function numericCell(cell) {
   if (!cell) return null;
-  // Strip outer [ ].
-  const inner = cell.replace(/^\[|\]$/g, '').trim();
-  // Format: [0, value]
-  const m = /^\[\d+,(.*)\]$/.exec(inner);
+  // Cell format is `[0, value]` where value is a number, quoted string,
+  // empty quoted string `""`, `null`, or quoted dash `-"-"`.
+  const m = /^\[\d+,(.*?)\]\s*$/.exec(cell.trim());
   if (!m) return null;
   const v = m[1].trim();
   if (v === '' || v === '""' || v === 'null' || v === '"-"') return null;
@@ -159,8 +168,11 @@ function numericCell(cell) {
 function filterFlagships(rows) {
   const out = new Map();
   for (const r of rows) {
-    // Skip "long context" or non-flagship rows.
-    if (/longer than|over|>|272K/.test(r.name)) continue;
+    // Skip ONLY the long-context variants. The "Short context" rows are
+    // labeled with "(<272K context length)" or nothing at all — we want
+    // those. The "Long context" rows are labeled with "(>272K context
+    // length)" or "(longer than ...)" — we skip those.
+    if (/>\s*272K|longer than/.test(r.name)) continue;
     for (const { pattern, key } of NAME_PATTERNS) {
       if (pattern.test(r.name)) {
         // Keep the first match (short-context row, which appears before long-context in the page).
