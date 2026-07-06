@@ -158,6 +158,19 @@ let inflight = null;
 let inMemory = null;
 
 /**
+ * Generation counter — incremented by `invalidateMemoryCache()` so an
+ * in-flight `loadAll()` that resolves AFTER an invalidation can detect it
+ * and skip its `inMemory` + `sessionStorage` writes. Without this, the
+ * `await inflight` continuation in the original loader could (a) resolve
+ * to `null` because `inflight` was set to `null` mid-flight, and (b)
+ * overwrite a fresh inMemory memo that a concurrent `dataSync.refresh()`
+ * + read path just established.
+ *
+ * @type {number}
+ */
+let loadGeneration = 0;
+
+/**
  * Load the 5 data files. Cache hit returns synchronously-after-await
  * (no fetch). Cache miss / schema mismatch triggers a single round of
  * parallel fetches.
@@ -165,18 +178,36 @@ let inMemory = null;
  * The returned shape is the composed payload:
  *   { models: {...}, phases: [...], configs: [...], roles: {...}, profiles: {...} }
  *
+ * Invalidation safety: each loader call captures the current
+ * `loadGeneration`; if `invalidateMemoryCache()` runs while the fetch is
+ * in flight (e.g., a concurrent `dataSync.refresh()` wrote fresh JSON to
+ * sessionStorage and cleared the memo), the in-flight continuation
+ * detects the generation bump and (a) skips `writeCache` so the fresh
+ * sessionStorage entry is preserved, (b) skips `inMemory = composed` so
+ * the fresh memo is preserved, and (c) only clears `inflight` if it's
+ * still the promise this call created. The local `myInflight` capture
+ * keeps the original `await` pointing at the actual Promise even if the
+ * module-level `inflight` slot has been reset to `null`.
+ *
  * @returns {Promise<Object>}
  */
 export async function loadAll() {
   if (inMemory) return inMemory;
+  const myGeneration = loadGeneration;
   const cached = readCache();
   if (cached) {
+    // An invalidation between readCache() and the inMemory write would
+    // re-promote stale data — guard with the generation check.
+    if (myGeneration !== loadGeneration) return cached;
     inMemory = cached;
     return cached;
   }
   if (inflight) return inflight;
 
-  inflight = (async () => {
+  // Local capture so an `invalidateMemoryCache()` mid-flight that sets
+  // the module-level `inflight = null` cannot turn the `await` below
+  // into `await null` (which would resolve to `undefined`).
+  const myInflight = (async () => {
     const results = await Promise.all(DATA_FILES.map(fetchJson));
     /** @type {Object} */
     const composed = {};
@@ -193,16 +224,23 @@ export async function loadAll() {
         ? raw[payloadKey]
         : raw;
     }
-    writeCache(composed);
+    // Only persist to sessionStorage if no invalidation happened during
+    // the fetch — otherwise we'd overwrite fresh data with stale.
+    if (myGeneration === loadGeneration) writeCache(composed);
     return composed;
   })();
+  inflight = myInflight;
 
   try {
-    const composed = await inflight;
-    inMemory = composed;
+    const composed = await myInflight;
+    // Skip the inMemory memo write if we were invalidated during the
+    // await — the fresh inMemory (if any) wins.
+    if (myGeneration === loadGeneration) inMemory = composed;
     return composed;
   } finally {
-    inflight = null;
+    // Only clear `inflight` if it's still ours — a newer loadAll() may
+    // have replaced it with its own Promise in the meantime.
+    if (inflight === myInflight) inflight = null;
   }
 }
 
@@ -231,8 +269,15 @@ export function clearCache() {
  * sessionStorage (returning the freshly-written payload) instead of
  * returning the stale in-memory memo.
  *
+ * Race protection: also clears `inflight` and bumps `loadGeneration` so
+ * any in-flight `loadAll()` continuation can detect it was invalidated
+ * and skip its inMemory + sessionStorage writes (preventing stale data
+ * from overwriting fresh data set by a concurrent refresh + read path).
+ *
  * @returns {void}
  */
 export function invalidateMemoryCache() {
   inMemory = null;
+  inflight = null;
+  loadGeneration += 1;
 }

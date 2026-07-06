@@ -125,9 +125,15 @@ pnpm run build           # produce dist/index.html (~56 KB, CSS+JS inlined)
 # Abrir dist/index.html en el browser — totalmente offline (sin CDN runtime)
 ```
 
-### P1 follow-up conocido
+### Build pipeline: `data/` is shipped as `dist/data/`
 
-El deploy actual sube solo `dist/` (no incluye `data/*.json` ni `assets/icons/*.svg`). El `js/app.js` hace `fetch('data/models.json')` que va a 404 silencioso en producción y cae al fallback "today's date" del freshness badge. Fix recomendado (no implementado todavía): inlinear los JSON en el bundle de esbuild o cambiar el path a upstream `Teksi75/sdd-data`. Ver `verify-report.md` §6.
+The deploy uploads `dist/` (single self-contained `dist/index.html` plus whatever other files `pnpm run build` produced). `esbuild.config.js` runs `copyData()` as the last step of the build — see `esbuild.config.js` step `4/4 copy data/ for runtime fetch` — which recursively copies `data/*.json` into `dist/data/`, then cleans the intermediate `_tailwind.css` and `_bundle.js`. Because GitHub Pages serves `dist/`, the runtime `fetch('data/models.json')` resolves to `dist/data/models.json` and the picker loads the JSON catalog instead of 404ing.
+
+`copyData()` also does an `rmSync(DATA_DST, { recursive: true, force: true })` before the copy so stale entries from a previous build never linger in `dist/data/`.
+
+What is **not** copied by the build:
+
+- `assets/icons/*.svg` — referenced only by an `index.html` comment block (V3 visual parity prep); no `js/*.js` import or runtime code path reads from `assets/`. No `copyAssets` step exists. If a future component opts into the Lucide icons, wire a new `copyAssets()` in `esbuild.config.js` and add it to `runBuild()`.
 
 ## Convenciones
 

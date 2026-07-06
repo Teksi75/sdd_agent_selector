@@ -245,3 +245,171 @@ describe('data-loader — fetch failure', () => {
     await expect(loadAll()).rejects.toThrow(/network|fetch|TypeError/i);
   });
 });
+
+describe('data-loader — invalidateMemoryCache race protection', () => {
+  // Regression: a concurrent invalidateMemoryCache() while loadAll() is
+  // in-flight must not let the stale fetch overwrite a fresh inMemory memo
+  // (the dataSync.refresh() flow writes fresh JSON to sessionStorage and
+  // then calls invalidateMemoryCache(); if the boot path's loadAll()
+  // resolved stale AFTER that, it would clobber the fresh memo).
+
+  // Helper: deferred mock fetch — captures every resolver so we can
+  // resolve ALL pending fetches (Promise.all awaits all 5 file fetches;
+  // resolving only the last one leaves the others stuck).
+  function deferredFetch() {
+    const resolvers = [];
+    globalThis.fetch = vi.fn(
+      () =>
+        new Promise((res) => {
+          resolvers.push(res);
+        })
+    );
+    return {
+      count: () => resolvers.length,
+      resolveAll: () => {
+        const payload = {
+          ok: true,
+          status: 200,
+          async json() {
+            return JSON.parse(JSON.stringify(freshFiles['data/models.json']));
+          },
+          async text() {
+            return '';
+          },
+        };
+        while (resolvers.length > 0) resolvers.shift()(payload);
+      },
+    };
+  }
+
+  test('stale in-flight fetch does not overwrite fresh inMemory after invalidate', async () => {
+    globalThis.sessionStorage = new FakeStorage();
+    const gate = deferredFetch();
+
+    vi.resetModules();
+    const mod = await import('../js/services/data-loader.js');
+    mod.clearCache();
+    const { loadAll, invalidateMemoryCache, CACHE_KEY } = mod;
+
+    // 1) Start loadAll — the fetch hangs on our deferred promise.
+    const inflightLoad = loadAll();
+    // All 5 fetches are now pending.
+    expect(gate.count()).toBe(5);
+
+    // 2) Mid-flight invalidation (simulates dataSync.refresh clearing
+    //    the in-memory memo after writing fresh data to sessionStorage).
+    invalidateMemoryCache();
+
+    // 3) Pre-populate sessionStorage with a FRESH payload — this is
+    //    exactly what dataSync.refresh() does (writeCache + then
+    //    invalidateMemoryCache).
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        timestamp: Date.now(),
+        data: {
+          models: { freshModel: { name: 'FRESH' } },
+          phases: [],
+          configs: [],
+          roles: {},
+          profiles: {},
+        },
+      })
+    );
+
+    // 4) A concurrent loadAll() picks up the FRESH cache and memoizes it.
+    const fresh = await loadAll();
+    expect(fresh.models.freshModel.name).toBe('FRESH');
+    expect(fresh.models.glm52).toBeUndefined();
+
+    // 5) Now resolve the original (STALE) fetches — this is where the
+    //    bug would manifest: without the fix, the loader continuation
+    //    would either (a) resolve to `undefined` because `inflight` was
+    //    set to `null` mid-flight, or (b) overwrite inMemory with stale.
+    gate.resolveAll();
+    const inflightResult = await inflightLoad;
+
+    // 6) The in-flight loader must still receive its fetched data
+    //    (composed object), NOT `null` — the local `myInflight` capture
+    //    keeps the await pointing at the actual Promise.
+    expect(inflightResult).not.toBeNull();
+    expect(inflightResult).toHaveProperty('models');
+    expect(inflightResult.models.glm52.name).toBe('GLM-5.2');
+
+    // 7) Core regression assertion: a subsequent loadAll() must still
+    //    return FRESH data — inMemory was NOT overwritten by the stale
+    //    fetch (generation guard skipped the assignment).
+    const after = await loadAll();
+    expect(after.models.freshModel.name).toBe('FRESH');
+    expect(after.models.glm52).toBeUndefined();
+  });
+
+  test('stale in-flight fetch does not overwrite fresh sessionStorage after invalidate', async () => {
+    globalThis.sessionStorage = new FakeStorage();
+    const gate = deferredFetch();
+
+    vi.resetModules();
+    const mod = await import('../js/services/data-loader.js');
+    mod.clearCache();
+    const { loadAll, invalidateMemoryCache, CACHE_KEY } = mod;
+
+    const inflightLoad = loadAll();
+    expect(gate.count()).toBe(5);
+    invalidateMemoryCache();
+
+    // Pre-populate FRESH cache (simulates dataSync.refresh writing fresh
+    // JSON via its own writeCache, then calling invalidateMemoryCache).
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({
+        schemaVersion: 1,
+        timestamp: Date.now(),
+        data: {
+          models: { freshModel: { name: 'FRESH' } },
+          phases: [],
+          configs: [],
+          roles: {},
+          profiles: {},
+        },
+      })
+    );
+
+    gate.resolveAll();
+    await inflightLoad;
+
+    // sessionStorage must still hold the FRESH payload — the stale
+    // fetch's writeCache was skipped because the generation bump was
+    // detected inside the IIFE.
+    const cachedRaw = sessionStorage.getItem(CACHE_KEY);
+    const cached = JSON.parse(cachedRaw);
+    expect(cached.data.models.freshModel.name).toBe('FRESH');
+    expect(cached.data.models.glm52).toBeUndefined();
+  });
+
+  test('inflight slot is cleared after invalidation so the next loadAll re-fetches instead of awaiting a stale promise', async () => {
+    globalThis.sessionStorage = new FakeStorage();
+    const gate = deferredFetch();
+
+    vi.resetModules();
+    const mod = await import('../js/services/data-loader.js');
+    mod.clearCache();
+    const { loadAll, invalidateMemoryCache } = mod;
+
+    const inflightLoad = loadAll();
+    expect(gate.count()).toBe(5);
+
+    invalidateMemoryCache();
+
+    // The next loadAll() must NOT reuse the stale promise — it must start
+    // a fresh fetch (and clear inMemory so the cache path doesn't short-
+    // circuit either).
+    const second = loadAll();
+    // Now 5 more fetches are pending (10 total).
+    expect(gate.count()).toBe(10);
+
+    gate.resolveAll();
+    await inflightLoad;
+    await second;
+  });
+});
