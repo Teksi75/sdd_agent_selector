@@ -93,4 +93,51 @@ describe('cli-mirror-table — render() contract (spec.md)', () => {
     expect(() => render(null, {}, ROLE_MATRIX)).toThrow(TypeError);
     expect(() => render({}, {}, ROLE_MATRIX)).toThrow(TypeError);
   });
+
+  test('soft-fallback assignment renders the "soft" badge in the assigned cell', async () => {
+    ({ render } = await import('../js/components/cli-mirror-table.js'));
+
+    // Build a fake assignment set where one agent has a soft-fallback
+    //   assignment (sdd-propose with kimik25 under max-quality). All
+    //   other agents have a normal mimo25 assignment.
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) {
+      if (agent === 'sdd-propose') {
+        assignments[agent] = {
+          key: 'kimik25',
+          model: MODELS.kimik25,
+          score: 91.82,
+          cost: 0.005,
+          effectiveMaxCost: 0.062,
+          softFallback: true,
+          reason: 'Soft fallback: no model meets minReasoning=95, surfacing best cost-clearing model (kimik25, score=91.8)',
+          alternatives: [],
+        };
+      } else {
+        assignments[agent] = {
+          key: 'mimo25',
+          model: MODELS.mimo25,
+          score: 86.97,
+          cost: 0.0003,
+          effectiveMaxCost: 0.01,
+          alternatives: [],
+        };
+      }
+    }
+
+    render(target, assignments, ROLE_MATRIX);
+
+    // The "soft" badge must exist exactly once and live on the sdd-propose row.
+    const softBadges = target.querySelectorAll('[data-soft-fallback="true"]');
+    expect(softBadges.length).toBe(1);
+    const proposeRow = target.querySelector('tr[data-agent="sdd-propose"]');
+    expect(proposeRow).toBeDefined();
+    expect(proposeRow.querySelector('[data-soft-fallback="true"]')).toBeDefined();
+    // The badge should carry the reason as a title for hover-tooltip.
+    const badge = proposeRow.querySelector('[data-soft-fallback="true"]');
+    expect(badge.getAttribute('title')).toMatch(/minReasoning=95/);
+    // Soft-fallback still counts as with-assignment.
+    const summary = { withAssignment: 18, withoutAssignment: 0 };
+    expect(summary.withoutAssignment).toBe(0);
+  });
 });

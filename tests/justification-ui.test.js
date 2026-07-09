@@ -79,10 +79,13 @@ describe('justification-ui — render() contract (spec.md)', () => {
     expect(summary.withoutAssignment).toBe(17);
   });
 
-  test('gentle-orchestrator with minReasoning 95 + no eligible models → critical warning', async () => {
+  test('gentle-orchestrator with minReasoning 95 + no eligible models → soft fallback card', async () => {
     ({ render } = await import('../js/components/justification-ui.js'));
 
-    // Synthetic dataset where no model reaches score 95.
+    // Synthetic dataset where no model reaches score 95. With the new
+    //   general soft-fallback path in getBestFor, gentle-orchestrator now
+    //   gets the highest-scoring cost-clearing model (m_a) as a soft
+    //   fallback instead of the old "Sin modelo" critical warning.
     const lowScoreModels = {
       m_a: { name: 'A', arena: 1400, swePro: 50, term: 60, input: 1, output: 3, tier: 'balanced' },
       m_b: { name: 'B', arena: 1300, swePro: 45, term: 55, input: 1, output: 3, tier: 'balanced' },
@@ -112,13 +115,64 @@ describe('justification-ui — render() contract (spec.md)', () => {
 
     const card = target.querySelector('.justification-card[data-agent="gentle-orchestrator"]');
     expect(card).toBeDefined();
-    expect(card.getAttribute('data-has-assignment')).toBe('false');
-    // Critical warning rendered (text content has both the label and the reason).
-    expect(card.textContent).toMatch(/Sin modelo|No hay modelo elegible/i);
+    // The card is treated as having an assignment (it has a model), but
+    //   flagged as a soft fallback so the UI shows a different color and
+    //   the reason banner.
+    expect(card.getAttribute('data-has-assignment')).toBe('true');
+    expect(card.getAttribute('data-soft-fallback')).toBe('true');
+    // Soft fallback banner + reason (not the rose "Sin modelo" critical
+    //   warning).
+    expect(card.textContent).toMatch(/Soft fallback/i);
     expect(card.textContent).toMatch(/minReasoning=95/);
-    // The card uses the rose/warning color class.
+    expect(card.textContent).not.toMatch(/Sin modelo|No hay modelo elegible/i);
+    // The card uses the amber color (not rose).
+    expect(card.className).toMatch(/border-amber/);
+    // The gentle-orchestrator card is treated as with-assignment (it has
+    //   a model). Other agents in this synthetic fixture may still be
+    //   without-assignment depending on their costRatio — we don't pin
+    //   the global counts here, only the gentle-orchestrator behavior.
+    expect(summary.withAssignment).toBeGreaterThanOrEqual(1);
+  });
+
+  test('gentle-orchestrator with super-tight costRatio + no eligible → still renders critical warning', async () => {
+    // Truly-no-eligible case: when no non-reference model clears the cost
+    //   ceiling (costRatio is impossibly tight), the soft fallback has
+    //   nothing to surface and the function returns null. The UI must
+    //   still render the rose "Sin modelo" critical warning in that case.
+    ({ render } = await import('../js/components/justification-ui.js'));
+
+    const lowScoreModels = {
+      m_a: { name: 'A', arena: 1400, swePro: 50, term: 60, input: 1, output: 3, tier: 'balanced' },
+    };
+    const divergentRoles = {
+      ...ROLE_MATRIX,
+      // costRatio 0.0001 makes the effectiveMaxCost ~0.000001 — no model
+      //   clears it, so soft fallback can't fire.
+      'gentle-orchestrator': { minReasoning: 95, costRatio: 0.0001, role: 'orchestration' },
+      'jd-judge-a': { minReasoning: 40, costRatio: 1.0, role: 'judge-a' },
+      'jd-judge-b': { minReasoning: 40, costRatio: 1.0, role: 'judge-b' },
+    };
+    const divergentProfiles = {
+      ...PROFILES,
+      'gentle-orchestrator': { inputTokens: 4000, outputTokens: 2000 },
+      'jd-judge-a': { inputTokens: 5500, outputTokens: 1200 },
+      'jd-judge-b': { inputTokens: 5500, outputTokens: 1200 },
+    };
+
+    const { getBestFor } = await import('../js/services/model-scorer.js');
+    const assignments = {};
+    for (const agent of Object.keys(divergentRoles)) {
+      assignments[agent] = getBestFor(agent, lowScoreModels, divergentRoles, divergentProfiles, 'balanced');
+    }
+
+    const summary = render(target, assignments, divergentRoles, lowScoreModels);
+
+    const card = target.querySelector('.justification-card[data-agent="gentle-orchestrator"]');
+    expect(card).toBeDefined();
+    expect(card.getAttribute('data-has-assignment')).toBe('false');
+    expect(card.getAttribute('data-soft-fallback')).toBeNull();
+    expect(card.textContent).toMatch(/Sin modelo|No hay modelo elegible/i);
     expect(card.className).toMatch(/border-rose/);
-    // Summary counts the no-assignment case.
     expect(summary.withoutAssignment).toBeGreaterThanOrEqual(1);
   });
 

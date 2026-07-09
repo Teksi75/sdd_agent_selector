@@ -303,11 +303,12 @@ export function getBestFor(
   }
 
   if (eligible.length === 0) {
-    // Soft fallback: if the role explicitly opts into a per-role reference
-    //   (referenceModelId), and that reference clears the role's hard cost
-    //   ceiling, surface it as a 'soft-recommended' pick so the UI doesn't
-    //   show a no-models critical warning for roles like gentle-orchestrator
-    //   where the user has designated a specific reference by hand.
+    // Soft fallback #1 (role-designated reference): if the role explicitly
+    //   opts into a per-role reference (referenceModelId), and that
+    //   reference clears the role's hard cost ceiling, surface it as a
+    //   'soft-recommended' pick so the UI doesn't show a no-models critical
+    //   warning for roles like gentle-orchestrator where the user has
+    //   designated a specific reference by hand.
     const roleRefKey = modified.referenceModelId;
     if (roleRefKey && models && models[roleRefKey]) {
       const roleRefModel = models[roleRefKey];
@@ -325,6 +326,47 @@ export function getBestFor(
           alternatives: [],
         };
       }
+    }
+
+    // Soft fallback #2 (general): when no model meets the modified reasoning
+    //   floor (e.g., max-quality strategy raises the floor above the top
+    //   non-reference composite score), but at least one non-reference model
+    //   still clears the cost ceiling, surface the highest-scoring one as
+    //   a soft fallback. This converts the "Sin modelo elegible" critical
+    //   stop into an actionable recommendation when the user has explicitly
+    //   asked for the most-strict preset.
+    //
+    //   We drop the reasoning filter (which is what emptied `eligible`) but
+    //   keep the cost ceiling sacred — if the user can't afford ANY model
+    //   in the role's budget, no soft fallback is possible and we return
+    //   null with an explicit reason.
+    const costClearing = [];
+    for (const [key, m] of list) {
+      if (!m || typeof m !== 'object') continue;
+      if (m.isReference === true || m.tier === 'reference') continue;
+      const cost = costEstimate(m, profile);
+      if (cost <= effectiveMaxCost) {
+        costClearing.push({ key, model: m, score: compositeScore(m), cost });
+      }
+    }
+    if (costClearing.length > 0) {
+      costClearing.sort((a, b) => b.score - a.score || a.cost - b.cost);
+      const [best, ...rest] = costClearing;
+      return {
+        key: best.key,
+        model: best.model,
+        score: best.score,
+        cost: best.cost,
+        effectiveMaxCost,
+        softFallback: true,
+        reason: `Soft fallback: no model meets minReasoning=${modified.minReasoning}, surfacing best cost-clearing model (${best.key}, score=${best.score.toFixed(1)})`,
+        alternatives: rest.slice(0, 3).map(({ key, model, score, cost }) => ({
+          key,
+          model,
+          score,
+          cost,
+        })),
+      };
     }
 
     // Distinguish "only reference models" vs "threshold not met" so UI can

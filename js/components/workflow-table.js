@@ -26,6 +26,20 @@ export function resetForTests() {
 }
 
 /**
+ * Build the small "soft" badge for assignments that fell back to the best
+ * cost-clearing model because the reasoning floor was unreachable. Keeps
+ * the user informed that the chosen model didn't strictly meet the role's
+ * minReasoning ceiling.
+ *
+ * @param {string} reason - the getBestFor reason string (shown in `title`)
+ * @returns {string} HTML
+ */
+function softBadge(reason) {
+  const title = reason ? ` title="${esc(reason)}"` : '';
+  return `<span class="text-[10px] uppercase tracking-wider font-semibold text-amber-300" data-soft-fallback="true"${title}>soft</span>`;
+}
+
+/**
  * Resolve the background color for a tier tag from the CSS tokens layer.
  * Falls back to neutral slate when the token is undefined (e.g., tests
  *   without a tokens stylesheet).
@@ -83,9 +97,11 @@ function modelCell(assignment, models) {
   const { slug, label } = tagFor(tier);
   const bg = tokenBg(document, tier);
   const styleAttr = bg ? ` style="background-color:${esc(bg)}"` : '';
+  const soft = assignment.softFallback ? softBadge(assignment.reason) : '';
   return `<span class="inline-flex items-center gap-2">
     <span>${esc(m.name || assignment.key)}</span>
     <span class="tier-tag" data-tier="${esc(tier)}" data-slug="${esc(slug)}"${styleAttr}>${esc(label)}</span>
+    ${soft}
   </span>`;
 }
 

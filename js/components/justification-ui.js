@@ -125,6 +125,17 @@ function cardHtml(agent, role, assignment, doc) {
       <div class="text-[11px] text-slate-400"><span class="text-slate-500">role:</span> ${esc(roleDesc)}</div>
     </div>`;
   }
+  if (safeA.softFallback) {
+    const reason = safeA.reason || 'Soft fallback activo';
+    return `<div class="justification-card rounded-xl border border-amber-700 bg-amber-900/25 p-4" data-agent="${esc(agent)}" data-has-assignment="true" data-soft-fallback="true">
+      <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span><span class="text-[10px] text-amber-200 font-semibold uppercase">⚠ Soft fallback</span></div>
+      ${assignmentHeader(safeA, doc)}
+      <div class="text-[11px] text-amber-200/85 mt-2 mb-1">${esc(reason)}</div>
+      <div class="text-[11px] text-slate-400"><span class="text-slate-500">role:</span> ${esc(roleDesc)}</div>
+      ${checksBlock(safeA, minReasoning, doc)}
+      ${alternativesBlock(safeA.alternatives)}
+    </div>`;
+  }
   return `<div class="justification-card rounded-xl border border-slate-800 bg-slate-900/60 p-4" data-agent="${esc(agent)}" data-has-assignment="true">
     <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span></div>
     ${assignmentHeader(safeA, doc)}
