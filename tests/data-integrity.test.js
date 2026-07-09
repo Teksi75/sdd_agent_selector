@@ -127,12 +127,21 @@ function nameEqual(a, b) {
 //
 // Bump this set when adding a new V4-only model so the orphan check stays
 // a useful drift detector instead of a permanent false-positive.
+// Also use this set for models that exist in V3 with a STUB payload and
+// were later filled in with real benchmarks in V4 (V3's stub is the source
+// of truth for "existence" but not for "current data").
 const KNOWN_V4_ONLY = new Set([
   'gpt54',
   'claudeFable5',
   'sonnet5',
   'haiku45',
   'gpt56terra',
+  'kimik27c', // K2.7 Code: V3 stub (arena=null, sweVer=60.4) → V4 real (Vals AI
+              //   sweVer=78.2, term=67, estimated arena=1510, swePro proxy 58.6).
+  'kimik25',   // K2.5: V3 launch data (arena=1515, sweVer=80.2) → V4 2026 refresh
+              //   (arena=1400 per BenchLM, sweVer=76.8 + swePro=50.7 per Moonshot's
+              //   HuggingFace card). The old numbers made K2.5 appear top of the
+              //   ranking despite K2.6 and K2.7 being strictly stronger.
 ]);
 
 describe('data-integrity: V3 source vs data/models.json', () => {
@@ -176,6 +185,7 @@ describe('data-integrity: V3 source vs data/models.json', () => {
 
   test('name, arena, input, output, tier match between V3 and V4', () => {
     for (const key of Object.keys(v3)) {
+      if (KNOWN_V4_ONLY.has(key)) continue; // V4 updated the data for this model
       const a = v3[key];
       const b = v4[key];
       expect(b, `V4 missing model ${key}`).toBeDefined();

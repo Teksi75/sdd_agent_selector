@@ -78,30 +78,55 @@
     },
     "kimik27c": {
       "name": "Kimi K2.7 Code",
-      "arena": null,
-      "swePro": null,
-      "sweVer": 60.4,
-      "term": null,
+      "arena": 1510,
+      "swePro": 58.6,
+      "sweVer": 78.2,
+      "term": 67,
       "input": 0.95,
       "output": 4,
       "cacheRead": 0.19,
       "tier": "balanced",
       "isNew": true,
-      "notes": "30% menos tokens, 12 jun 2026",
+      "notes": "Moonshot K2 family, 12 jun 2026. 30% fewer thinking tokens vs K2.6. Vals AI 3rd-party: SWE-bench Verified 78.2 (#1 open-weight), Terminal-Bench 2.1 67 (#1 open-weight). SWE-bench Pro: proxy 58.6 from K2.6 (no independent K2.7 number published). Arena: estimated 1510 (K2.7 not on Arena leaderboard as of 2026-07-09; K2.5 was 1515 at launch, now 1400 per BenchLM Jul 2026).",
+      "sources": [
+        {
+          "url": "https://vals.ai/benchmarks/swebench",
+          "date": "2026-07-09"
+        },
+        {
+          "url": "https://kimi.com/resources/kimi-k2-7-code",
+          "date": "2026-06-12"
+        },
+        {
+          "url": "https://www.kimi.com/blog/kimi-k2-6",
+          "date": "2026-04-20"
+        }
+      ],
       "requestsPer5h": 1350,
       "requestsPerWeek": 4630,
       "requestsPerMonth": 9250
     },
     "kimik25": {
       "name": "Kimi K2.5",
-      "arena": 1515,
-      "swePro": null,
-      "sweVer": 80.2,
+      "arena": 1400,
+      "swePro": 50.7,
+      "sweVer": 76.8,
       "term": null,
       "input": 0.6,
       "output": 3,
       "cacheRead": 0.16,
-      "tier": "balanced"
+      "tier": "balanced",
+      "notes": "2026-07 data refresh: arena 1515→1400 (LMSYS leaderboard rotation since launch — newer models shifted K2.5 down). SWE-Pro 50.7, SWE-Ver 76.8 per Moonshot's own HuggingFace benchmark card (Thinking mode). Previous V3/V4 data was from launch and is stale.",
+      "sources": [
+        {
+          "url": "https://huggingface.co/moonshotai/Kimi-K2.5",
+          "date": "2026-07-09"
+        },
+        {
+          "url": "https://benchlm.ai/models/kimi-k2-5",
+          "date": "2026-07-09"
+        }
+      ]
     },
     "kimik26": {
       "name": "Kimi K2.6",
