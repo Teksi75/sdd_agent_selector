@@ -108,6 +108,33 @@ function normalizeTier(v3Tier) {
   return v3Tier;
 }
 
+/**
+ * Name comparison is case-insensitive: V3 stores display names with the
+ * vendor's canonical casing (e.g. "GPT-5.5") while V4 normalizes them to a
+ * stable kebab-free form (e.g. "gpt-5.5"). The integrity contract is that
+ * the SAME model is present in both, not that capitalization matches.
+ */
+function nameEqual(a, b) {
+  return String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
+}
+
+// --- Known V4-only additions -----------------------------------------------
+//
+// V4 has these models that V3 did not (intentional additions, not orphans):
+//   - gpt54, claudeFable5, sonnet5, haiku45: 2026-07-06 sync from
+//     scrape-openai-pricing / scrape-anthropic-pricing
+//   - gpt56terra: 2026-07-09 manual add for the new OpenAI balanced tier
+//
+// Bump this set when adding a new V4-only model so the orphan check stays
+// a useful drift detector instead of a permanent false-positive.
+const KNOWN_V4_ONLY = new Set([
+  'gpt54',
+  'claudeFable5',
+  'sonnet5',
+  'haiku45',
+  'gpt56terra',
+]);
+
 describe('data-integrity: V3 source vs data/models.json', () => {
   // Skip the whole suite when no V3 source is available (CI without snapshot).
   if (!V3_AVAILABLE) {
@@ -139,9 +166,10 @@ describe('data-integrity: V3 source vs data/models.json', () => {
     }
   });
 
-  test('every V4 model key exists in V3 (no orphans)', () => {
+  test('every V4 model key exists in V3 (allowing for known V4-only additions)', () => {
     const v3Keys = new Set(Object.keys(v3));
     for (const k of Object.keys(v4)) {
+      if (KNOWN_V4_ONLY.has(k)) continue; // intentional V4-only addition
       expect(v3Keys.has(k), `V4 has orphan key (not in V3): ${k}`).toBe(true);
     }
   });
@@ -151,7 +179,7 @@ describe('data-integrity: V3 source vs data/models.json', () => {
       const a = v3[key];
       const b = v4[key];
       expect(b, `V4 missing model ${key}`).toBeDefined();
-      expect(b.name).toBe(a.name);
+      expect(nameEqual(b.name, a.name), `V4 name "${b.name}" != V3 name "${a.name}"`).toBe(true);
       // V3 stored arena as null/string; V4 uses null for unknown.
       const v3Arena = a.arena === null || a.arena === undefined ? null : Number(a.arena);
       expect(b.arena ?? null).toBe(v3Arena ?? null);
@@ -168,7 +196,7 @@ describe('data-integrity: V3 source vs data/models.json', () => {
       .map((m) => m.name);
     expect(v3Refs.length).toBeGreaterThan(0); // sanity
     for (const name of v3Refs) {
-      const v4Model = Object.values(v4).find((m) => m.name === name);
+      const v4Model = Object.values(v4).find((m) => nameEqual(m.name, name));
       expect(v4Model, `V4 missing reference model ${name}`).toBeDefined();
       expect(v4Model.isReference).toBe(true);
       expect(v4Model.tier).toBe('reference');
