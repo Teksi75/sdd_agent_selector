@@ -219,7 +219,15 @@ The 5 strategy presets are:
 The system MUST provide a `compositeScore(model)` function that
 returns a numeric score in the range [0, 100]. The score MUST be
 computed as a weighted sum of available benchmark values, with
-weights: Arena ELO 40%, SWE-Bench Pro 35%, Terminal-Bench 25%.
+weights: Arena ELO 30%, SWE-Bench Pro 30%, Terminal-Bench 20%,
+SWE-Bench Verified 20%.
+
+SWE-Bench Verified is the de-facto standard benchmark for code
+generation in the current ecosystem (2026), and many models publish
+only that number when SWE-Bench Pro is not yet independently verified
+(Kimi K2.7, Claude Mythos 5, and others). Excluding it from the
+scoring made those models invisible in the ranking despite strong
+code-generation capability.
 
 If a benchmark is missing (`null` or `undefined`), its weight MUST
 be redistributed proportionally among the available benchmarks.
@@ -228,24 +236,34 @@ If all benchmarks are missing, the function MUST return `0`.
 The function MUST be pure (no side effects, deterministic for
 same input).
 
-#### Scenario: GLM-5.2 with all benchmarks
+#### Scenario: GLM-5.2 with all four benchmarks
 
-- GIVEN a model with `arena: 1595`, `swePro: 62.1`, `term: 81.0`
+- GIVEN a model with `arena: 1595`, `swePro: 62.1`, `term: 81.0`, `sweVer: 77.8`
 - WHEN `compositeScore(model)` is called
-- THEN it returns a value close to 80.7 (±0.1)
+- THEN it returns a value close to 79.4 (±0.1)
 
 #### Scenario: Model with only Arena ELO
 
-- GIVEN a model with `arena: 1435`, `swePro: null`, `term: null`
+- GIVEN a model with `arena: 1435`, `swePro: null`, `term: null`, `sweVer: null`
 - WHEN `compositeScore(model)` is called
 - THEN it returns the normalized Arena score
 - AND the result is non-zero
 
 #### Scenario: All benchmarks missing
 
-- GIVEN a model with `arena: null`, `swePro: null`, `term: null`
+- GIVEN a model with `arena: null`, `swePro: null`, `term: null`, `sweVer: null`
 - WHEN `compositeScore(model)` is called
 - THEN it returns `0`
+
+#### Scenario: Multi-benchmark model outranks single-benchmark model with similar data quality
+
+- GIVEN a model A with only `arena: 1515` and `sweVer: 80.2` (2 benchmarks)
+- AND a model B with `arena: 1510`, `swePro: 58.6`, `term: 67`, `sweVer: 89` (all 4 benchmarks)
+- WHEN `compositeScore` is called for both
+- THEN the absolute difference between the two scores is at most 5 points
+- (i.e. a well-rounded model with strong multi-dimensional evidence is not
+   systematically penalized below a model with one strong single-dimension
+   score)
 
 ---
 

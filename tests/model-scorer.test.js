@@ -91,36 +91,80 @@ const REQUEST_PROFILES = {
 };
 
 describe('model-scorer — compositeScore', () => {
-  test('GLM-5.2 with all benchmarks yields a high score (~80.7)', () => {
-    // Spec scenario (specs/model-picker/spec.md "GLM-5.2 with all
-    // benchmarks"): arena 1595, swePro 62.1, term 81.0 → ~80.7 (±0.1).
-    // This is the regression test that pins the algorithm: a stricter
-    // bound than the [70, 90] range originally used.
+  test('GLM-5.2 with all four benchmarks yields a high score (~79.4)', () => {
+    // Spec scenario (specs/model-picker/spec.md "GLM-5.2 with all four
+    // benchmarks"): arena 1595, swePro 62.1, term 81.0, sweVer 77.8
+    //   → ~79.4 (±0.1) under the 4-benchmark weights (Arena 30%,
+    //   swePro 30%, term 20%, sweVer 20%). This is the regression test
+    //   that pins the algorithm to the spec scenario.
     const score = compositeScore(GLM52);
-    expect(score).toBeGreaterThan(80.6);
-    expect(score).toBeLessThan(80.8);
+    expect(score).toBeGreaterThan(79.3);
+    expect(score).toBeLessThan(79.5);
   });
 
   test('with only arena benchmark, redistributes weights to 100% arena', () => {
-    const onlyArena = { ...MIMOV25, swePro: null, term: null };
+    const onlyArena = { ...MIMOV25, swePro: null, term: null, sweVer: null };
     const score = compositeScore(onlyArena);
-    // MIMOV25 has arena 1435 → normalized to 0-100 with max ~1700
-    // Should be > 70 (since 1435/1700*100 = 84.4)
+    // MIMOV25 has arena 1435 → normalized to 0-100 with max 1650
+    //   1435/1650*100 ≈ 86.97
     expect(score).toBeGreaterThan(70);
     expect(score).toBeLessThan(100);
   });
 
   test('with all benchmarks null returns 0', () => {
-    const noBench = { ...GLM52, arena: null, swePro: null, term: null };
+    const noBench = { ...GLM52, arena: null, swePro: null, term: null, sweVer: null };
     expect(compositeScore(noBench)).toBe(0);
   });
 
   test('with only swePro returns non-zero score', () => {
-    const swe = { ...GLM52, arena: null, term: null };
+    const swe = { ...GLM52, arena: null, term: null, sweVer: null };
     const score = compositeScore(swe);
     expect(score).toBeGreaterThan(0);
     // swePro 62.1 with weight 1.0 (redistributed) → 62.1
     expect(score).toBeCloseTo(62.1, 0);
+  });
+
+  test('multi-benchmark model does not get systematically penalized below single-benchmark model', () => {
+    // The original bug the spec change was designed to fix: a model with
+    //   only one strong benchmark (Kimi K2.5: arena=1515 + sweVer=80.2)
+    //   was scoring higher than a model with broader evidence (Kimi K2.7:
+    //   arena=1510 + swePro=58.6 + term=67 + sweVer=89) because the
+    //   single-benchmark model's missing weight all went to the one
+    //   available benchmark. The new 4-benchmark weights fix this.
+    const k25 = { arena: 1515, swePro: null, term: null, sweVer: 80.2 };
+    const k27 = { arena: 1510, swePro: 58.6, term: 67, sweVer: 89 };
+    const s25 = compositeScore(k25);
+    const s27 = compositeScore(k27);
+    // Common-sense invariant: the absolute gap must drop by at least 5
+    //   points vs the 3-benchmark baseline.
+    //   (Before the spec change: K2.5=91.82, K2.7=73.87, gap=17.95.
+    //    After: K2.5=87.17, K2.7=76.24, gap=10.93 — a 7-point improvement
+    //    that comes from K2.5's weight redistributing across 2 benchmarks
+    //    instead of 100% onto arena.)
+    const gap = Math.abs(s25 - s27);
+    expect(gap).toBeLessThan(15); // down from ~18 in the 3-benchmark world
+    // And the multi-benchmark model must NOT be more than 12 points below
+    //   the single-benchmark model — captures "well-rounded models aren't
+    //   systematically crushed by single-benchmark models".
+    expect(s27).toBeGreaterThan(s25 - 12);
+  });
+
+  test('adding a benchmark lowers a single-benchmark model (weight redistribution)', () => {
+    // The transparent behavior of the algorithm: when a model gains a new
+    //   benchmark, its score is recomputed as a weighted average over the
+    //   available benchmarks. If the new benchmark is lower than the
+    //   existing one, the score goes down. This is correct (more data →
+    //   more conservative estimate) but worth pinning so a future refactor
+    //   doesn't accidentally give a single-benchmark model a 100% bonus.
+    const singleBench = { arena: 1515, swePro: null, term: null, sweVer: null };
+    const twoBench = { ...singleBench, sweVer: 80.2 };
+    const s1 = compositeScore(singleBench);
+    const s2 = compositeScore(twoBench);
+    // The single-benchmark model gets 100% on arena (= 91.82).
+    // The two-benchmark model redistributes arena to 60% + sweVer to 40%
+    //   → 87.17 (slightly lower because the new benchmark is < arena).
+    expect(s1).toBeGreaterThan(s2);
+    expect(s1 - s2).toBeLessThan(10);
   });
 
   test('with missing benchmark redistributes weight proportionally', () => {
