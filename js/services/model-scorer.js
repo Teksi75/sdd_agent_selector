@@ -211,11 +211,12 @@ export function applyStrategy(roleReq, strategy) {
   if (!roleReq || typeof roleReq !== 'object') {
     throw new TypeError('applyStrategy: roleReq must be an object');
   }
-  const base = {
-    minReasoning: roleReq.minReasoning,
-    costRatio: roleReq.costRatio,
-    role: roleReq.role,
-  };
+  // Spread the FULL roleReq first so opt-in fields like `referenceModelId`
+  //   (gentle-orchestrator's per-role designated reference) survive every
+  //   strategy. Earlier versions only copied minReasoning/costRatio/role,
+  //   which silently dropped referenceModelId and left the role-designated
+  //   soft-fallback path in getBestFor unreachable.
+  const base = { ...roleReq };
 
   switch (strategy) {
     case 'min-cost':

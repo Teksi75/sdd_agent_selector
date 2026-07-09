@@ -33,8 +33,14 @@ describe('pricing-chart — render() contract (spec.md)', () => {
     // Reference models (tier:reference OR isReference:true) must be excluded.
     expect(keys).not.toContain('opus48');
     expect(keys).not.toContain('gpt55');
+    // Expected bar count is the non-reference subset of the current
+    //   dataset — computed dynamically so the test stays correct when new
+    //   models are added via sync / manual add without bumping this test.
+    const expectedBars = Object.values(MODELS).filter(
+      (m) => m.tier !== 'reference' && !m.isReference
+    ).length;
     expect(keys.length).toBe(summary.bars);
-    expect(summary.bars).toBe(16);
+    expect(summary.bars).toBe(expectedBars);
   });
 
   test('real dataset: bars sorted by costEstimate ascending (cheapest first)', async () => {

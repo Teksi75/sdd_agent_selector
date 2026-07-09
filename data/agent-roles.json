@@ -9,8 +9,8 @@
     "gentle-orchestrator": {
       "minReasoning": 95,
       "costRatio": 1.0,
-      "referenceModelId": "gpt55",
-      "role": "Orchestration: planning, delegation, meta-reasoning across the 18-agent ecosystem"
+      "referenceModelId": "gpt56terra",
+      "role": "Orchestration: planning, delegation, meta-reasoning across the 18-agent ecosystem. Designated reference: GPT-5.6 Terra (cheaper than gpt-5.5, competitive reasoning)."
     },
     "sdd-init": {
       "minReasoning": 60,

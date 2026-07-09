@@ -250,9 +250,37 @@
       "input": 5,
       "output": 30,
       "cacheRead": 0.5,
-      "tier": "high",
+      "tier": "reference",
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
+    },
+    "gpt56terra": {
+      "name": "GPT-5.6 Terra",
+      "arena": 2200,
+      "swePro": 58.6,
+      "sweVer": 91.5,
+      "term": 84.3,
+      "input": 2.5,
+      "output": 15,
+      "cacheRead": 0.25,
+      "tier": "reference",
+      "isReference": true,
+      "isNew": true,
+      "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published).",
+      "sources": [
+        {
+          "url": "https://openai.com/index/previewing-gpt-5-6-sol/",
+          "date": "2026-06-26"
+        },
+        {
+          "url": "https://en.wikipedia.org/wiki/GPT-5.6",
+          "date": "2026-07-09"
+        },
+        {
+          "url": "https://www.aimadetools.com/blog/gpt-5-6-sol-terra-luna-complete-guide/",
+          "date": "2026-07-09"
+        }
+      ]
     },
     "gpt54": {
       "name": "gpt-5.4",

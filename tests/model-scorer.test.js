@@ -279,6 +279,18 @@ describe('model-scorer — applyStrategy', () => {
     applyStrategy(role, 'max-quality');
     expect(role).toEqual(snapshot);
   });
+
+  test('preserves opt-in fields like referenceModelId across every strategy', () => {
+    // Regression for the bug fixed in PR feat/add-gpt-5-6-terra: earlier
+    //   applyStrategy versions built `base` from a hardcoded field list
+    //   and silently dropped `referenceModelId`, leaving the role-designated
+    //   soft-fallback path in getBestFor unreachable for gentle-orchestrator.
+    const role = { minReasoning: 80, costRatio: 0.50, role: 'X', referenceModelId: 'gpt55' };
+    for (const strat of ['min-cost', 'balanced', 'max-quality', 'tier-based', 'experimental']) {
+      const modified = applyStrategy(role, strat);
+      expect(modified.referenceModelId, `strategy ${strat} dropped referenceModelId`).toBe('gpt55');
+    }
+  });
 });
 
 describe('model-scorer — getBestFor', () => {
@@ -589,6 +601,105 @@ describe('model-scorer — getBestFor soft fallback (general)', () => {
       expect(result.key).not.toBe('ref');
       expect(result.model.tier).not.toBe('reference');
     }
+  });
+});
+
+// === Role-designated soft fallback (referenceModelId) ==================
+//
+// The role-designated soft-fallback path fires when:
+//   (a) the role has `referenceModelId` set,
+//   (b) no normal eligible model exists (reasoning floor unreachable),
+//   (c) the designated reference model exists in the pool, and
+//   (d) its cost clears the role's effective cost ceiling.
+//
+// This path is the only way a role like `gentle-orchestrator` (which
+// sits at minReasoning 95) gets a model when no non-reference model
+// reaches its reasoning floor — and was the original motivation for
+// adding `referenceModelId` to the role matrix.
+
+describe('model-scorer — role-designated reference soft fallback', () => {
+  // A reference model the role will designate.
+  const ORCH_REF = {
+    key: 'orch-ref',
+    name: 'Orch Reference',
+    arena: 2200,
+    swePro: 58.6,
+    term: 84.3,
+    input: 2.5,
+    output: 15,
+    cacheRead: 0.25,
+    tier: 'reference',
+    isReference: true,
+  };
+  // A non-reference model that's cheaper but doesn't reach the reasoning
+  //   floor.
+  const CHEAP = {
+    key: 'cheap',
+    name: 'Cheap NonRef',
+    arena: 1500,
+    input: 0.3,
+    output: 1.2,
+    cacheRead: 0.06,
+    tier: 'balanced',
+  };
+  const POOL = { 'orch-ref': ORCH_REF, cheap: CHEAP };
+
+  // Role with minReasoning high enough that CHEAP doesn't qualify, and
+  //   referenceModelId pointing at ORCH_REF.
+  const ORCH_ROLE = {
+    'gentle-orchestrator': {
+      minReasoning: 95,
+      costRatio: 1.0,
+      referenceModelId: 'orch-ref',
+      role: 'orchestration',
+    },
+  };
+  const ORCH_PROFILES = {
+    'gentle-orchestrator': { inputTokens: 4000, outputTokens: 2000 },
+  };
+
+  test('role-designated reference is surfaced when no normal eligible model exists', () => {
+    const result = getBestFor('gentle-orchestrator', POOL, ORCH_ROLE, ORCH_PROFILES, 'balanced');
+    expect(result.key).toBe('orch-ref');
+    expect(result.softFallback).toBe(true);
+    expect(result.reason).toMatch(/role-designated reference/);
+    expect(result.reason).toMatch(/orch-ref/);
+    // The cost must clear the effective ceiling.
+    expect(result.cost).toBeLessThanOrEqual(result.effectiveMaxCost + 1e-9);
+  });
+
+  test('falls through to general soft fallback if role-designated reference is too expensive', () => {
+    // Set costRatio so tight the designated reference can't clear the
+    //   cost ceiling — the role-designated check should fail and the
+    //   general soft fallback (CHEAP) should fire instead.
+    const TIGHT_ROLE = {
+      'gentle-orchestrator': {
+        minReasoning: 95,
+        costRatio: 0.001, // impossibly tight
+        referenceModelId: 'orch-ref',
+        role: 'orchestration',
+      },
+    };
+    const result = getBestFor('gentle-orchestrator', POOL, TIGHT_ROLE, ORCH_PROFILES, 'balanced');
+    expect(result.key).not.toBe('orch-ref');
+    // The reason comes from the general soft fallback path, not the
+    //   role-designated one.
+    expect(result.reason).not.toMatch(/role-designated reference/);
+  });
+
+  test('falls through to general soft fallback if referenceModelId is missing from pool', () => {
+    // Role points at a reference that doesn't exist in models.
+    const MISSING_ROLE = {
+      'gentle-orchestrator': {
+        minReasoning: 95,
+        costRatio: 1.0,
+        referenceModelId: 'nonexistent',
+        role: 'orchestration',
+      },
+    };
+    const result = getBestFor('gentle-orchestrator', POOL, MISSING_ROLE, ORCH_PROFILES, 'balanced');
+    expect(result.key).not.toBe('nonexistent');
+    expect(result.reason).not.toMatch(/role-designated reference/);
   });
 });
 
