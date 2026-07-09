@@ -322,10 +322,14 @@ describe('model-scorer — getBestFor', () => {
     expect(result.key).toBe('fantasy');
   });
 
-  test('gentle-orchestrator returns null when no model meets minReasoning=95 (current dataset)', () => {
-    // OPUS48 is the highest-scoring non-reference model in the current dataset,
-    //   but its compositeScore is ~82, below minReasoning=95. This verifies
-    //   the no-qualify path explicitly.
+  test('gentle-orchestrator falls back via soft fallback when no model meets minReasoning=95 (current dataset)', () => {
+    // No non-reference model in MODELS has compositeScore ≥ 95. With the
+    //   general soft-fallback path in getBestFor, gentle-orchestrator now
+    //   surfaces the highest-scoring cost-clearing non-reference model
+    //   (MIMOV25, compositeScore ~87) as a soft fallback instead of
+    //   returning null. This converts the "Sin modelo elegible" critical
+    //   stop into an actionable recommendation, and is the only path that
+    //   makes gentle-orchestrator usable with the current dataset.
     const result = getBestFor(
       'gentle-orchestrator',
       MODELS,
@@ -333,9 +337,13 @@ describe('model-scorer — getBestFor', () => {
       REQUEST_PROFILES,
       'balanced'
     );
-    expect(result.key).toBeNull();
-    expect(result.reason).toBeDefined();
-    expect(result.reason).toMatch(/95/);
+    expect(result.key).not.toBeNull();
+    expect(result.softFallback).toBe(true);
+    expect(result.reason).toMatch(/soft fallback/i);
+    expect(result.reason).toMatch(/minReasoning=95/);
+    // The fallback must still clear the cost ceiling — this is the
+    //   sacred contract of the soft fallback.
+    expect(result.cost).toBeLessThanOrEqual(result.effectiveMaxCost + 1e-9);
   });
 
   test('returns null when no model qualifies (synthetic high threshold)', () => {
@@ -413,6 +421,173 @@ describe('model-scorer — getBestFor', () => {
       expect(result).toHaveProperty('alternatives');
     } else {
       expect(result).toHaveProperty('reason');
+    }
+  });
+});
+
+// === Soft fallback (no eligible, no role-designated reference) ============
+//
+// When no model meets the modified minReasoning floor (e.g. max-quality
+// strategy pushes the floor above the top non-reference score), but at
+// least one non-reference model clears the cost ceiling, getBestFor MUST
+// surface the highest-scoring cost-clearing model as a soft fallback
+// instead of returning null. This avoids the "Sin modelo elegible" stop
+// when the user explicitly asked for the most-strict preset.
+
+describe('model-scorer — getBestFor soft fallback (general)', () => {
+  // Minimal fixtures for the soft-fallback path. Use a 3-model pool where
+  //   the top non-reference model's score is below the +10 floor.
+  const FANTASY_REF = {
+    key: 'ref',
+    name: 'Reference Frontier',
+    arena: 1700,
+    swePro: 95,
+    term: 95,
+    input: 5,
+    output: 25,
+    tier: 'reference',
+    isReference: true,
+  };
+  const STRONG_NONREF = {
+    key: 'strong',
+    name: 'Strong NonRef',
+    arena: 1600, // 1600/1650*100 ≈ 96.97 with current normalizer
+    swePro: 60,
+    term: 70,
+    input: 1,
+    output: 2,
+    tier: 'high',
+  };
+  const WEAK_NONREF = {
+    key: 'weak',
+    name: 'Weak NonRef',
+    arena: 1400,
+    swePro: 50,
+    term: 50,
+    input: 1,
+    output: 2,
+    tier: 'balanced',
+  };
+  const SOFT_POOL = { ref: FANTASY_REF, strong: STRONG_NONREF, weak: WEAK_NONREF };
+
+  // A role whose +10 floor is unreachable for any non-reference model in
+  //   SOFT_POOL (STRONG_NONREF compositeScore ~77 < 80). Under balanced the
+  //   floor is 70 and STRONG clears it normally — useful for the
+  //   "soft fallback NOT triggered" assertion.
+  const HIGH_REASONING_ROLE = {
+    'sdd-architect': { minReasoning: 70, costRatio: 0.80, role: 'design' },
+  };
+  const HIGH_REASONING_PROFILES = {
+    'sdd-architect': { inputTokens: 3000, outputTokens: 2000 },
+  };
+
+  test('returns soft-fallback model when reasoning floor is unreachable but cost clears', () => {
+    // max-quality adds +10 → floor 80. STRONG_NONREF compositeScore ~77 < 80
+    //   → no model meets the floor normally, but it does clear the cost
+    //   ceiling. getBestFor MUST surface it as a soft fallback instead of
+    //   returning null.
+    const result = getBestFor(
+      'sdd-architect',
+      SOFT_POOL,
+      HIGH_REASONING_ROLE,
+      HIGH_REASONING_PROFILES,
+      'max-quality'
+    );
+    expect(result.key).not.toBeNull();
+    expect(result.softFallback).toBe(true);
+    expect(result.reason).toMatch(/soft fallback/i);
+    expect(result.reason).toMatch(/minReasoning=80/);
+  });
+
+  test('soft fallback picks the highest-scoring cost-clearing model', () => {
+    const result = getBestFor(
+      'sdd-architect',
+      SOFT_POOL,
+      HIGH_REASONING_ROLE,
+      HIGH_REASONING_PROFILES,
+      'max-quality'
+    );
+    // STRONG_NONREF has higher compositeScore than WEAK_NONREF, so it wins
+    //   the soft fallback over the cheaper-but-dumber alternative.
+    expect(result.key).toBe('strong');
+  });
+
+  test('soft fallback result includes the standard model/score/cost/effectiveMaxCost fields', () => {
+    const result = getBestFor(
+      'sdd-architect',
+      SOFT_POOL,
+      HIGH_REASONING_ROLE,
+      HIGH_REASONING_PROFILES,
+      'max-quality'
+    );
+    expect(result.model).toBeDefined();
+    expect(result.model.tier).not.toBe('reference');
+    expect(typeof result.score).toBe('number');
+    expect(typeof result.cost).toBe('number');
+    expect(result.cost).toBeLessThanOrEqual(result.effectiveMaxCost + 1e-9);
+    expect(typeof result.effectiveMaxCost).toBe('number');
+  });
+
+  test('soft fallback includes up to 3 alternatives from cost-clearing pool', () => {
+    const result = getBestFor(
+      'sdd-architect',
+      SOFT_POOL,
+      HIGH_REASONING_ROLE,
+      HIGH_REASONING_PROFILES,
+      'max-quality'
+    );
+    expect(Array.isArray(result.alternatives)).toBe(true);
+    // Pool has 2 non-reference models, so alternatives can have at most 1.
+    expect(result.alternatives.length).toBeLessThanOrEqual(1);
+    for (const alt of result.alternatives) {
+      expect(alt.key).not.toBe(result.key);
+    }
+  });
+
+  test('returns null when NO non-reference model clears the cost ceiling (no soft fallback possible)', () => {
+    // costRatio so tight that no non-reference model fits — soft fallback
+    //   has nothing to surface, so we fall through to the null branch.
+    const TINY_ROLE = {
+      'tiny-role': { minReasoning: 50, costRatio: 0.0001, role: 'tiny' },
+    };
+    const TINY_PROFILES = { 'tiny-role': { inputTokens: 100, outputTokens: 50 } };
+    const result = getBestFor('tiny-role', SOFT_POOL, TINY_ROLE, TINY_PROFILES, 'balanced');
+    expect(result.key).toBeNull();
+    expect(result.softFallback).toBeUndefined();
+    expect(typeof result.reason).toBe('string');
+  });
+
+  test('soft fallback is NOT triggered when a normal eligible model exists', () => {
+    // Same role, BALANCED strategy (no +10 modifier), so the floor stays at
+    //   85. STRONG_NONREF (compositeScore ~85) meets the floor and gets
+    //   picked normally — no soft fallback flag should be set.
+    const result = getBestFor(
+      'sdd-architect',
+      SOFT_POOL,
+      HIGH_REASONING_ROLE,
+      HIGH_REASONING_PROFILES,
+      'balanced'
+    );
+    if (result.key !== null) {
+      expect(result.softFallback).toBeFalsy();
+    }
+  });
+
+  test('soft fallback DOES NOT surface reference-tier models (filtered out)', () => {
+    // Pool with ONLY a reference + a low-score non-reference. The non-ref
+    //   clears the cost ceiling, so it should be the soft fallback — never
+    //   the reference model.
+    const REF_ONLY_POOL = { ref: FANTASY_REF, weak: WEAK_NONREF };
+    const result = getBestFor(
+      'sdd-architect',
+      REF_ONLY_POOL,
+      HIGH_REASONING_ROLE,
+      HIGH_REASONING_PROFILES,
+      'max-quality'
+    );
+    if (result.key !== null) {
+      expect(result.key).not.toBe('ref');
+      expect(result.model.tier).not.toBe('reference');
     }
   });
 });

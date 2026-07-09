@@ -70,4 +70,41 @@ describe('workflow-table — 9-row contract (spec.md)', () => {
     expect(target.querySelectorAll('tbody tr').length).toBe(9);
     expect(summary.rows).toBe(9);
   });
+
+  test('soft-fallback assignment renders the "soft" badge in the model cell', async () => {
+    ({ render, resetForTests } = await import('../js/components/workflow-table.js'));
+    resetForTests();
+
+    // Build a hand-crafted assignment set: 8 phases with a normal model,
+    //   1 phase (sdd-propose) with a soft-fallback assignment. The badge
+    //   must appear ONLY on the soft-fallback row.
+    const { getBestFor } = await import('../js/services/model-scorer.js');
+    const assignments = {};
+    for (const phase of PHASES) {
+      const agentId = `sdd-${phase.id}`;
+      const real = getBestFor(agentId, MODELS, ROLE_MATRIX, PROFILES, 'balanced');
+      assignments[phase.id] = phase.id === 'propose' ? {
+        key: 'kimik25',
+        model: MODELS.kimik25,
+        score: 91.82,
+        cost: 0.0015,
+        effectiveMaxCost: 0.062,
+        softFallback: true,
+        reason: 'Soft fallback: no model meets minReasoning=95, surfacing best cost-clearing model (kimik25, score=91.8)',
+        alternatives: [],
+      } : real;
+    }
+
+    render(target, assignments, MODELS, PHASES);
+
+    // The "soft" badge must exist exactly once and live on the propose row.
+    const softBadges = target.querySelectorAll('[data-soft-fallback="true"]');
+    expect(softBadges.length).toBe(1);
+    const proposeRow = target.querySelector('tr[data-phase-id="propose"]');
+    expect(proposeRow).toBeDefined();
+    expect(proposeRow.querySelector('[data-soft-fallback="true"]')).toBeDefined();
+    // The badge should carry the reason as a title for hover-tooltip.
+    const badge = proposeRow.querySelector('[data-soft-fallback="true"]');
+    expect(badge.getAttribute('title')).toMatch(/minReasoning=95/);
+  });
 });

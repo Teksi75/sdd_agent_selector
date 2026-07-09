@@ -84,6 +84,18 @@ function twClassFor(slug) {
 }
 
 /**
+ * Build the small "soft" badge for assignments that fell back to the best
+ * cost-clearing model because the reasoning floor was unreachable.
+ *
+ * @param {string} reason - the getBestFor reason string (shown in `title`)
+ * @returns {string} HTML
+ */
+function softBadge(reason) {
+  const title = reason ? ` title="${esc(reason)}"` : '';
+  return `<span class="text-[10px] uppercase tracking-wider font-semibold text-amber-300" data-soft-fallback="true"${title}>soft</span>`;
+}
+
+/**
  * Build the model-name + tier-tag cell HTML for the `assigned` column.
  *
  * @param {Object|null} assignment
@@ -103,9 +115,11 @@ function assignedCell(assignment, doc) {
   const bg = tokenColor(doc, slug);
   const styleAttr = bg ? ` style="background-color:${esc(bg)}"` : '';
   const cls = bg ? 'tier-tag' : `tier-tag ${twClassFor(slug)}`;
+  const soft = assignment.softFallback ? softBadge(assignment.reason) : '';
   return `<span class="inline-flex items-center gap-2">
     <span class="font-medium">${esc(m.name || assignment.key)}</span>
     <span class="${cls}" data-tier="${esc(slug)}"${styleAttr}>${esc(label)}</span>
+    ${soft}
   </span>`;
 }
 
