@@ -78,16 +78,30 @@
     },
     "kimik27c": {
       "name": "Kimi K2.7 Code",
-      "arena": null,
-      "swePro": null,
-      "sweVer": 60.4,
-      "term": null,
+      "arena": 1510,
+      "swePro": 58.6,
+      "sweVer": 78.2,
+      "term": 67,
       "input": 0.95,
       "output": 4,
       "cacheRead": 0.19,
       "tier": "balanced",
       "isNew": true,
-      "notes": "30% menos tokens, 12 jun 2026",
+      "notes": "Moonshot K2 family, 12 jun 2026. 30% fewer thinking tokens vs K2.6. Vals AI 3rd-party: SWE-bench Verified 78.2 (#1 open-weight), Terminal-Bench 2.1 67 (#1 open-weight). SWE-bench Pro: proxy 58.6 from K2.6 (no independent K2.7 number published). Arena: estimated 1510 (K2.7 not on Arena leaderboard as of 2026-07-09; K2.5 is 1515).",
+      "sources": [
+        {
+          "url": "https://vals.ai/benchmarks/swebench",
+          "date": "2026-07-09"
+        },
+        {
+          "url": "https://kimi.com/resources/kimi-k2-7-code",
+          "date": "2026-06-12"
+        },
+        {
+          "url": "https://www.kimi.com/blog/kimi-k2-6",
+          "date": "2026-04-20"
+        }
+      ],
       "requestsPer5h": 1350,
       "requestsPerWeek": 4630,
       "requestsPerMonth": 9250
