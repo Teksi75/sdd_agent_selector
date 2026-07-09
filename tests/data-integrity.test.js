@@ -136,9 +136,12 @@ const KNOWN_V4_ONLY = new Set([
   'sonnet5',
   'haiku45',
   'gpt56terra',
-  'kimik27c', // K2.7 Code: V3 has a stub (arena=null, sweVer=60.4), V4 has the
-              // Vals AI third-party numbers (sweVer=78.2, term=67) + estimated
-              // arena=1510. PR feat/fix-kimi-k2-7-data.
+  'kimik27c', // K2.7 Code: V3 stub (arena=null, sweVer=60.4) → V4 real (Vals AI
+              //   sweVer=78.2, term=67, estimated arena=1510, swePro proxy 58.6).
+  'kimik25',   // K2.5: V3 launch data (arena=1515, sweVer=80.2) → V4 2026 refresh
+              //   (arena=1400 per BenchLM, sweVer=76.8 + swePro=50.7 per Moonshot's
+              //   HuggingFace card). The old numbers made K2.5 appear top of the
+              //   ranking despite K2.6 and K2.7 being strictly stronger.
 ]);
 
 describe('data-integrity: V3 source vs data/models.json', () => {
