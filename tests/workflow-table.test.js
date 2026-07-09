@@ -75,24 +75,34 @@ describe('workflow-table — 9-row contract (spec.md)', () => {
     ({ render, resetForTests } = await import('../js/components/workflow-table.js'));
     resetForTests();
 
-    // Build a hand-crafted assignment set: 8 phases with a normal model,
-    //   1 phase (sdd-propose) with a soft-fallback assignment. The badge
-    //   must appear ONLY on the soft-fallback row.
-    const { getBestFor } = await import('../js/services/model-scorer.js');
+    // Hand-craft a deterministic assignment set: 8 phases with a NORMAL
+    //   assignment, 1 phase (sdd-propose) with a soft-fallback assignment.
+    //   We hand-craft ALL 9 rows instead of using getBestFor for the others
+    //   so the test stays stable when the scoring algorithm changes
+    //   (e.g. adding sweVer to the scoring weights). The badge must appear
+    //   ONLY on the soft-fallback row.
+    const NORMAL_ASSIGNMENT = {
+      key: 'glm52',
+      model: MODELS.glm52,
+      score: 79.39,
+      cost: 0.0144,
+      effectiveMaxCost: 0.05,
+      alternatives: [],
+    };
     const assignments = {};
     for (const phase of PHASES) {
-      const agentId = `sdd-${phase.id}`;
-      const real = getBestFor(agentId, MODELS, ROLE_MATRIX, PROFILES, 'balanced');
-      assignments[phase.id] = phase.id === 'propose' ? {
-        key: 'kimik25',
-        model: MODELS.kimik25,
-        score: 91.82,
-        cost: 0.0015,
-        effectiveMaxCost: 0.062,
-        softFallback: true,
-        reason: 'Soft fallback: no model meets minReasoning=95, surfacing best cost-clearing model (kimik25, score=91.8)',
-        alternatives: [],
-      } : real;
+      assignments[phase.id] = phase.id === 'propose'
+        ? {
+            key: 'kimik25',
+            model: MODELS.kimik25,
+            score: 87.17,
+            cost: 0.0015,
+            effectiveMaxCost: 0.062,
+            softFallback: true,
+            reason: 'Soft fallback: no model meets minReasoning=95, surfacing best cost-clearing model (kimik25, score=87.2)',
+            alternatives: [],
+          }
+        : NORMAL_ASSIGNMENT;
     }
 
     render(target, assignments, MODELS, PHASES);
