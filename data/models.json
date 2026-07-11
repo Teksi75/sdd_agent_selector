@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "lastSynced": "2026-07-06",
+    "lastSynced": "2026-07-11",
     "source": "scrape-glm-blog",
-    "nextSync": "2026-07-11",
+    "nextSync": "2026-07-16",
     "schemaVersion": 1
   },
   "models": {
@@ -26,6 +26,11 @@
         {
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
           "date": "2026-07-06",
+          "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
+          "date": "2026-07-11",
           "scraper": "scrape-glm-blog"
         }
       ],
@@ -273,9 +278,9 @@
       "sweVer": 83.4,
       "term": 84,
       "input": 5,
-      "output": 30,
+      "output": null,
       "cacheRead": 0.5,
-      "tier": "reference",
+      "tier": "high",
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
     },
@@ -310,9 +315,9 @@
     "gpt54": {
       "name": "gpt-5.4",
       "tier": "high",
-      "input": 2.5,
-      "output": 15,
-      "cacheRead": 0.25,
+      "input": 5,
+      "output": null,
+      "cacheRead": 0.5,
       "sources": [
         {
           "url": "https://platform.openai.com/docs/pricing",
