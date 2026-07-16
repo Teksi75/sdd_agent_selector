@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "lastSynced": "2026-07-11",
+    "lastSynced": "2026-07-16",
     "source": "scrape-glm-blog",
-    "nextSync": "2026-07-16",
+    "nextSync": "2026-07-21",
     "schemaVersion": 1
   },
   "models": {
@@ -31,6 +31,11 @@
         {
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
           "date": "2026-07-11",
+          "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
+          "date": "2026-07-16",
           "scraper": "scrape-glm-blog"
         }
       ],
