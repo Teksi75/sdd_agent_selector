@@ -79,21 +79,44 @@ export function readModelsJson(path) {
 /**
  * Write back the updated models.json document.
  *  - Updates `_meta.lastSynced` to today (UTC ISO date).
- *  - Updates `_meta.source` to include the scraper tag (e.g., "scrape-opencode-prices").
+ *  - Migrates legacy `_meta.source` (string) into `_meta.sources` (array)
+ *    on first write, then APPENDS the current scraper tag to the array
+ *    while deduping. The plural `_meta.sources` shape is canonical;
+ *    `_meta.source` is always removed on write.
  *  - Bumps `_meta.schemaVersion` only when the shape changes (we leave it
  *    unchanged for normal price/benchmark refreshes — schema bumps
  *    invalidate every cached entry in production).
  *
  * @param {string} path
  * @param {{_meta: Object, models: Object}} doc
- * @param {string} sourceTag - appended to _meta.source for audit trail
+ * @param {string} sourceTag - appended to _meta.sources for audit trail
  * @returns {void}
  */
 export function writeModelsJson(path, doc, sourceTag) {
   const today = new Date().toISOString().slice(0, 10);
   doc._meta = doc._meta || {};
+
+  // --- _meta.sources migration -----------------------------------------
+  // Canonical shape is _meta.sources: string[]. We accept (in priority
+  // order) an existing array, a legacy single string, or nothing — and
+  // always emit the plural array. The current run tag is appended (or
+  // 'auto-sync' when no tag is provided), and duplicates are skipped so
+  // repeated scraper runs preserve history without growth.
+  let sources = [];
+  if (Array.isArray(doc._meta.sources)) {
+    sources = doc._meta.sources.filter((s) => typeof s === 'string' && s.length > 0);
+  } else if (typeof doc._meta.source === 'string' && doc._meta.source.length > 0) {
+    sources = [doc._meta.source];
+  }
+  const tag = sourceTag || 'auto-sync';
+  if (!sources.includes(tag)) {
+    sources.push(tag);
+  }
+  doc._meta.sources = sources;
+  delete doc._meta.source;
+  // ---------------------------------------------------------------------
+
   doc._meta.lastSynced = today;
-  doc._meta.source = sourceTag || doc._meta.source || 'auto-sync';
   // nextSync = today + 5 days (cron schedule)
   const next = new Date();
   next.setUTCDate(next.getUTCDate() + 5);

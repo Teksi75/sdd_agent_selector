@@ -16,11 +16,11 @@
 #      the cron.
 #   3. Validate data/models.json structurally (parse + _meta + non-empty
 #      `models` object).
-#   4. Commit data/models.json with [skip ci] ONLY if `git diff` reports
-#      changes; otherwise exit cleanly with a "no changes" log.
-#
-# The [skip ci] tag prevents an infinite loop where the auto-sync commit
-# re-triggers this workflow.
+#   4. Run `pnpm test tests/data-integrity.test.js` — a non-zero exit
+#      ABORTS the commit (data-integrity gate per spec). This step must
+#      NOT be bypassable via [skip ci].
+#   5. Commit data/models.json ONLY if `git diff` reports changes;
+#      otherwise exit cleanly with a "no changes" log.
 
 name: sync-benchmarks
 
@@ -151,11 +151,24 @@ jobs:
             console.log('validation OK —', path, 'has', n, 'model entries');
           "
 
-      - name: Commit changes [skip ci] (only if diff is non-empty)
+      - name: Test data integrity before commit
+        # Per spec: a non-zero exit on `pnpm test tests/data-integrity.test.js`
+        # ABORTS the commit. This gate is not bypassable — we do NOT add
+        # `[skip ci]` to the commit message below, so the cron self-loop
+        # is broken by the workflow's own schedule rather than by skipping CI.
+        # No `[skip ci]` guard here: the data-integrity step runs on every
+        # schedule, and a corrupt data/models.json must NEVER reach `git push`.
+        run: |
+          pnpm test tests/data-integrity.test.js
+          echo "data-integrity gate OK."
+
+      - name: Commit changes (only if diff is non-empty)
         # Scheduled runs auto-commit + push the refreshed data layer.
         # Manual `workflow_dispatch` runs DO NOT auto-push: they may be
         # one-scraper debug runs whose partial output shouldn't land on main.
         # Debug-run committers should push themselves after inspecting diff.
+        # Intentionally no `[skip ci]` in the commit message: the gate above
+        # would still run, and a corrupt file should never reach main.
         if: github.event_name == 'schedule'
         run: |
           if git diff --quiet data/models.json; then
@@ -166,5 +179,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
           git add data/models.json
-          git commit -m 'chore(sync): refresh data/models.json from upstream [skip ci]'
+          git commit -m 'chore(sync): refresh data/models.json from upstream'
           git push
