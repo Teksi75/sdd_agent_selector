@@ -116,6 +116,44 @@
       "requestsPerWeek": 4630,
       "requestsPerMonth": 9250
     },
+    "kimik3": {
+      "name": "Kimi K3",
+      "arena": 1486,
+      "swePro": null,
+      "sweVer": null,
+      "term": null,
+      "input": 3.0,
+      "output": 15.0,
+      "cacheRead": 0.3,
+      "tier": "high",
+      "isNew": true,
+      "notes": "Moonshot flagship, released 2026-07-17 (catalog entry added 2026-07-18). Pricing: $3 input / $15 output / $0.30 cache read per 1M tokens via OpenCode Go (2026-07-17, last page update); cache write not listed for K3. Quota: 140 req/5h, 340/wk, 680/mo — the lowest among Go models (K3 is newer/more expensive, so the 6x multiplier doesn't apply yet). Arena: 1486 (LMArena Text Overall, tied #9 with gpt-5.6-sol-xhigh as of 2026-07-17); also #1 WebDev Overall at 1679. SWE-Ver: Vals AI ranks K3 3/71 on SWE-bench Verified as of 2026-07-17 (after Claude Fable 5 and GPT-5.6 Sol); per-difficulty resolution rates 92%/95%/93%/67% for <15min/15m-1h/1-4h/>4h — exact aggregate % not extracted from leaderboard (page shows 0.0% artifacts in the per-model card; only the by-difficulty breakdown is verbatim). SWE-Pro: not published as of 2026-07-18. Terminal-Bench 2.1: Vals AI rank 2/43 as of 2026-07-17; aggregate % not extracted. K3 is not on the public SWE-bench.com leaderboard yet (community baseline pending).",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/",
+          "date": "2026-07-17"
+        },
+        {
+          "url": "https://lmarena.ai/leaderboard",
+          "date": "2026-07-17"
+        },
+        {
+          "url": "https://vals.ai/models",
+          "date": "2026-07-17"
+        },
+        {
+          "url": "https://vals.ai/benchmarks/swebench",
+          "date": "2026-07-17"
+        },
+        {
+          "url": "https://kimi.com/research",
+          "date": "2026-07-17"
+        }
+      ],
+      "requestsPer5h": 140,
+      "requestsPerWeek": 340,
+      "requestsPerMonth": 680
+    },
     "kimik25": {
       "name": "Kimi K2.5",
       "arena": 1400,
@@ -283,9 +321,9 @@
       "sweVer": 83.4,
       "term": 84,
       "input": 5,
-      "output": null,
+      "output": 30,
       "cacheRead": 0.5,
-      "tier": "high",
+      "tier": "reference",
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
     },
@@ -320,9 +358,9 @@
     "gpt54": {
       "name": "gpt-5.4",
       "tier": "high",
-      "input": 5,
-      "output": null,
-      "cacheRead": 0.5,
+      "input": 2.5,
+      "output": 15,
+      "cacheRead": 0.25,
       "sources": [
         {
           "url": "https://platform.openai.com/docs/pricing",

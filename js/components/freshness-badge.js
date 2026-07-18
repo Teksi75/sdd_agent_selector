@@ -9,7 +9,7 @@
 //     - targetEl: HTMLElement to mount into.
 //     - meta: { lastSynced: ISO date (YYYY-MM-DD), ... } — the
 //         data/models.json `_meta` block. Required.
-//     - options: { now?: Date, onRefresh?: () => void, thresholdDays?: number }
+//     - options: { now?: Date|string, onRefresh?: () => void, thresholdDays?: number }
 //         Optional. `now` overrides "today" for deterministic tests;
 //         `onRefresh` is the click handler for the refresh button
 //         (placeholder in Phase 2e; real handler in Phase 3);
@@ -50,18 +50,37 @@ export function ageLabel(daysOld) {
 
 /**
  * Compute whole-day difference between `now` and an ISO date string.
- * Uses the UTC midnight of each date to avoid DST off-by-one errors.
+ * Uses the UTC midnight of each date to avoid DST off-by-one errors and to
+ * stay timezone-independent (matches `data-sync.getStalenessDays`).
+ *
+ * `now` accepts a `Date` instance or an ISO date string. Invalid / missing
+ * values fall back to `new Date()` so render paths never throw.
  *
  * @param {string} lastSynced - ISO date (YYYY-MM-DD)
- * @param {Date} [now]
+ * @param {Date|string} [now]
  * @returns {number} integer day delta (>= 0 for "today" or earlier)
  */
 export function daysOld(lastSynced, now) {
   if (!lastSynced || typeof lastSynced !== 'string') return 0;
   const sync = new Date(`${lastSynced}T00:00:00Z`);
   if (Number.isNaN(sync.getTime())) return 0;
-  const today = now instanceof Date ? now : new Date();
-  const todayUtc = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+
+  // Normalize `now`: Date stays, ISO string → Date, missing/invalid → new Date().
+  let today;
+  if (now instanceof Date) {
+    today = now;
+  } else if (typeof now === 'string') {
+    const parsed = new Date(now);
+    today = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  } else {
+    today = new Date();
+  }
+
+  // UTC-aware date math: matches data-sync.getStalenessDays so the badge
+  // stays in sync with the underlying staleness contract.
+  const todayUtc = new Date(
+    Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
+  );
   const diffMs = todayUtc.getTime() - sync.getTime();
   const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   return Math.max(0, days);
@@ -85,7 +104,7 @@ export function formatDateEs(iso) {
  * inner shape without going through a mount.
  *
  * @param {string} lastSynced
- * @param {{ now?: Date, thresholdDays?: number }} [options]
+ * @param {{ now?: Date|string, thresholdDays?: number }} [options]
  * @returns {{ html: string, daysOld: number, warning: boolean }}
  */
 export function buildBadge(lastSynced, options) {
@@ -125,7 +144,7 @@ export function buildBadge(lastSynced, options) {
  *
  * @param {HTMLElement|null} targetEl
  * @param {{ lastSynced: string, [k: string]: any }} meta
- * @param {{ now?: Date, onRefresh?: () => void, thresholdDays?: number }} [options]
+ * @param {{ now?: Date|string, onRefresh?: () => void, thresholdDays?: number }} [options]
  * @returns {{ html: string, mounted: boolean, daysOld: number, warning: boolean }}
  */
 export function render(targetEl, meta, options) {

@@ -34,6 +34,7 @@ import {
   summarizeDryRun,
   exitWith,
 } from './_scraper-utils.mjs';
+import { mergeSweBenchResults } from './swebench-merge.mjs';
 
 const SOURCE_URL = 'https://www.swebench.com/';
 const SCRAPER_NAME = 'scrape-swebench-leaderboard';
@@ -204,21 +205,14 @@ async function main() {
   }
 
   const before = JSON.parse(JSON.stringify(doc.models));
-  const updatedModels = { ...doc.models };
   const today = new Date().toISOString().slice(0, 10);
-
-  for (const { name, key, stats } of matched) {
-    if (!updatedModels[key]) continue;
-    const existing = updatedModels[key];
-    updatedModels[key] = {
-      ...existing,
-      sweVer: stats.pct,
-      sources: [
-        ...(Array.isArray(existing.sources) ? existing.sources : []),
-        { url, date: today, scraper: SCRAPER_NAME, resolved: `${stats.resolved}/${stats.total}` },
-      ],
-    };
-  }
+  const updatedModels = mergeSweBenchResults(
+    doc.models,
+    matched,
+    url,
+    today,
+    SCRAPER_NAME
+  );
 
   const changes = diffModels(before, updatedModels);
 

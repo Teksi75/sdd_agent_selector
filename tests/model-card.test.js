@@ -64,4 +64,74 @@ describe('model-card — render() contract', () => {
     const html = buildCard({ name: 'Opus 4.8', tier: 'reference' });
     expect(html).toMatch(/reference/);
   });
+
+  test('4-column grid renders Arena / SWE-Pro / SWE-Ver / Term cells', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'GLM-5.2',
+      tier: 'high',
+      arena: 1595,
+      swePro: 62.1,
+      sweVer: 77.8,
+      term: 81.0,
+      input: 1.4,
+      output: 4.4,
+    });
+    // Root grid uses grid-cols-4 (4 benchmark cells, not 3).
+    expect(html).toMatch(/grid-cols-4/);
+    expect(html).not.toMatch(/grid-cols-3/);
+    // All four benchmark values render in order.
+    expect(html).toMatch(/1595/);
+    expect(html).toMatch(/62\.1%/);
+    expect(html).toMatch(/77\.8%/);
+    expect(html).toMatch(/81\.0%/);
+    // Labels present in the same order: Arena / SWE-Pro / SWE-Ver / Term.
+    const arenaIdx = html.indexOf('Arena');
+    const proIdx = html.indexOf('SWE-Pro');
+    const verIdx = html.indexOf('SWE-Ver');
+    const termIdx = html.indexOf('Term');
+    expect(arenaIdx).toBeGreaterThan(-1);
+    expect(proIdx).toBeGreaterThan(arenaIdx);
+    expect(verIdx).toBeGreaterThan(proIdx);
+    expect(termIdx).toBeGreaterThan(verIdx);
+  });
+
+  test('sweVer numeric value formats as percentage with 1 decimal', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'X', tier: 'high',
+      arena: 1500, swePro: 70.0, sweVer: 89.0, term: 75.0,
+    });
+    expect(html).toMatch(/89\.0%/);
+  });
+
+  test('sweVer null renders exactly "—" placeholder, never "—%"', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'X', tier: 'high',
+      arena: 1500, swePro: 70.0, sweVer: null, term: 75.0,
+    });
+    // Grid layout must stay intact.
+    expect(html).toMatch(/grid-cols-4/);
+    // sweVer cell shows the placeholder; it MUST NOT carry a stray "%".
+    // Find the SWE-Ver <div> block and assert its numeric span.
+    const verBlock = html.match(/SWE-Ver[\s\S]{0,200}?<\/div>/);
+    expect(verBlock, 'SWE-Ver cell block should be present').toBeTruthy();
+    expect(verBlock[0]).toMatch(/—/);
+    expect(verBlock[0]).not.toMatch(/—%/);
+  });
+
+  test('swePro / term null placeholders also render exactly "—" (alignment)', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'X', tier: 'budget',
+      arena: null, swePro: null, sweVer: 78.0, term: null,
+    });
+    expect(html).toMatch(/grid-cols-4/);
+    // None of the percent cells may render "—%".
+    expect(html).not.toMatch(/—%/);
+    // Each percent cell renders the bare placeholder.
+    expect(html).toMatch(/SWE-Pro[\s\S]{0,200}?—/);
+    expect(html).toMatch(/Term[\s\S]{0,200}?—/);
+  });
 });

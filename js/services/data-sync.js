@@ -109,7 +109,7 @@ export function resolveUrl(filePath, baseUrl) {
  * Returns 0 for malformed input (defensive — never throws inside render).
  *
  * @param {{lastSynced?: string|null}|null|undefined} meta
- * @param {Date} [now]
+ * @param {Date|string} [now]
  * @returns {number} integer day delta (>= 0)
  */
 export function getStalenessDays(meta, now) {
@@ -118,7 +118,17 @@ export function getStalenessDays(meta, now) {
   if (!lastSynced || typeof lastSynced !== 'string') return 0;
   const sync = new Date(`${lastSynced}T00:00:00Z`);
   if (Number.isNaN(sync.getTime())) return 0;
-  const today = now instanceof Date ? now : new Date();
+
+  let today;
+  if (now instanceof Date) {
+    today = now;
+  } else if (typeof now === 'string') {
+    const parsed = new Date(now);
+    today = Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+  } else {
+    today = new Date();
+  }
+
   const todayUtc = new Date(
     Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate())
   );
@@ -133,7 +143,7 @@ export function getStalenessDays(meta, now) {
  *
  * @param {{lastSynced?: string|null}|null|undefined} meta
  * @param {number} [thresholdDays=7]
- * @param {Date} [now]
+ * @param {Date|string} [now]
  * @returns {boolean}
  */
 export function isStale(meta, thresholdDays = STALENESS_THRESHOLD_DAYS, now) {
