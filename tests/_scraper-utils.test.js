@@ -1,26 +1,29 @@
 // @vitest-environment node
 // tests/_scraper-utils.test.js
-// Atomic write semantics for scripts/_scraper-utils.mjs::writeModelsJson.
+// Combined test suite for scripts/_scraper-utils.mjs::writeModelsJson.
 //
-// Pre-PR2: writeModelsJson writes directly via writeFileSync — no tmp, no
-// rename, no stale cleanup. Every test below is RED on the direct-write
-// implementation. They turn GREEN only after scripts/_scraper-utils.mjs is
-// migrated to a tmp + renameSync strategy with EXDEV fallback and stale
-// tmp cleanup.
+// Block 1 (atomic write semantics) — added in PR #22 / commit 35abae7
+//   "benchlm-replace-custom-scoring: atomic write helper + BenchLM scraper".
+//   Covers tmp + renameSync, EXDEV fallback, stale-tmp cleanup.
 //
-// Boundary: writeModelsJson is the shared seam all six scrapers (and the
-// new BenchLM scraper) write through. Renaming it once protects every
-// caller from partial-write corruption.
+// Block 2 (_meta.sources append-only migration) — added in PR #20
+//   "fix(scraper): harden pricing scrapers against field corruption".
+//   Covers legacy string → array migration, dedupe, fallback, monotonic growth.
 
 import { describe, expect, test, beforeEach, afterEach, vi } from 'vitest';
 import * as fsImpl from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname, basename } from 'node:path';
 import {
+  readModelsJson,
   writeModelsJson,
   _setFsForTesting,
   _resetFsForTesting,
 } from '../scripts/_scraper-utils.mjs';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Block 1 — atomic write semantics
+// ─────────────────────────────────────────────────────────────────────────────
 
 let tmpDir;
 let targetPath;
@@ -139,5 +142,117 @@ describe('writeModelsJson — atomic write', () => {
     // And the target was written.
     const parsed = JSON.parse(fsImpl.readFileSync(targetPath, 'utf-8'));
     expect(parsed.models.foo.benchlm.score).toBe(42);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Block 2 — _meta.sources append-only migration
+// ─────────────────────────────────────────────────────────────────────────────
+
+let tempDir;
+let tempFile;
+
+beforeEach(() => {
+  tempDir = fsImpl.mkdtempSync(join(tmpdir(), 'scraper-utils-test-'));
+  tempFile = join(tempDir, 'models.json');
+});
+
+afterEach(() => {
+  if (tempDir && fsImpl.existsSync(tempDir)) {
+    fsImpl.rmSync(tempDir, { recursive: true, force: true });
+  }
+});
+
+function seedDoc(meta) {
+  fsImpl.writeFileSync(
+    tempFile,
+    JSON.stringify({ _meta: meta, models: { foo: { name: 'foo' } } }, null, 2),
+    'utf-8'
+  );
+}
+
+describe('writeModelsJson — _meta.sources migration', () => {
+  test('migrates legacy `_meta.source` (string) into `_meta.sources` (array) on first write', async () => {
+    seedDoc({ lastSynced: '2026-07-16', source: 'scrape-glm-blog', schemaVersion: 1 });
+    const doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'scrape-openai-pricing');
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(result._meta.sources).toEqual([
+      'scrape-glm-blog',
+      'scrape-openai-pricing',
+    ]);
+    expect(result._meta).not.toHaveProperty('source');
+  });
+
+  test('appends to existing `_meta.sources` array on subsequent writes', async () => {
+    seedDoc({
+      lastSynced: '2026-07-16',
+      sources: ['scrape-glm-blog', 'scrape-openai-pricing'],
+      schemaVersion: 1,
+    });
+    const doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'scrape-anthropic-pricing');
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(result._meta.sources).toEqual([
+      'scrape-glm-blog',
+      'scrape-openai-pricing',
+      'scrape-anthropic-pricing',
+    ]);
+    expect(result._meta).not.toHaveProperty('source');
+  });
+
+  test('dedupes when the same tag is written twice (history preserved, no duplicates)', async () => {
+    seedDoc({
+      lastSynced: '2026-07-16',
+      sources: ['scrape-glm-blog', 'scrape-openai-pricing'],
+      schemaVersion: 1,
+    });
+    const doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'scrape-openai-pricing'); // duplicate of index 1
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(result._meta.sources).toEqual(['scrape-glm-blog', 'scrape-openai-pricing']);
+  });
+
+  test('falls back to `auto-sync` when no sourceTag is provided AND no prior provenance exists', async () => {
+    seedDoc({ lastSynced: '2026-07-16', schemaVersion: 1 });
+    const doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, undefined);
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(result._meta.sources).toEqual(['auto-sync']);
+    expect(result._meta).not.toHaveProperty('source');
+  });
+
+  test('always emits plural `_meta.sources` array, never singular `_meta.source`', async () => {
+    seedDoc({ lastSynced: '2026-07-16', source: 'old-string', schemaVersion: 1 });
+    const doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'new-tag');
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(Array.isArray(result._meta.sources)).toBe(true);
+    expect(result._meta).not.toHaveProperty('source');
+  });
+
+  test('preserves lastSynced + nextSync + schemaVersion alongside the migrated sources', async () => {
+    seedDoc({ lastSynced: '2026-07-16', source: 'old', schemaVersion: 1 });
+    const doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'new-tag');
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(typeof result._meta.lastSynced).toBe('string');
+    expect(typeof result._meta.nextSync).toBe('string');
+    expect(result._meta.schemaVersion).toBe(1);
+    expect(result._meta.sources).toContain('old');
+    expect(result._meta.sources).toContain('new-tag');
+  });
+
+  test('append-only: three sequential writes grow the array monotonically (no history lost)', async () => {
+    seedDoc({ lastSynced: '2026-07-16', schemaVersion: 1 });
+    let doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'a');
+    doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'b');
+    doc = readModelsJson(tempFile);
+    writeModelsJson(tempFile, doc, 'c');
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(result._meta.sources).toEqual(['a', 'b', 'c']);
+    expect(result._meta).not.toHaveProperty('source');
   });
 });

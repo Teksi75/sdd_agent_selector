@@ -28,18 +28,21 @@ import {
   summarizeDryRun,
   exitWith,
 } from './_scraper-utils.mjs';
+import { buildDefinedPricePatch } from './_pricing-safety.mjs';
 
 const SOURCE_URL = 'https://www.anthropic.com/pricing';
 const SCRAPER_NAME = 'scrape-anthropic-pricing';
 
 /**
- * Map: the exact text we see on the page → { key, tier, isReference? }
+ * Map: the exact text we see on the page → { key, isReference? }.
+ * `tier` is curated and lives in data/models.json — the scraper must
+ * NEVER overwrite it (the upstream NAME_MAP may be stale or wrong).
  */
 const NAME_MAP = {
-  'Fable 5': { key: 'claudeFable5', tier: 'high', display: 'Claude Fable 5' },
-  'Opus 4.8': { key: 'opus48', tier: 'reference', isReference: true, display: 'Claude Opus 4.8' },
-  'Sonnet 5': { key: 'sonnet5', tier: 'balanced', display: 'Claude Sonnet 5' },
-  'Haiku 4.5': { key: 'haiku45', tier: 'budget', display: 'Claude Haiku 4.5' },
+  'Fable 5': { key: 'claudeFable5', display: 'Claude Fable 5' },
+  'Opus 4.8': { key: 'opus48', isReference: true, display: 'Claude Opus 4.8' },
+  'Sonnet 5': { key: 'sonnet5', display: 'Claude Sonnet 5' },
+  'Haiku 4.5': { key: 'haiku45', display: 'Claude Haiku 4.5' },
 };
 
 /**
@@ -168,16 +171,23 @@ async function main() {
 
   for (const { info, card } of matched) {
     const existing = updatedModels[info.key];
-    const patch = {
+    // Conditional spread so null parsed fields never overwrite curated
+    // values. `tier` is curated and intentionally omitted from the patch.
+    const patch = buildDefinedPricePatch({
       name: info.display,
       tier: info.tier,
-    };
+    });
     if (Number.isFinite(card.input)) patch.input = card.input;
     if (Number.isFinite(card.output)) patch.output = card.output;
     if (Number.isFinite(card.cacheRead)) patch.cacheRead = card.cacheRead;
     if (Number.isFinite(card.cacheWrite)) patch.cacheWrite = card.cacheWrite;
     if (info.isReference) {
-      patch.isReference = true;
+      // `isReference` is a curated flag. The scraper can only ASSERT
+      // it on a brand-new record (no existing → safe initial value);
+      // it must never OVERWRITE an existing curated value of false.
+      if (!existing) {
+        patch.isReference = true;
+      }
     }
     if (existing) {
       if (!Number.isFinite(patch.input) && Number.isFinite(existing.input)) {

@@ -30,6 +30,11 @@ import {
   summarizeDryRun,
   exitWith,
 } from './_scraper-utils.mjs';
+import {
+  buildDefinedPricePatch,
+  sanitizeOpenAiPricePatch,
+  shouldUpdate,
+} from './_pricing-safety.mjs';
 
 const SOURCE_URL = 'https://platform.openai.com/docs/pricing';
 const SCRAPER_NAME = 'scrape-openai-pricing';
@@ -185,18 +190,10 @@ function filterFlagships(rows) {
 }
 
 /**
- * Check whether the cooldown applies — return true if the model is
- * either missing OR lastSynced is older than 5 days.
+ * Local fallback used only when the import was somehow stripped. The
+ * real implementation lives in `./_pricing-safety.mjs` so the safety
+ * logic is unit-tested in isolation.
  */
-function shouldUpdate(model, today) {
-  if (!model) return true;
-  // Models without lastSynced are first-time inserts — always update.
-  if (!model.lastSynced) return true;
-  const last = new Date(`${model.lastSynced}T00:00:00Z`).getTime();
-  if (Number.isNaN(last)) return true;
-  const diffDays = (today.getTime() - last) / (1000 * 60 * 60 * 24);
-  return diffDays > STALENESS_COOLDOWN_DAYS;
-}
 
 async function main() {
   const args = parseArgs(process.argv);
@@ -255,38 +252,26 @@ async function main() {
 
   for (const [key, row] of flagships) {
     const existing = updatedModels[key];
-    if (!shouldUpdate(existing, today)) {
+    if (!shouldUpdate(existing, doc._meta, today)) {
       skipped.push(key);
       continue;
     }
-    const patch = {
+    // Sanitize the parsed row against the existing model so a null
+    // output on a flagship (parser regression), a non-positive value,
+    // an input>output inversion, or a >1000x outlier all WARN + SKIP
+    // instead of corrupting curated data.
+    const safePatch = sanitizeOpenAiPricePatch(row, existing, key);
+    const defined = buildDefinedPricePatch({
       name: row.name.split(' (')[0], // strip "(<272K context length)" suffix
-      input: row.input,
-      output: row.output,
-      ...(row.cacheRead != null ? { cacheRead: row.cacheRead } : {}),
-    };
+      ...safePatch,
+    });
     if (existing) {
-      if (
-        existing.lifecycle === 'reference' ||
-        existing.isReference === true ||
-        existing.tier === 'reference'
-      ) {
-        patch.tier = 'reference';
-      } else if (existing.tier) {
-        patch.tier = existing.tier;
-      } else {
-        patch.tier = 'high';
-      }
-      if (!Number.isFinite(patch.input) && Number.isFinite(existing.input)) {
-        delete patch.input;
-      }
-      if (!Number.isFinite(patch.output) && Number.isFinite(existing.output)) {
-        delete patch.output;
-      }
-      updatedModels[key] = { ...existing, ...patch };
+      updatedModels[key] = { ...existing, ...defined };
     } else {
-      patch.tier = 'high';
-      updatedModels[key] = { ...patch, sources: [{ url, date: today.toISOString().slice(0, 10) }] };
+      updatedModels[key] = {
+        ...defined,
+        sources: [{ url, date: today.toISOString().slice(0, 10) }],
+      };
     }
     updated.push(key);
   }
