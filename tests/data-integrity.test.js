@@ -142,6 +142,8 @@ const KNOWN_V4_ONLY = new Set([
               //   (arena=1400 per BenchLM, sweVer=76.8 + swePro=50.7 per Moonshot's
               //   HuggingFace card). The old numbers made K2.5 appear top of the
               //   ranking despite K2.6 and K2.7 being strictly stronger.
+  'kimik3',    // K3: V4-only (released 2026-07-17; catalog entry added 2026-07-18).
+               //   V3 has no K3 entry. See models.json notes for dated provenance.
 ]);
 
 describe('data-integrity: V3 source vs data/models.json', () => {
@@ -217,5 +219,59 @@ describe('data-integrity: V3 source vs data/models.json', () => {
     expect(v4raw._meta).toBeDefined();
     expect(v4raw._meta.schemaVersion).toBe(1);
     expect(v4raw._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+// Assertion-only coverage of existing curated catalog data; red-first is not applicable.
+describe('data-integrity: Kimi K3 provenance', () => {
+  const k3 = JSON.parse(
+    readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
+  ).models.kimik3;
+
+  test('kimik3 has every required catalog field and valid source entries', () => {
+    expect(k3).toBeDefined();
+    for (const key of ['name', 'tier', 'input', 'output', 'notes', 'sources']) {
+      expect(k3).toHaveProperty(key);
+    }
+    expect(k3.sources.length).toBeGreaterThan(0);
+    for (const source of k3.sources) {
+      expect(source).toHaveProperty('url');
+      expect(source).toHaveProperty('date');
+      expect(source.url).toMatch(/^https?:\/\//);
+      expect(source.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    }
+  });
+
+  test('every K3 benchmark is numeric with dated evidence or null with a dated explanation', () => {
+    const metrics = [
+      ['arena', /Arena:.*?(?=SWE-Ver:|SWE-Pro:|Terminal-Bench|$)/is],
+      ['swePro', /SWE-Pro:.*?(?=SWE-Ver:|Terminal-Bench|$)/is],
+      ['sweVer', /SWE-Ver:.*?(?=SWE-Pro:|Terminal-Bench|$)/is],
+      ['term', /Terminal-Bench(?: 2\.1)?:.*$/is],
+    ];
+
+    for (const [field, sectionPattern] of metrics) {
+      const value = k3[field];
+      const section = k3.notes.match(sectionPattern)?.[0];
+      expect(value === null || Number.isFinite(value), `${field} must be finite or null`).toBe(true);
+      expect(section, `${field} must have a provenance label`).toBeDefined();
+      expect(section, `${field} provenance must be dated`).toMatch(/\b\d{4}-\d{2}-\d{2}\b/);
+
+      if (Number.isFinite(value)) {
+        expect(
+          k3.sources.some((source) => source.url && source.date),
+          `${field} needs supporting source evidence`
+        ).toBe(true);
+      } else {
+        expect(section, `${field} null value needs an explanation`).toMatch(
+          /not published|not extracted|unverifiable|unknown|pending|not available/i
+        );
+      }
+    }
+  });
+
+  test('unverifiable K3 SWE-Pro stays null with exact dated provenance', () => {
+    expect(k3.swePro).toBeNull();
+    expect(k3.notes).toContain('SWE-Pro: not published as of 2026-07-18');
   });
 });

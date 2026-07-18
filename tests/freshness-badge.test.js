@@ -39,6 +39,34 @@ describe('freshness-badge — pure helpers', () => {
     expect(daysOld(null, now)).toBe(0);
   });
 
+  test('daysOld: UTC-straddle near midnight (UTC-negative zone) → 1, not 0', async () => {
+    ({ daysOld } = await import('../js/components/freshness-badge.js'));
+    // 2026-07-19T01:00:00Z == 2026-07-18T22:00 ART in America/Buenos_Aires.
+    // The pre-fix local-getter bug returned 0 here because local date was
+    // still the 18th. UTC-aware date math must report 1 full UTC day elapsed.
+    const now = new Date('2026-07-19T01:00:00Z');
+    expect(daysOld('2026-07-18', now)).toBe(1);
+  });
+
+  test('daysOld: accepts `now` as an ISO string and returns the same value as a Date', async () => {
+    ({ daysOld } = await import('../js/components/freshness-badge.js'));
+    const nowDate = new Date('2026-07-19T01:00:00Z');
+    const nowIso = '2026-07-19T01:00:00Z';
+    expect(daysOld('2026-07-18', nowIso)).toBe(daysOld('2026-07-18', nowDate));
+    expect(daysOld('2026-07-18', nowIso)).toBe(1);
+    expect(daysOld('2026-07-04', '2026-07-04T23:59:59Z')).toBe(0);
+  });
+
+  test('daysOld: invalid ISO-string `now` falls back to current Date without throwing', async () => {
+    ({ daysOld } = await import('../js/components/freshness-badge.js'));
+    // Should not throw — production callers rely on never-crashing render paths.
+    // With the invalid `now`, the function falls back to `new Date()` so the
+    // returned value is whatever the current UTC day delta is (>= 0).
+    const out = daysOld('2026-07-04', 'not-a-real-iso-string');
+    expect(Number.isInteger(out)).toBe(true);
+    expect(out).toBeGreaterThanOrEqual(0);
+  });
+
   test('formatDateEs: ISO → DD/MM/YYYY', async () => {
     ({ formatDateEs } = await import('../js/components/freshness-badge.js'));
     expect(formatDateEs('2026-07-04')).toBe('04/07/2026');

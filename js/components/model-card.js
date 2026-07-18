@@ -7,13 +7,13 @@
 //   render(targetEl, model)
 //     - targetEl: HTMLElement to mount into. If null, the function is a
 //         pure string-builder and returns just the HTML.
-//     - model:   { name, tier, arena, swePro, term, input, output, ... }
+//     - model:   { name, tier, arena, swePro, sweVer, term, input, output, ... }
 //                 (any model record shape). Missing fields render as "—".
 //     - returns: { html: string } when targetEl is null,
 //                { html: string, mounted: true } when targetEl is provided.
 //
 // The card is intentionally compact: a name row with a tier badge, then a
-// 3-column metric row (arena / swePro / term) and a price row (input /
+// 4-column metric row (arena / swePro / sweVer / term) and a price row (input /
 // output). Tokens.css may provide a --model-tier-{high,balanced,budget}
 // color; falls back to Tailwind when absent.
 
@@ -47,6 +47,18 @@ function fmtScore(v) {
   return typeof v === 'number' && v >= 100 ? String(Math.round(v)) : v.toFixed(1);
 }
 
+/**
+ * Format a percentage cell: numeric value gets one decimal + '%', null /
+ * undefined / non-finite renders exactly '—' (never '—%').
+ *
+ * @param {number|null|undefined} v
+ * @returns {string}
+ */
+function fmtPct(v) {
+  const score = fmtScore(v);
+  return score === '—' ? score : `${score}%`;
+}
+
 /** Format a USD price; null/undefined → '—'. */
 function fmtPrice(v) {
   if (v === null || v === undefined || !Number.isFinite(v)) return '—';
@@ -73,10 +85,11 @@ export function buildCard(model) {
         <span class="text-sm font-semibold text-slate-100 truncate">${esc(model.name || model.key || '—')}${newBadge}</span>
         <span class="model-tier-tag" data-tier="${esc(tier)}">${esc(label)}</span>
       </div>
-      <div class="grid grid-cols-3 gap-2 text-[11px] text-slate-300">
+      <div class="grid grid-cols-4 gap-2 text-[11px] text-slate-300">
         <div><span class="text-slate-500">Arena</span><br /><span class="font-mono">${fmtScore(model.arena)}</span></div>
-        <div><span class="text-slate-500">SWE-Pro</span><br /><span class="font-mono">${fmtScore(model.swePro)}%</span></div>
-        <div><span class="text-slate-500">Term</span><br /><span class="font-mono">${fmtScore(model.term)}%</span></div>
+        <div><span class="text-slate-500">SWE-Pro</span><br /><span class="font-mono">${fmtPct(model.swePro)}</span></div>
+        <div><span class="text-slate-500">SWE-Ver</span><br /><span class="font-mono">${fmtPct(model.sweVer)}</span></div>
+        <div><span class="text-slate-500">Term</span><br /><span class="font-mono">${fmtPct(model.term)}</span></div>
       </div>
       <div class="flex gap-3 mt-1.5 text-[11px] text-slate-400 font-mono">
         <span>In ${fmtPrice(model.input)}</span>
