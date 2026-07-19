@@ -243,6 +243,45 @@ describe('data-integrity: schema v2 migration gate', () => {
   });
 });
 
+// --- BenchLM backfill gate (PR1 — benchlm-replace-custom-scoring) -------------
+//
+// PR1 adds a `benchlm` placeholder block to EVERY tracked model in
+// data/models.json. The block is the audit/contract surface for the
+// upcoming BenchLM scraper (PR2) and reader migration (PR3); it lives
+// on every model now so the scraper can replace it in-place on first
+// scheduled sync without re-touching the file's overall structure.
+//
+// Placeholder shape: `{score: null, verified: false, reliability: 0,
+// categories: {}}`. The scraper (PR2) will overwrite the four fields
+// with real BenchLM values; until then, `score: null` signals "no data
+// yet" to renderers and the composite-chart "unavailable" placeholder
+// (PR3) is the expected user-visible behavior.
+//
+// KNOWN_MISSING is the explicit allowlist for models BenchLM does NOT
+// list at all (so the scraper leaves the key absent, not as a
+// placeholder with `score: null`). It starts empty for PR1 — the
+// scraper's first sync will populate it after inspecting real data.
+const KNOWN_MISSING = [];
+
+describe('data-integrity: benchlm backfill', () => {
+  test('every tracked model carries a benchlm block (or is in KNOWN_MISSING)', () => {
+    const raw = JSON.parse(
+      readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
+    );
+    const models = raw.models;
+    const missing = [];
+    for (const [key, model] of Object.entries(models)) {
+      if (model.benchlm !== undefined) continue;
+      if (KNOWN_MISSING.includes(key)) continue;
+      missing.push(key);
+    }
+    expect(
+      missing,
+      `Models missing benchlm block: ${missing.join(', ') || 'none'} (KNOWN_MISSING=${KNOWN_MISSING.length})`
+    ).toEqual([]);
+  });
+});
+
 // Assertion-only coverage of existing curated catalog data; red-first is not applicable.
 describe('data-integrity: Kimi K3 provenance', () => {
   const k3 = JSON.parse(
