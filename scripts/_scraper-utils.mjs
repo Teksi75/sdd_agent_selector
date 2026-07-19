@@ -12,13 +12,39 @@
 // parse fails), the scraper exits with a non-zero code and a clear
 // message so the GitHub Actions step fails loud.
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import * as fsImpl from 'node:fs';
+import { resolve, dirname, basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..');
+
+// Module-internal mutable reference for the fs namespace. Tests can swap
+// in a mock via `_setFsForTesting({ ...fsImpl, renameSync: vi.fn(...) })`
+// and reset via `_resetFsForTesting()`. Production callers never see this
+// indirection — they hit `fsImpl` (real fs) on every code path.
+let _fs = fsImpl;
+
+/**
+ * Inject a custom fs implementation (testing only). Pass an object that
+ * spreads the real `fsImpl` and overrides one or more functions.
+ *
+ * @param {typeof fsImpl} mockFs
+ * @returns {void}
+ */
+export function _setFsForTesting(mockFs) {
+  _fs = mockFs || fsImpl;
+}
+
+/**
+ * Restore the real `node:fs` namespace after a `_setFsForTesting` call.
+ *
+ * @returns {void}
+ */
+export function _resetFsForTesting() {
+  _fs = fsImpl;
+}
 
 /**
  * Default path to the models.json file (the data layer).
@@ -60,10 +86,10 @@ export function parseArgs(argv) {
  * @returns {{_meta: Object, models: Object<string, Object>}}
  */
 export function readModelsJson(path) {
-  if (!existsSync(path)) {
+  if (!_fs.existsSync(path)) {
     throw new Error(`models.json not found at ${path}`);
   }
-  const raw = readFileSync(path, 'utf-8');
+  const raw = _fs.readFileSync(path, 'utf-8');
   let parsed;
   try {
     parsed = JSON.parse(raw);
@@ -83,6 +109,14 @@ export function readModelsJson(path) {
  *  - Bumps `_meta.schemaVersion` only when the shape changes (we leave it
  *    unchanged for normal price/benchmark refreshes — schema bumps
  *    invalidate every cached entry in production).
+ *  - Performs an atomic write: serializes to a temp file in the same
+ *    directory (`<basename>.<pid>.<ms>.tmp`) then renames over the
+ *    target. Same-volume renames are atomic on POSIX and on NTFS in
+ *    Node 10+, so a crash mid-write can never leave a partially written
+ *    models.json. On `EXDEV` (cross-device) we fall back to copy+unlink.
+ *  - Sweeps any leftover `<basename>.*.tmp` files in the same directory
+ *    before writing so stale temps from a prior crashed run do not
+ *    accumulate.
  *
  * @param {string} path
  * @param {{_meta: Object, models: Object}} doc
@@ -98,7 +132,45 @@ export function writeModelsJson(path, doc, sourceTag) {
   const next = new Date();
   next.setUTCDate(next.getUTCDate() + 5);
   doc._meta.nextSync = next.toISOString().slice(0, 10);
-  writeFileSync(path, JSON.stringify(doc, null, 2) + '\n', 'utf-8');
+
+  const serialized = JSON.stringify(doc, null, 2) + '\n';
+  const dir = dirname(path);
+  const base = basename(path);
+
+  // Sweep stale tmp files from prior crashed runs. Same-directory only,
+  // matching `<base>.<anything-with-digits-and-dots>.tmp`. Best-effort:
+  // any unlink failure (file already gone, permission denied) is swallowed.
+  try {
+    const entries = _fs.readdirSync(dir);
+    const stalePrefix = base + '.';
+    const staleSuffix = '.tmp';
+    for (const entry of entries) {
+      if (entry.startsWith(stalePrefix) && entry.endsWith(staleSuffix)) {
+        try { _fs.unlinkSync(join(dir, entry)); } catch { /* swallow */ }
+      }
+    }
+  } catch { /* dir unreadable — skip sweep, write will fail loudly anyway */ }
+
+  // Build a unique temp path: `<dir>/<base>.<pid>.<ms>.tmp`.
+  const tmp = join(dir, `${base}.${process.pid}.${Date.now()}.tmp`);
+  _fs.writeFileSync(tmp, serialized, 'utf-8');
+
+  try {
+    _fs.renameSync(tmp, path);
+    return;
+  } catch (err) {
+    if (err && err.code === 'EXDEV') {
+      // Cross-device: best-effort fallback. Not atomic but the alternative
+      // is to leave the target untouched.
+      _fs.copyFileSync(tmp, path);
+      try { _fs.unlinkSync(tmp); } catch { /* tmp already moved */ }
+      return;
+    }
+    // Non-EXDEV failure (EBUSY, EPERM, ENOENT, etc.) — leave the tmp in
+    // place so the operator can inspect what was about to be written,
+    // then re-throw so the caller exits non-zero.
+    throw err;
+  }
 }
 
 /**
