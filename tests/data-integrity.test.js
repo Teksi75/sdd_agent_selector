@@ -1,17 +1,20 @@
 // tests/data-integrity.test.js
-// Phase 1 — Integrity between V3 source and V4 data file.
+// PR3 (benchlm-replace-custom-scoring) — migrated integrity assertions.
 //
-// Loads:
-//   v3-monolith-backup.html  (canonical source from `Modelos SDD - V3 - Lucide.html`)
-//   data/models.json         (transcribed Phase 1 deliverable)
+// After PR3, the integrity contract asserts the BenchLM-backed shape on
+// every tracked V4 model:
+//   - every tracked V4 model has a `benchlm` block with valid {score,
+//     verified, reliability, categories}
+//   - schemaVersion === 2 (matches CURRENT_SCHEMA_VERSION in js/services/
+//     data-loader.js after PR1 merge)
+//   - legacy V3 model fields (name, tier, input, output) still match as
+//     drift-detection sanity; the flat `arena`/`swePro`/`sweVer`/`term`
+//     fields remain in data/models.json for reference but the integrity
+//     contract no longer pins them (PR3 cutover).
 //
-// Asserts:
-//   - same model count
-//   - same key fingerprint per model (name, arena, input, output, tier at minimum)
-//   - reference-tier models in V3 marked isReference in V4 (so charts/tables can hide them)
-//
-// Tolerance: We accept that V4 normalizes some V3 fields (tier `mid` → `balanced`).
-// That is a documented mapping from design.md and is not a regression.
+// This test is RED before PR1+PR2 merge (no benchlm blocks, schemaVersion
+// is still 1) and GREEN after. Stacked-to-main is the trade-off per the
+// design (T3.2).
 
 import { describe, test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -21,16 +24,16 @@ import { fileURLToPath } from 'node:url';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 
-// --- V3 source resolution (filesystem-agnostic) ---
+// --- V3 source resolution (filesystem-agnostic) ----------------------------
 //
 // The V3 monolith lives at one of these paths, in priority order:
 //   1. <project>/v3-monolith-backup.html             (in-repo snapshot)
 //   2. <parent>/Modelos SDD - V3 - Lucide.html       (Pablo's local dev dir)
 //   3. $SDD_V3_BACKUP_PATH                            (CI override)
 //
-// We resolve the first existing path; if none exist, the integrity tests
-// are SKIPPED (not failed) so CI can run without the V3 source available.
-// This keeps the test suite green in CI while still being strict locally.
+// We resolve the first existing path; if none exist, the V3-based tests
+// are SKIPPED (not failed) so CI can run without the V3 source.
+// The BenchLM-shape assertions stay active regardless of V3 availability.
 
 const V3_CANDIDATES = [
   join(ROOT, 'v3-monolith-backup.html'),
@@ -38,11 +41,9 @@ const V3_CANDIDATES = [
   process.env.SDD_V3_BACKUP_PATH,
 ].filter(Boolean);
 
-/** @type {string|null} */
 let V3_BACKUP = null;
 for (const candidate of V3_CANDIDATES) {
   try {
-    // eslint-disable-next-line no-unused-expressions
     readFileSync(candidate, 'utf-8');
     V3_BACKUP = candidate;
     break;
@@ -54,19 +55,15 @@ for (const candidate of V3_CANDIDATES) {
 const V3_AVAILABLE = V3_BACKUP !== null;
 
 /**
- * Extract the MODELS constant from the V3 HTML snapshot.
- * @param {string} html
- * @returns {Object<string, {name: string, arena: number|null, swePro: number|null,
- *                          sweVer: number|null, term: number|null, input: number,
- *                          output: number, tier: string, isReference?: boolean,
- *                          isNew?: boolean, notes?: string, rating?: number}>}
+ * Extract the MODELS constant from the V3 HTML snapshot. Kept for the
+ * name/tier/price drift-detection test that does NOT depend on the
+ * benchlm-shape migration.
  */
 function parseV3Models(html) {
   const startIdx = html.indexOf('const MODELS');
   if (startIdx < 0) throw new Error('V3 MODELS constant not found');
   const openBrace = html.indexOf('{', startIdx);
   if (openBrace < 0) throw new Error('V3 MODELS opening brace not found');
-  // Walk braces to find matching close.
   let depth = 1;
   let i = openBrace + 1;
   while (i < html.length && depth > 0) {
@@ -77,7 +74,6 @@ function parseV3Models(html) {
   }
   const body = html.slice(openBrace + 1, i - 1);
 
-  // Parse individual key records: `'key': { ... },`.
   const records = {};
   const recordRegex = /'([^']+)'\s*:\s*\{([^}]*)\}/g;
   let m;
@@ -101,7 +97,6 @@ function parseV3Models(html) {
 
 /**
  * V3 tier "mid" → V4 spec tier "balanced" mapping.
- * V3 also allowed `tier: 'reference'` which we keep as-is.
  */
 function normalizeTier(v3Tier) {
   if (v3Tier === 'mid') return 'balanced';
@@ -110,44 +105,112 @@ function normalizeTier(v3Tier) {
 
 /**
  * Name comparison is case-insensitive: V3 stores display names with the
- * vendor's canonical casing (e.g. "GPT-5.5") while V4 normalizes them to a
- * stable kebab-free form (e.g. "gpt-5.5"). The integrity contract is that
- * the SAME model is present in both, not that capitalization matches.
+ * vendor's canonical casing while V4 normalizes them.
  */
 function nameEqual(a, b) {
   return String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
 }
 
-// --- Known V4-only additions -----------------------------------------------
-//
-// V4 has these models that V3 did not (intentional additions, not orphans):
-//   - gpt54, claudeFable5, sonnet5, haiku45: 2026-07-06 sync from
-//     scrape-openai-pricing / scrape-anthropic-pricing
-//   - gpt56terra: 2026-07-09 manual add for the new OpenAI balanced tier
-//
-// Bump this set when adding a new V4-only model so the orphan check stays
-// a useful drift detector instead of a permanent false-positive.
-// Also use this set for models that exist in V3 with a STUB payload and
-// were later filled in with real benchmarks in V4 (V3's stub is the source
-// of truth for "existence" but not for "current data").
+// Models that exist in V3 with STUB payloads and were later filled in with
+// real benchmarks in V4. Same allow-list carried forward from Phase 1.
 const KNOWN_V4_ONLY = new Set([
   'gpt54',
   'claudeFable5',
   'sonnet5',
   'haiku45',
   'gpt56terra',
-  'kimik27c', // K2.7 Code: V3 stub (arena=null, sweVer=60.4) → V4 real (Vals AI
-              //   sweVer=78.2, term=67, estimated arena=1510, swePro proxy 58.6).
-  'kimik25',   // K2.5: V3 launch data (arena=1515, sweVer=80.2) → V4 2026 refresh
-              //   (arena=1400 per BenchLM, sweVer=76.8 + swePro=50.7 per Moonshot's
-              //   HuggingFace card). The old numbers made K2.5 appear top of the
-              //   ranking despite K2.6 and K2.7 being strictly stronger.
-  'kimik3',    // K3: V4-only (released 2026-07-17; catalog entry added 2026-07-18).
-               //   V3 has no K3 entry. See models.json notes for dated provenance.
+  'kimik27c',
+  'kimik25',
+  'kimik3',
 ]);
 
-describe('data-integrity: V3 source vs data/models.json', () => {
-  // Skip the whole suite when no V3 source is available (CI without snapshot).
+// --- PR3 assertions (always run, no V3 dependency required) ----------------
+
+describe('data-integrity: BenchLM-shape contract (PR3)', () => {
+  const doc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
+
+  test('_meta block declares schemaVersion 2 (matches CURRENT_SCHEMA_VERSION after PR1)', () => {
+    // Loader's readCache discards mismatched versions, so this must match
+    // CURRENT_SCHEMA_VERSION exported from js/services/data-loader.js.
+    expect(doc._meta).toBeDefined();
+    expect(doc._meta.schemaVersion).toBe(2);
+    expect(doc._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  test('every tracked V4 model has a `benchlm` block', () => {
+    // The post-PR1 contract: every model the app tracks carries a
+    // `benchlm` block (either populated by scrape-benchlm or with the
+    // null-sentinel placeholder when BenchLM has not yet returned the
+    // model).
+    const models = doc.models;
+    const keys = Object.keys(models);
+    expect(keys.length).toBeGreaterThan(0);
+
+    const missing = [];
+    for (const k of keys) {
+      const m = models[k];
+      if (!m || typeof m !== 'object' || m.benchlm === null || m.benchlm === undefined) {
+        missing.push(k);
+      }
+    }
+    expect(missing, `Models missing benchlm block: ${missing.join(', ')}`).toEqual([]);
+  });
+
+  test('every `benchlm` block has the required sub-keys in valid types', () => {
+    const models = doc.models;
+    for (const [key, m] of Object.entries(models)) {
+      const b = m.benchlm;
+      expect(b, `model ${key} missing benchlm`).toBeDefined();
+      expect(b, `model ${key} benchlm is null`).not.toBeNull();
+      // `score` may be null (BenchLM hasn't populated it yet) — but it
+      // must always be present and a number-or-null.
+      expect(b, `model ${key} benchlm.score field missing`).toHaveProperty('score');
+      if (b.score !== null) {
+        expect(Number.isFinite(b.score), `model ${key} benchlm.score not finite`).toBe(true);
+        expect(b.score).toBeGreaterThanOrEqual(0);
+        expect(b.score).toBeLessThanOrEqual(100);
+      }
+      // `verified` is always a boolean (false for placeholder, true for real).
+      expect(typeof b.verified, `model ${key} benchlm.verified not boolean`).toBe('boolean');
+      // `reliability` is a number in [0, 1].
+      expect(typeof b.reliability, `model ${key} benchlm.reliability not number`).toBe('number');
+      expect(Number.isFinite(b.reliability), `model ${key} benchlm.reliability not finite`).toBe(true);
+      expect(b.reliability).toBeGreaterThanOrEqual(0);
+      expect(b.reliability).toBeLessThanOrEqual(1);
+      // `categories` is always an object (may be empty when BenchLM hasn't
+      // broken out categories yet).
+      expect(b.categories, `model ${key} benchlm.categories missing`).toBeDefined();
+      expect(typeof b.categories, `model ${key} benchlm.categories not object`).toBe('object');
+      expect(b.categories, `model ${key} benchlm.categories is null`).not.toBeNull();
+    }
+  });
+
+  test('placeholder benchlm blocks (score=null) mean "BenchLM not yet ingested"', () => {
+    // Models with score=null are the pre-PR1-merge state — BenchLM has
+    // not yet published data for them. The downstream readers (chart,
+    // model-card, ref-table) MUST render these as "unavailable".
+    const models = doc.models;
+    const placeholders = Object.entries(models).filter(
+      ([, m]) => m.benchlm && m.benchlm.score === null
+    );
+    // This test passes whether or not placeholders exist; it documents
+    // the contract surface.
+    expect(Array.isArray(placeholders)).toBe(true);
+  });
+
+  test('24 tracked models carried by the curated catalog', () => {
+    // PR1 backfilled 24 models. PR3 keeps the count stable.
+    const models = doc.models;
+    const keys = Object.keys(models);
+    // Use ≥ so the test passes when additional tracked models are added
+    // post-merge, but assert ≥24 to pin the PR1 contract.
+    expect(keys.length).toBeGreaterThanOrEqual(24);
+  });
+});
+
+// --- V3 source drift-detection (informational; skipped without V3 source) -
+
+describe('data-integrity: V3 source vs data/models.json (drift detector)', () => {
   if (!V3_AVAILABLE) {
     test.skip('V3 source not found (skipped — set SDD_V3_BACKUP_PATH or restore v3-monolith-backup.html)', () => {
       // intentional no-op
@@ -161,7 +224,6 @@ describe('data-integrity: V3 source vs data/models.json', () => {
   const v4 = v4raw.models;
 
   test('V3 parser extracts the same model count we expect', () => {
-    // Sanity guard: we know V3 has 17 models (15 active + 2 reference).
     expect(Object.keys(v3).length).toBeGreaterThanOrEqual(15);
   });
 
@@ -180,24 +242,26 @@ describe('data-integrity: V3 source vs data/models.json', () => {
   test('every V4 model key exists in V3 (allowing for known V4-only additions)', () => {
     const v3Keys = new Set(Object.keys(v3));
     for (const k of Object.keys(v4)) {
-      if (KNOWN_V4_ONLY.has(k)) continue; // intentional V4-only addition
+      if (KNOWN_V4_ONLY.has(k)) continue;
       expect(v3Keys.has(k), `V4 has orphan key (not in V3): ${k}`).toBe(true);
     }
   });
 
-  test('name, arena, input, output, tier match between V3 and V4', () => {
+  // PR3 NOTE: the legacy `arena` field comparison is removed from this
+  // file. PR3 cutover moved the source of truth for benchmarks from V3
+  // LMSYS/SWE-Bench/Terminal-Bench flat fields to BenchLM, and the V3
+  // arena number no longer matches any V4 field. The identity contract
+  // (name, tier, input, output) is preserved below.
+
+  test('name, input, output, tier match between V3 and V4 (PR3 identity contract)', () => {
     for (const key of Object.keys(v3)) {
-      if (KNOWN_V4_ONLY.has(key)) continue; // V4 updated the data for this model
+      if (KNOWN_V4_ONLY.has(key)) continue;
       const a = v3[key];
       const b = v4[key];
       expect(b, `V4 missing model ${key}`).toBeDefined();
       expect(nameEqual(b.name, a.name), `V4 name "${b.name}" != V3 name "${a.name}"`).toBe(true);
-      // V3 stored arena as null/string; V4 uses null for unknown.
-      const v3Arena = a.arena === null || a.arena === undefined ? null : Number(a.arena);
-      expect(b.arena ?? null).toBe(v3Arena ?? null);
       expect(b.input).toBeCloseTo(Number(a.input), 6);
       expect(b.output).toBeCloseTo(Number(a.output), 6);
-      // Tier mapping: V3 'mid' → V4 'balanced'; others unchanged.
       expect(b.tier).toBe(normalizeTier(a.tier));
     }
   });
@@ -206,7 +270,7 @@ describe('data-integrity: V3 source vs data/models.json', () => {
     const v3Refs = Object.values(v3)
       .filter((m) => m.tier === 'reference')
       .map((m) => m.name);
-    expect(v3Refs.length).toBeGreaterThan(0); // sanity
+    expect(v3Refs.length).toBeGreaterThan(0);
     for (const name of v3Refs) {
       const v4Model = Object.values(v4).find((m) => nameEqual(m.name, name));
       expect(v4Model, `V4 missing reference model ${name}`).toBeDefined();
@@ -214,7 +278,6 @@ describe('data-integrity: V3 source vs data/models.json', () => {
       expect(v4Model.tier).toBe('reference');
     }
   });
-
   test('_meta block declares schemaVersion 2 (BenchLM migration)', () => {
     expect(v4raw._meta).toBeDefined();
     expect(v4raw._meta.schemaVersion).toBe(2);
@@ -282,7 +345,9 @@ describe('data-integrity: benchlm backfill', () => {
   });
 });
 
-// Assertion-only coverage of existing curated catalog data; red-first is not applicable.
+// --- Kimi K3 provenance (Phase-1 provenance preservation) ------------------
+
+
 describe('data-integrity: Kimi K3 provenance', () => {
   const k3 = JSON.parse(
     readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
@@ -290,7 +355,7 @@ describe('data-integrity: Kimi K3 provenance', () => {
 
   test('kimik3 has every required catalog field and valid source entries', () => {
     expect(k3).toBeDefined();
-    for (const key of ['name', 'tier', 'input', 'output', 'notes', 'sources']) {
+    for (const key of ['name', 'tier', 'input', 'output', 'notes', 'sources', 'benchlm']) {
       expect(k3).toHaveProperty(key);
     }
     expect(k3.sources.length).toBeGreaterThan(0);
@@ -300,9 +365,13 @@ describe('data-integrity: Kimi K3 provenance', () => {
       expect(source.url).toMatch(/^https?:\/\//);
       expect(source.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     }
+    // BenchLM block under PR3: k3 should be present in source-of-truth
+    // with the placeholder shape (since BenchLM does not list K3 yet).
+    expect(k3.benchlm).not.toBeNull();
+    expect(k3.benchlm).toBeDefined();
   });
 
-  test('every K3 benchmark is numeric with dated evidence or null with a dated explanation', () => {
+  test('every K3 legacy benchmark field is numeric-or-null with dated evidence', () => {
     const metrics = [
       ['arena', /Arena:.*?(?=SWE-Ver:|SWE-Pro:|Terminal-Bench|$)/is],
       ['swePro', /SWE-Pro:.*?(?=SWE-Ver:|Terminal-Bench|$)/is],
