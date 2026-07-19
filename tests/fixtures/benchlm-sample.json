@@ -1,0 +1,46 @@
+{
+  "_meta": { "fetchedAt": "2026-07-19T00:00:00Z" },
+  "rankings": [
+    {
+      "id": "claude-fable-5",
+      "score": 78.3,
+      "verified": true,
+      "reliability": 0.9,
+      "rank": 1,
+      "evidence": "https://benchlm.ai/evidence/claude-fable-5",
+      "categories": {
+        "coding": 82.1,
+        "reasoning": 75.4,
+        "knowledge": 77.0,
+        "math": 79.2
+      }
+    },
+    {
+      "id": "kimi-k3",
+      "score": 71.6,
+      "verified": true,
+      "reliability": 0.85,
+      "rank": 4,
+      "evidence": "https://benchlm.ai/evidence/kimi-k3",
+      "categories": {
+        "coding": 70.0,
+        "reasoning": 73.2,
+        "knowledge": 68.5,
+        "math": 75.0
+      }
+    },
+    {
+      "id": "mimo-v2-5",
+      "score": 68.2,
+      "verified": false,
+      "reliability": 0.7,
+      "rank": 9,
+      "categories": {
+        "coding": 69.5,
+        "reasoning": 67.0,
+        "knowledge": 70.0,
+        "math": 64.0
+      }
+    }
+  ]
+}

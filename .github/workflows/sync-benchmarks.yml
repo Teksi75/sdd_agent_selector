@@ -73,6 +73,7 @@ jobs:
             scrape-arena-leaderboard
             scrape-glm-blog
             scrape-swebench-leaderboard
+            scrape-benchlm
           )
           if [ -n "${{ inputs.scraper }}" ]; then
             SELECTED=()
