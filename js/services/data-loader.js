@@ -21,8 +21,14 @@
 /** @type {string} */
 export const CACHE_KEY = 'sdd-models-v1';
 
-/** @type {number} - bump to invalidate ALL cached entries. */
-const CURRENT_SCHEMA_VERSION = 1;
+/** @type {number} - bump to invalidate ALL cached entries.
+ *  Exported as a test affordance so the integrity suite can pin the
+ *  migration number. Consumers MUST NOT branch on this value — only
+ *  the data shape (and `data/models.json` `_meta.schemaVersion`) are
+ *  part of the contract.
+ *  History: 1 → 2 (BenchLM migration, PR1 of benchlm-replace-custom-scoring).
+ */
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /** @type {string[]} - the 5 data files this loader fetches, in order. */
 const DATA_FILES = Object.freeze([

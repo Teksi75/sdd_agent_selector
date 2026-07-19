@@ -3,7 +3,7 @@
     "lastSynced": "2026-07-16",
     "source": "scrape-glm-blog",
     "nextSync": "2026-07-21",
-    "schemaVersion": 1
+    "schemaVersion": 2
   },
   "models": {
     "glm52": {

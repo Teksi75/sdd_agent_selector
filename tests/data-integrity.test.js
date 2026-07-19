@@ -215,10 +215,31 @@ describe('data-integrity: V3 source vs data/models.json', () => {
     }
   });
 
-  test('_meta block declares schemaVersion 1', () => {
+  test('_meta block declares schemaVersion 2 (BenchLM migration)', () => {
     expect(v4raw._meta).toBeDefined();
-    expect(v4raw._meta.schemaVersion).toBe(1);
+    expect(v4raw._meta.schemaVersion).toBe(2);
     expect(v4raw._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+// --- Schema v2 migration gate (PR1 — benchlm-replace-custom-scoring) ----------
+//
+// PR1 bumps BOTH `_meta.schemaVersion` in data/models.json AND
+// `CURRENT_SCHEMA_VERSION` in js/services/data-loader.js. The loader's
+// readCache already discards cached payloads whose `schemaVersion` does
+// not match the live constant, so bumping it forces a clean refetch on
+// the next page load (no manual cache clear needed).
+//
+// Why export the constant: it's currently a private `const`, but the
+// integrity test is the natural place to pin the migration number. We
+// keep the export name identical and add a JSDoc note so future
+// contributors don't treat the export as part of the public consumer
+// API — it's a test affordance.
+import { CURRENT_SCHEMA_VERSION } from '../js/services/data-loader.js';
+
+describe('data-integrity: schema v2 migration gate', () => {
+  test('CURRENT_SCHEMA_VERSION in data-loader is 2', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(2);
   });
 });
 
