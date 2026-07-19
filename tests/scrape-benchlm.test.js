@@ -279,6 +279,57 @@ describe('scrape-benchlm — CLI flags', () => {
     // Default path was NOT touched.
     expect(fsImpl.readFileSync(defaultPath, 'utf-8')).toBe(defaultBefore);
   });
+
+  test('--source <local-file>: reads the fixture from disk and writes benchlm blocks (no HTTP)', async () => {
+    writeAliases();
+    writeModels(['claudeFable5', 'kimik3']);
+
+    // Write a fixture file in the tmpDir so we never touch the repo.
+    const fixturePath = join(tmpDir, 'benchlm-fixture.json');
+    fsImpl.writeFileSync(
+      fixturePath,
+      JSON.stringify({
+        rankings: [
+          { id: 'claude-fable-5', score: 78.3, verified: true, reliability: 0.9, rank: 1 },
+          { id: 'kimi-k3', score: 71.6, verified: true, reliability: 0.85, rank: 4 },
+        ],
+      }),
+      'utf-8',
+    );
+
+    // fetchText MUST NOT be called — the local path is read directly.
+    const fetchText = vi.fn(async () => {
+      throw new Error('fetchText should not be invoked when --source is a local path');
+    });
+
+    const result = await runScrape(
+      { ...BASE_ARGS(), source: fixturePath },
+      { fetchText },
+    );
+    expect(result.ok).toBe(true);
+    expect(fetchText).not.toHaveBeenCalled();
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(after.models.claudeFable5.benchlm.score).toBe(78.3);
+    expect(after.models.kimik3.benchlm.score).toBe(71.6);
+  });
+
+  test('--source <local-file>: missing fixture returns fetch-phase error', async () => {
+    writeAliases();
+    writeModels(['claudeFable5']);
+
+    const fetchText = vi.fn(async () => {
+      throw new Error('fetchText should not be invoked for missing local fixture');
+    });
+
+    const result = await runScrape(
+      { ...BASE_ARGS(), source: join(tmpDir, 'does-not-exist.json') },
+      { fetchText },
+    );
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('fetch');
+    expect(fetchText).not.toHaveBeenCalled();
+  });
 });
 
 describe('sync-benchmarks workflow — benchlm scheduling', () => {

@@ -30,7 +30,8 @@ import {
   exitWith,
 } from './_scraper-utils.mjs';
 import { loadAliases, mapBenchlmId, detectMissing } from './_benchlm-safety.mjs';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, isAbsolute } from 'node:path';
+import { existsSync, readFileSync as fsReadFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -40,6 +41,20 @@ const REPO_ROOT = resolve(__dirname, '..');
 const SCRAPER_NAME = 'scrape-benchlm';
 const SOURCE_URL = 'https://benchlm.ai/api/v1/rankings';
 const DEFAULT_ALIAS_PATH = resolve(REPO_ROOT, 'data/benchlm-aliases.json');
+
+/**
+ * Return true when `src` looks like a local filesystem path rather than
+ * an HTTP(S) URL. We treat any string without a `://` scheme as a path
+ * candidate, and additionally support absolute Windows paths.
+ *
+ * @param {string} src
+ * @returns {boolean}
+ */
+function isLocalPath(src) {
+  if (!src) return false;
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(src)) return false;
+  return true;
+}
 
 /**
  * Clamp a BenchLM `score` to [0, 100]. Returns null for non-finite input
@@ -89,10 +104,20 @@ export async function runScrape(args, deps) {
   const url = args.source || SOURCE_URL;
   const aliasPath = args.aliasPath || DEFAULT_ALIAS_PATH;
 
-  // 1. Fetch (no cooldown — the cron handler enforces its own)
+  // 1. Fetch (no cooldown — the cron handler enforces its own).
+  //    When --source points at a local fixture path, read it directly
+  //    so the CLI can be exercised without a live BenchLM endpoint.
   let text;
   try {
-    text = await fetchTextFn(url, { cooldownMs: 0 });
+    if (isLocalPath(url)) {
+      const localPath = isAbsolute(url) ? url : resolve(process.cwd(), url);
+      if (!existsSync(localPath)) {
+        return { scraper: SCRAPER_NAME, ok: false, phase: 'fetch', error: `local fixture not found: ${localPath}` };
+      }
+      text = fsReadFileSync(localPath, 'utf-8');
+    } else {
+      text = await fetchTextFn(url, { cooldownMs: 0 });
+    }
   } catch (err) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'fetch', error: err.message };
   }
