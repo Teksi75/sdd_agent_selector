@@ -81,20 +81,22 @@ describe('twin-judge constraint', () => {
     // The role requirements differ on costRatio so each judge naturally
     //   picks a different model — the divergence scenario the constraint
     //   is designed to reject.
+    //
+    // PR3 fixture: each model carries a benchlm block so compositeScore
+    // returns the expected deterministic score. The weights used here
+    // reproduce the legacy fixture's intent:
+    //   premium clears the minReasoning=90 floor with margin (94);
+    //   budget also clears (91) but loses on cost.
     const premium = {
       name: 'Premium-A',
-      arena: 1670,
-      swePro: 92,
-      term: 90,
+      benchlm: { score: 94, verified: true, reliability: 0.95, categories: {} },
       input: 5.00,
       output: 25.00,
       tier: 'high',
     };
     const budget = {
       name: 'Budget-B',
-      arena: 1660,
-      swePro: 88,
-      term: 86,
+      benchlm: { score: 91, verified: true, reliability: 0.9, categories: {} },
       input: 0.10,
       output: 1.00,
       tier: 'balanced',
@@ -121,34 +123,19 @@ describe('twin-judge constraint', () => {
 
   test('selectConfig emulator throws InvalidConfigError when twins diverge', () => {
     // Construct a manipulated dataset where the two judges MUST diverge.
+    // PR3 fixture: benchlm blocks carry the deterministic scores that drive
+    // the divergence scenario. judgeA_only = 95 (clears both 90 and 85
+    // floors), judgeB_unique = 88 (clears 85 but costs out for judgeA).
     const judgeA_only = {
       name: 'JudgeA-Only',
-      arena: 1700,
-      swePro: 95,
-      term: 95,
+      benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
       input: 5.00,
       output: 25.00,
       tier: 'high',
     };
-    // judgeA requirements: must clear minReasoning=95
-    // judgeB requirements: can NOT clear (sets threshold above the model's score)
-    const matrix = {
-      'jd-judge-a': { minReasoning: 90, costRatio: 0.85, role: 'judge-a' },
-      'jd-judge-b': { minReasoning: 92, costRatio: 0.85, role: 'judge-b' },
-    };
-    const profs = {
-      'jd-judge-a': profiles['jd-judge-a'],
-      'jd-judge-b': profiles['jd-judge-b'],
-    };
-
-    // judge-a: gets judgeA_only (score ~94+ qualifies)
-    // judge-b: also needs >=92; judgeA_only has ~94+, qualifies.
-    // For a real divergence we need two distinct models:
     const judgeB_unique = {
       name: 'JudgeB-Unique',
-      arena: 1670,
-      swePro: 88,
-      term: 88,
+      benchlm: { score: 88, verified: true, reliability: 0.92, categories: {} },
       input: 4.00,
       output: 20.00,
       tier: 'high',
@@ -160,6 +147,10 @@ describe('twin-judge constraint', () => {
     const matrixDiv = {
       'jd-judge-a': { minReasoning: 90, costRatio: 1.0, role: 'judge-a' }, // wide budget
       'jd-judge-b': { minReasoning: 85, costRatio: 0.30, role: 'judge-b' }, // tight budget
+    };
+    const profs = {
+      'jd-judge-a': profiles['jd-judge-a'],
+      'jd-judge-b': profiles['jd-judge-b'],
     };
 
     const rA = getBestFor('jd-judge-a', { a: judgeA_only, b: judgeB_unique }, matrixDiv, profs, 'balanced');
