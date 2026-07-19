@@ -122,7 +122,10 @@ describe('data-loader — cache MISS (fetch all 5 files)', () => {
     const cached = sessionStorage.getItem(CACHE_KEY);
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    expect(parsed).toHaveProperty('schemaVersion', 1);
+    // Matches CURRENT_SCHEMA_VERSION (2 as of the BenchLM migration). The
+    // loader writes its own constant into the cached envelope; this assertion
+    // exists to catch silent regressions of the cache contract.
+    expect(parsed).toHaveProperty('schemaVersion', 2);
     expect(parsed).toHaveProperty('data');
   });
 
@@ -181,15 +184,16 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     delete globalThis.fetch;
   });
 
-  test('caches schemaVersion 2 → first call discards and refetches', async () => {
+  test('caches an older schemaVersion (1) → first call discards and refetches', async () => {
     const { loadAll, CACHE_KEY } = await import('../js/services/data-loader.js');
 
-    // Pre-seed sessionStorage with schemaVersion: 2 (newer than the loader
-    //   expects); the loader must discard and re-fetch.
+    // Pre-seed sessionStorage with schemaVersion: 1 (older than the loader's
+    //   CURRENT_SCHEMA_VERSION = 2 after the BenchLM migration); the loader
+    //   must discard the stale cache and re-fetch.
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: 1,
         timestamp: Date.now(),
         data: { shouldNotBeUsed: true },
       })
@@ -201,9 +205,10 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     // The resulting data must come from the freshly-fetched files.
     expect(data.models.glm52.name).toBe('GLM-5.2');
     expect(data.shouldNotBeUsed).toBeUndefined();
-    // The sessionStorage was repopulated with the fresh payload.
+    // The sessionStorage was repopulated with the fresh payload, now stamped
+    //   with the loader's CURRENT_SCHEMA_VERSION.
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-    expect(cached.schemaVersion).toBe(1);
+    expect(cached.schemaVersion).toBe(2);
   });
 
   test('older schemaVersion (e.g., 0) is also discarded', async () => {
@@ -306,7 +311,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },
@@ -363,7 +368,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },
