@@ -1,0 +1,14 @@
+{
+  "_meta": {
+    "version": 1,
+    "lastUpdated": "2026-07-19",
+    "notes": "BenchLM id → curated key in data/models.json. Extend this table when BenchLM publishes a new model id that maps to one of our 24 tracked keys. Unmapped BenchLM ids cause the scraper to exit non-zero."
+  },
+  "aliases": [
+    { "from": "claude-fable-5",    "to": "claudeFable5" },
+    { "from": "kimi-k3",           "to": "kimik3" },
+    { "from": "mimo-v2-5",         "to": "mimo25" },
+    { "from": "mimo-v2-5-pro",     "to": "mimo25pro" },
+    { "from": "minimax-m3",        "to": "minimaxm3" }
+  ]
+}
