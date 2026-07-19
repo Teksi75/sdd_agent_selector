@@ -280,3 +280,40 @@ describe('scrape-benchlm — CLI flags', () => {
     expect(fsImpl.readFileSync(defaultPath, 'utf-8')).toBe(defaultBefore);
   });
 });
+
+describe('sync-benchmarks workflow — benchlm scheduling', () => {
+  // Workflow file path resolved relative to the test file's location.
+  const WORKFLOW_PATH = resolve(__dirname, '..', '.github', 'workflows', 'sync-benchmarks.yml');
+
+  test('workflow YAML lists scrape-benchlm in the ALL_SCRAPERS array', () => {
+    const yaml = fsImpl.readFileSync(WORKFLOW_PATH, 'utf-8');
+
+    // Extract the ALL_SCRAPERS bash array block. The current workflow
+    // uses the format:
+    //   ALL_SCRAPERS=(
+    //     scrape-...
+    //     ...
+    //   )
+    // We extract everything between the opening `ALL_SCRAPERS=(` and the
+    // closing `)`.
+    const arrayMatch = /ALL_SCRAPERS=\(\s*([\s\S]*?)\s*\)/.exec(yaml);
+    expect(arrayMatch).not.toBeNull();
+    const entries = arrayMatch[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'));
+
+    expect(entries).toContain('scrape-benchlm');
+  });
+
+  test('workflow captures each scraper exit code independently (does not aggregate to one pass/fail)', () => {
+    const yaml = fsImpl.readFileSync(WORKFLOW_PATH, 'utf-8');
+    // The current loop structure uses `if ! node "scripts/${scraper}.js"`
+    // inside a `while read` loop and accumulates a `failed` counter.
+    // That means each scraper's exit code is captured per-iteration and
+    // failures do NOT abort the pipeline.
+    expect(yaml).toMatch(/if\s+!\s+node\s+["']scripts\/\$\{scraper\}\.js["']/);
+    // `failed=$((failed + 1))` accumulates per-scraper failures.
+    expect(yaml).toMatch(/failed=\$\(\(failed\s*\+\s*1\)\)/);
+  });
+});
