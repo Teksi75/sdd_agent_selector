@@ -1,8 +1,16 @@
 // tests/model-card.test.js
-// Phase 2e — model-card TDD (jsdom). The model-card is a reusable
-// building block used by cli-mirror-table and justification-ui. It is
-// small but its branches need explicit coverage so the global threshold
-// stays above the 70% bar.
+// PR3 (benchlm-replace-custom-scoring) — model-card cutover.
+//
+// Pre-PR3 contract: model-card rendered a 4-column metric row (arena /
+// swePro / sweVer / term) + a price row (input / output).
+//
+// Post-PR3 contract: the metric row collapses to a SINGLE BenchLM score
+// row carrying the score, a verified/estimated badge, and a 5-dot
+// reliability scale. Legacy 4-benchmark columns removed. Price row
+// preserved unchanged.
+//
+// Tier badge, NEW badge, name, model-tier-tag, escaping, and null-model
+// fallback retain their pre-PR3 behavior (regression coverage).
 
 import { describe, test, expect, beforeEach } from 'vitest';
 
@@ -14,24 +22,20 @@ beforeEach(() => {
 
 let render, buildCard;
 
-describe('model-card — render() contract', () => {
+describe('model-card — render() contract (PR3 benchlm row)', () => {
   test('mounts a card with model name and tier badge', async () => {
     ({ render, buildCard } = await import('../js/components/model-card.js'));
     render(target, {
       name: 'MiMo V2.5',
       tier: 'budget',
-      arena: 1435,
-      swePro: null,
-      term: null,
       input: 0.14,
       output: 0.28,
+      benchlm: { score: 87, verified: true, reliability: 0.88, categories: {} },
     });
     const card = target.querySelector('.model-card');
     expect(card).toBeDefined();
     expect(card.textContent).toMatch(/MiMo V2\.5/);
     expect(card.querySelector('.model-tier-tag').textContent).toMatch(/min/);
-    // Missing benchmarks render as "—".
-    expect(card.textContent).toMatch(/—/);
   });
 
   test('renders NEW badge when isNew=true', async () => {
@@ -39,16 +43,21 @@ describe('model-card — render() contract', () => {
     render(target, {
       name: 'GLM-5.2',
       tier: 'high',
-      arena: 1595, swePro: 62.1, term: 81.0,
-      input: 1.40, output: 4.40,
+      input: 1.40,
+      output: 4.40,
       isNew: true,
+      benchlm: { score: 79.4, verified: true, reliability: 0.92, categories: {} },
     });
     expect(target.querySelector('.src-new')).toBeDefined();
   });
 
   test('buildCard() returns HTML even without a targetEl', async () => {
     ({ buildCard } = await import('../js/components/model-card.js'));
-    const html = buildCard({ name: 'X', tier: 'high' });
+    const html = buildCard({
+      name: 'X',
+      tier: 'high',
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
+    });
     expect(html).toMatch(/model-card/);
     expect(html).toMatch(/X/);
   });
@@ -61,77 +70,110 @@ describe('model-card — render() contract', () => {
 
   test('reference tier renders "reference" label', async () => {
     ({ buildCard } = await import('../js/components/model-card.js'));
-    const html = buildCard({ name: 'Opus 4.8', tier: 'reference' });
+    const html = buildCard({
+      name: 'Opus 4.8',
+      tier: 'reference',
+      benchlm: { score: 92, verified: true, reliability: 0.95, categories: {} },
+    });
     expect(html).toMatch(/reference/);
   });
 
-  test('4-column grid renders Arena / SWE-Pro / SWE-Ver / Term cells', async () => {
+  // === PR3: BenchLM row contract ============================================
+
+  test('(a) renders a SINGLE BenchLM row: score + verified badge + reliability dots', async () => {
     ({ buildCard } = await import('../js/components/model-card.js'));
     const html = buildCard({
       name: 'GLM-5.2',
       tier: 'high',
-      arena: 1595,
-      swePro: 62.1,
-      sweVer: 77.8,
-      term: 81.0,
       input: 1.4,
       output: 4.4,
+      benchlm: { score: 79.4, verified: true, reliability: 0.92, categories: {} },
     });
-    // Root grid uses grid-cols-4 (4 benchmark cells, not 3).
-    expect(html).toMatch(/grid-cols-4/);
-    expect(html).not.toMatch(/grid-cols-3/);
-    // All four benchmark values render in order.
-    expect(html).toMatch(/1595/);
-    expect(html).toMatch(/62\.1%/);
-    expect(html).toMatch(/77\.8%/);
-    expect(html).toMatch(/81\.0%/);
-    // Labels present in the same order: Arena / SWE-Pro / SWE-Ver / Term.
-    const arenaIdx = html.indexOf('Arena');
-    const proIdx = html.indexOf('SWE-Pro');
-    const verIdx = html.indexOf('SWE-Ver');
-    const termIdx = html.indexOf('Term');
-    expect(arenaIdx).toBeGreaterThan(-1);
-    expect(proIdx).toBeGreaterThan(arenaIdx);
-    expect(verIdx).toBeGreaterThan(proIdx);
-    expect(termIdx).toBeGreaterThan(verIdx);
+    // Score renders with one decimal.
+    expect(html).toMatch(/79\.4/);
+    // Verified badge with green styling.
+    expect(html).toMatch(/data-badge="verified"/);
+    expect(html).toMatch(/>verified</);
+    // BenchLM row label.
+    expect(html).toMatch(/benchlm/i);
+    // Reliability dot container with at least the expected filled count.
+    expect(html).toMatch(/data-reliability-dots/);
+    expect(html).toMatch(/data-dot="filled"/);
+    // Legacy 4-benchmark grid (grid-cols-4) is gone.
+    expect(html).not.toMatch(/grid-cols-4/);
+    // No SWE-Pro / SWE-Ver / Term cells (legacy fields).
+    expect(html).not.toMatch(/SWE-Pro/);
+    expect(html).not.toMatch(/SWE-Ver/);
+    // Price row preserved.
+    expect(html).toMatch(/In /);
+    expect(html).toMatch(/Out /);
   });
 
-  test('sweVer numeric value formats as percentage with 1 decimal', async () => {
+  test('(a2) verified=false renders amber "estimated" badge', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'Weak',
+      tier: 'balanced',
+      input: 1,
+      output: 2,
+      benchlm: { score: 65, verified: false, reliability: 0.7, categories: {} },
+    });
+    // The badge text content must say "estimated" (not "verified").
+    expect(html).toMatch(/data-badge="estimated"/);
+    expect(html).toMatch(/>estimated</);
+    // The data-verified attribute correctly mirrors the model's flag.
+    expect(html).toMatch(/data-verified="false"/);
+  });
+
+  test('(b) benchlm.score=null renders "unavailable" placeholder (no score, no badge)', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'Pending',
+      tier: 'balanced',
+      input: 1,
+      output: 2,
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+    });
+    // The unavailable placeholder is shown.
+    expect(html).toMatch(/unavailable/i);
+    // No badge text on a placeholder row.
+    expect(html).not.toMatch(/data-badge="verified"/);
+    expect(html).not.toMatch(/data-badge="estimated"/);
+    // Name still rendered so the user can identify the model.
+    expect(html).toMatch(/Pending/);
+  });
+
+  test('(b2) no benchlm block at all also renders "unavailable"', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'NoBench',
+      tier: 'balanced',
+      input: 1,
+      output: 2,
+      // benchlm key ABSENT
+    });
+    expect(html).toMatch(/unavailable/i);
+    expect(html).toMatch(/NoBench/);
+  });
+
+  test('price row preserved: input/output render with — placeholder when missing', async () => {
     ({ buildCard } = await import('../js/components/model-card.js'));
     const html = buildCard({
       name: 'X', tier: 'high',
-      arena: 1500, swePro: 70.0, sweVer: 89.0, term: 75.0,
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
     });
-    expect(html).toMatch(/89\.0%/);
+    expect(html).toMatch(/In —/);
+    expect(html).toMatch(/Out —/);
   });
 
-  test('sweVer null renders exactly "—" placeholder, never "—%"', async () => {
+  test('escapes user-controlled strings in model names', async () => {
     ({ buildCard } = await import('../js/components/model-card.js'));
     const html = buildCard({
-      name: 'X', tier: 'high',
-      arena: 1500, swePro: 70.0, sweVer: null, term: 75.0,
+      name: '<img src=x onerror=alert(1)>',
+      tier: 'high',
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
     });
-    // Grid layout must stay intact.
-    expect(html).toMatch(/grid-cols-4/);
-    // sweVer cell shows the placeholder; it MUST NOT carry a stray "%".
-    // Find the SWE-Ver <div> block and assert its numeric span.
-    const verBlock = html.match(/SWE-Ver[\s\S]{0,200}?<\/div>/);
-    expect(verBlock, 'SWE-Ver cell block should be present').toBeTruthy();
-    expect(verBlock[0]).toMatch(/—/);
-    expect(verBlock[0]).not.toMatch(/—%/);
-  });
-
-  test('swePro / term null placeholders also render exactly "—" (alignment)', async () => {
-    ({ buildCard } = await import('../js/components/model-card.js'));
-    const html = buildCard({
-      name: 'X', tier: 'budget',
-      arena: null, swePro: null, sweVer: 78.0, term: null,
-    });
-    expect(html).toMatch(/grid-cols-4/);
-    // None of the percent cells may render "—%".
-    expect(html).not.toMatch(/—%/);
-    // Each percent cell renders the bare placeholder.
-    expect(html).toMatch(/SWE-Pro[\s\S]{0,200}?—/);
-    expect(html).toMatch(/Term[\s\S]{0,200}?—/);
+    expect(html).not.toMatch(/<img src=x onerror/);
+    expect(html).toMatch(/&lt;img/);
   });
 });
