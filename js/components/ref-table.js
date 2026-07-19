@@ -1,44 +1,32 @@
 // js/components/ref-table.js
-// Phase 1 — pilot section.
+// PR3 (benchlm-replace-custom-scoring) — ref-table cutover.
 //
-// Pure render of the reference model table (one row per non-reference model,
-// sorted by composite score descending). This is the first V4 section to be
-// rebuilt from the modular pipeline; it confirms the data layer +
-// model-scorer are wired correctly before the larger refactor (Phase 2+).
+// Public API:
+//   render(targetEl, models)  → { rows, topKey, referenceModel }
 //
-// Contract (per design.md "Components — ref-table"):
-//   render(targetEl, models)
-//     - targetEl: HTMLElement to mount into (caller supplies; the function
-//         does not look it up by id so it stays pure / testable).
-//     - models:   { [key]: model } keyed by model id (e.g. 'glm52'),
-//                 in the shape returned by data/models.json.
-//     - returns:  { rows: number, topKey: string | null }
+// Contract (PR3, per spec benchlm-data-model + spec "UI Component —
+// Reference Table"):
+//   - Every non-reference model renders as one `<tr>` carrying:
+//       Modelo | Tier | Score | BenchLM (badge + reliability) |
+//       Input $ | Output $ | Sources
+//   - The score column reads `benchlm.score` directly (1 decimal).
+//   - The BenchLM column shows a verified/estimated badge PLUS a
+//     5-dot reliability scale. Null score → "—" placeholder; no
+//     badge or dots.
+//   - Legacy `arena`/`swePro`/`sweVer`/`term` columns are REMOVED.
+//   - The sources cell still surfaces pricing sources + a NEW badge.
+//   - Reference-tier rows (tier === 'reference' OR isReference === true)
+//     sink to the bottom of the table.
 //
-// Excluded models: tier === 'reference' OR isReference === true.
-//   Reference models are still surfaced in V3 (the "ChatGPT Plus" view) but
-//   are dropped here because this table's job is to compare the *active*
-//   selection pool. Reference models are reported separately as the
-//   `referenceModel` key on the returned summary.
-//
-// Source badges: a model gets a badge per benchmark it actually has:
-//   arena (LMSYS), swe (SWE-Pro), sweVer (SWE-Verified), term (Term-Bench),
-//   price (input + output). Missing benchmarks render as a muted "—".
-//
-// No global side effects: the function does not touch document.body, fetch,
-// sessionStorage, or globals. It only mutates `targetEl`. Tailwind classes
-// mirror the V3 ref-table so the visual diff stays minimal until Phase 4
-// bundles Tailwind offline.
+// Fail-soft (spec benchlm-fail-soft): when a model has no `benchlm`
+// block, the row still renders with a "—" score and no badge/dots so
+// the user can see the model exists but BenchLM hasn't ingested it.
 
 import { compositeScore } from '../services/model-scorer.js';
 
 /**
- * Format a numeric value for display. Numbers render as-is; null/undefined
- * becomes a muted em-dash. Numbers ≥ 100 render without decimals; smaller
- * numbers render up to 2 decimals (matches the V3 table's column widths).
- *
- * @param {number|null|undefined} value
- * @param {number} [decimals=0]
- * @returns {string}
+ * Format a numeric value for display. Numbers render as-is; null /
+ * undefined / non-finite → '—'.
  */
 function fmt(value, decimals = 0) {
   if (value === null || value === undefined || Number.isNaN(value)) return '—';
@@ -46,83 +34,99 @@ function fmt(value, decimals = 0) {
   return decimals === 0 ? String(value) : value.toFixed(decimals);
 }
 
-/**
- * Format a USD price ($/1M tokens). Always two decimals to keep the column
- * visually aligned with the V3 table.
- *
- * @param {number|null|undefined} value
- * @returns {string}
- */
+/** Format a USD price ($/1M tokens). */
 function fmtPrice(value) {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
   return `$${value.toFixed(2)}`;
 }
 
-/**
- * Build a single source badge `<span>`.
- *
- * @param {string} kind  - one of 'arena', 'swePro', 'sweVer', 'term', 'price', 'new'
- * @param {string} label - the text inside the badge
- * @returns {string} HTML
- */
+/** Build a single source badge `<span>`. */
 function badge(kind, label) {
-  // Mute "missing" badges so the eye skips them in the comparison view.
-  const toneClass =
-    kind === 'none' ? 'src-badge src-none' :
-    kind === 'arena' ? 'src-badge src-arena' :
-    kind === 'swePro' ? 'src-badge src-swe' :
-    kind === 'sweVer' ? 'src-badge src-swe-ver' :
-    kind === 'term' ? 'src-badge src-term' :
-    kind === 'price' ? 'src-badge src-price' :
-    kind === 'new' ? 'src-badge src-new' :
-    'src-badge';
-  return `<span class="${toneClass}">${label}</span>`;
+  let cls;
+  let dataAttr = '';
+  if (kind === 'none') cls = 'src-badge src-none';
+  else if (kind === 'price') cls = 'src-badge src-price';
+  else if (kind === 'new') cls = 'src-badge src-new';
+  else if (kind === 'benchlm-verified') {
+    cls = 'src-badge bg-emerald-500/20 text-emerald-300';
+    dataAttr = ' data-badge="verified"';
+  } else if (kind === 'benchlm-estimated') {
+    cls = 'src-badge bg-amber-500/20 text-amber-300';
+    dataAttr = ' data-badge="estimated"';
+  } else {
+    cls = 'src-badge';
+  }
+  return `<span class="${cls}"${dataAttr}>${label}</span>`;
 }
 
 /**
- * Build the source-badges cell for a model. Returns a small string of
- * HTML spans — one per benchmark the model has, plus a NEW badge if
- * `isNew: true` is set.
+ * Build the BenchLM "provenance" cell for a model row: verified/estimated
+ * badge + 5-dot reliability scale. Null score → '—' (no badge, no dots).
+ *
+ * @param {Object} m
+ * @returns {string} HTML
+ */
+function benchlmProvenanceHtml(m) {
+  const b = m && m.benchlm;
+  if (!b || b.score == null || !Number.isFinite(b.score)) {
+    return `<span class="text-slate-500" data-benchlm-cell="unavailable">—</span>`;
+  }
+  const verified = !!b.verified;
+  const kind = verified ? 'benchlm-verified' : 'benchlm-estimated';
+  const label = verified ? 'verified' : 'estimated';
+  const r = Number.isFinite(b.reliability) ? Math.max(0, Math.min(1, b.reliability)) : 0;
+  const filled = Math.min(5, Math.floor(r * 5));
+  const empty = 5 - filled;
+  let dots = `<span data-reliability-dots data-reliability="${r.toFixed(2)}" class="inline-flex gap-0.5 ml-1.5 align-middle" aria-label="reliability ${(filled / 5 * 100).toFixed(0)}%">`;
+  for (let i = 0; i < filled; i++) {
+    dots += `<span data-dot="filled" class="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>`;
+  }
+  for (let i = 0; i < empty; i++) {
+    dots += `<span data-dot="empty" class="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block"></span>`;
+  }
+  dots += `</span>`;
+  return `<div class="inline-flex items-center" data-benchlm-cell="scored" data-verified="${verified}">${badge(kind, label)}${dots}</div>`;
+}
+
+/**
+ * Build the source-badges cell. After PR3 we drop the per-benchmark
+ * badges (arena / swePro / sweVer / term) — BenchLM is now the source
+ * of truth. Pricing + NEW flag remain.
  *
  * @param {Object} m
  * @returns {string} HTML
  */
 function sourceBadges(m) {
   const parts = [];
-  if (m.arena !== null && m.arena !== undefined) parts.push(badge('arena', String(m.arena)));
-  if (m.swePro !== null && m.swePro !== undefined) parts.push(badge('swePro', `${fmt(m.swePro)}%`));
-  if (m.sweVer !== null && m.sweVer !== undefined) parts.push(badge('sweVer', `${fmt(m.sweVer)}%`));
-  if (m.term !== null && m.term !== undefined) parts.push(badge('term', `${fmt(m.term)}%`));
-  if (m.input !== null && m.input !== undefined) parts.push(badge('price', fmtPrice(m.input)));
+  if (m.input != null || m.output != null) {
+    parts.push(badge('price', fmtPrice(m.input)));
+  }
   if (m.isNew === true) parts.push(badge('new', 'NEW'));
   return parts.length > 0 ? parts.join(' ') : badge('none', '—');
 }
 
 /**
- * Sort models by composite score descending, then by cheaper input price.
- * Reference models are included alongside active models so the user can see
- * the comparison baseline (e.g. GPT-5.5, Claude Opus 4.8) right in the
- * same table — flagged with a "REFERENCE" tier badge.
- *
- * Deterministic tie-breaker: cheaper models win ties (matches the V3 sort
- * order in the source).
+ * Sort models: active rows first (by compositeScore desc; cheaper input
+ * breaks ties), reference rows appended after (sorted among themselves
+ * the same way).
  *
  * @param {Object<string, Object>} models
  * @returns {Array<[string, Object]>}
  */
 function rowsFor(models) {
-  return Object.entries(models)
+  return Object.entries(models || {})
     .filter(([, m]) => m)
     .sort((a, b) => {
-      // Reference models sink to the bottom of the table so the active
-      // selection pool is read top-down.
       const aRef = a[1].tier === 'reference' || a[1].isReference === true;
       const bRef = b[1].tier === 'reference' || b[1].isReference === true;
       if (aRef !== bRef) return aRef ? 1 : -1;
       const sa = compositeScore(a[1]);
       const sb = compositeScore(b[1]);
+      // Nulls sort AFTER any numeric score within the same tier group.
+      if (sa == null && sb == null) return 0;
+      if (sa == null) return 1;
+      if (sb == null) return -1;
       if (sb !== sa) return sb - sa;
-      // Tie-breaker: prefer cheaper input price.
       const ca = Number.isFinite(a[1].input) ? a[1].input : Infinity;
       const cb = Number.isFinite(b[1].input) ? b[1].input : Infinity;
       return ca - cb;
@@ -130,11 +134,10 @@ function rowsFor(models) {
 }
 
 /**
- * Render the reference table into `targetEl`. Pure render — does not look
- * up DOM elements by id, does not mutate globals, and does not log.
+ * Render the reference table into `targetEl`. Pure render.
  *
- * @param {HTMLElement} targetEl - mount point
- * @param {Object<string, Object>} models - keyed by model id
+ * @param {HTMLElement} targetEl
+ * @param {Object<string, Object>} models
  * @returns {{ rows: number, topKey: string|null, referenceModel: Object|null }}
  */
 export function render(targetEl, models) {
@@ -150,8 +153,6 @@ export function render(targetEl, models) {
   }
 
   const rows = rowsFor(models);
-  // Identify the reference model (first reference-tier entry) so the caller
-  //   can also display the "ChatGPT Plus" row from V3 if desired.
   const referenceModel =
     Object.values(models).find((m) => m && (m.tier === 'reference' || m.isReference === true)) ||
     null;
@@ -166,7 +167,8 @@ export function render(targetEl, models) {
 
   const body = rows
     .map(([key, m]) => {
-      const score = compositeScore(m).toFixed(1);
+      const cs = compositeScore(m);
+      const score = cs == null ? '—' : cs.toFixed(1);
       const isRef = m.tier === 'reference' || m.isReference === true;
       const newBadge = m.isNew === true
         ? ' <span class="src-badge src-new">NEW</span>'
@@ -178,14 +180,11 @@ export function render(targetEl, models) {
         ? 'opacity-80 bg-slate-900/30'
         : 'hover:bg-slate-800/30 transition';
       return `
-        <tr class="${rowClass}" data-model-key="${escapeAttr(key)}">
+        <tr class="${rowClass}" data-model-key="${escapeAttr(key)}" data-verified="${m.benchlm && m.benchlm.verified === true ? 'true' : 'false'}" ${cs == null ? 'data-unavailable="true"' : ''}>
           <td class="py-2.5 px-3 font-medium">${escapeHtml(m.name || key)}${newBadge}</td>
           <td class="py-2.5 px-3 text-center font-mono text-xs">${tierCell}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-xs">${score}</td>
-          <td class="py-2.5 px-3 text-center">${badge('arena', m.arena ?? '—')}</td>
-          <td class="py-2.5 px-3 text-center">${badge('swePro', m.swePro != null ? `${fmt(m.swePro)}%` : '—')}</td>
-          <td class="py-2.5 px-3 text-center">${badge('sweVer', m.sweVer != null ? `${fmt(m.sweVer)}%` : '—')}</td>
-          <td class="py-2.5 px-3 text-center">${badge('term', m.term != null ? `${fmt(m.term)}%` : '—')}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-xs" data-score="${cs == null ? '0' : cs.toFixed(2)}">${score}</td>
+          <td class="py-2.5 px-3 text-center">${benchlmProvenanceHtml(m)}</td>
           <td class="py-2.5 px-3 text-right font-mono text-xs">${fmtPrice(m.input)}</td>
           <td class="py-2.5 px-3 text-right font-mono text-xs">${fmtPrice(m.output)}</td>
           <td class="py-2.5 px-3 text-center text-[11px] space-x-1">${sourceBadges(m)}</td>
@@ -204,10 +203,7 @@ export function render(targetEl, models) {
             <th class="py-2.5 px-3 font-semibold">Modelo</th>
             <th class="py-2.5 px-3 font-semibold text-center">Tier</th>
             <th class="py-2.5 px-3 font-semibold text-center">Score</th>
-            <th class="py-2.5 px-3 font-semibold text-center">Arena</th>
-            <th class="py-2.5 px-3 font-semibold text-center">SWE-Pro</th>
-            <th class="py-2.5 px-3 font-semibold text-center">SWE-Ver</th>
-            <th class="py-2.5 px-3 font-semibold text-center">Term</th>
+            <th class="py-2.5 px-3 font-semibold text-center">BenchLM</th>
             <th class="py-2.5 px-3 font-semibold text-right">Input $</th>
             <th class="py-2.5 px-3 font-semibold text-right">Output $</th>
             <th class="py-2.5 px-3 font-semibold text-center">Sources</th>
@@ -220,8 +216,9 @@ export function render(targetEl, models) {
     </div>
     <p class="mt-3 text-xs text-slate-500">
       Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${refCount > 0 ? ` + ${refCount} reference` : ''} ·
-      sorted by composite score (desc) ·
-      reference rows appear at the bottom for comparison baseline.
+      sorted by BenchLM score (desc) ·
+      reference rows appear at the bottom for comparison baseline ·
+      rows without BenchLM data show "—" (awaiting first scrape).
     </p>
   `;
 
@@ -232,13 +229,6 @@ export function render(targetEl, models) {
   };
 }
 
-/**
- * Minimal HTML escapers — keep us safe against the (untrusted) `notes`
- * field on a model record without pulling in a full sanitizer.
- *
- * @param {string} s
- * @returns {string}
- */
 function escapeHtml(s) {
   return String(s ?? '')
     .replace(/&/g, '&amp;')
