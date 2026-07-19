@@ -1,11 +1,13 @@
 // tests/composite-chart.test.js
-// Phase 2c — composite-chart TDD (jsdom). Asserts the spec scenarios from
-// spec.md "UI Component - Composite Chart":
-//   - Reference models excluded
-//   - Bars sorted by composite score descending
-//   - Function signature: render(targetEl, models)
-//
-// Imports declared at the bottom so the test file reads top-down.
+// PR3 (benchlm-replace-custom-scoring) — composite-chart rendering
+// against the new `benchlm.{score, verified, reliability}` shape per
+// spec benchlm-rendering. The chart MUST:
+//   - render verified (green) / estimated (amber) badges
+//   - render a 5-dot reliability scale (floor(reliability*5) filled)
+//   - render an "unavailable" placeholder (no bar fill) for null scores
+//   - sort: scored rows descending, unavailable rows AFTER all scored
+//   - show a "BenchLM stale" freshness badge when lastRun > 7d
+//   - keep reference-tier models excluded (unchanged)
 
 import { describe, test, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -28,110 +30,210 @@ beforeEach(() => {
 
 let render, resetForTests;
 
-describe('composite-chart — render() contract (spec.md)', () => {
-  test('real dataset: only non-reference models rendered as bars', async () => {
-    ({ render, resetForTests } = await import(
-      '../js/components/composite-chart.js'
-    ));
+describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => {
+  test('(a) verified models show a green badge, estimated show an amber badge', async () => {
+    ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
     if (typeof resetForTests === 'function') resetForTests();
 
-    const summary = render(target, MODELS);
-    const bars = target.querySelectorAll('[data-model-key]');
-    const keys = Array.from(bars).map((el) => el.getAttribute('data-model-key'));
-
-    // Reference models (tier:reference OR isReference:true) must be excluded.
-    expect(keys).not.toContain('opus48');
-    expect(keys).not.toContain('gpt55');
-    // The expected bar count is the non-reference subset of the current
-    //   dataset — computed dynamically so the test stays correct when new
-    //   models are added via sync / manual add without bumping this test.
-    const expectedBars = Object.values(MODELS).filter(
-      (m) => m.tier !== 'reference' && !m.isReference
-    ).length;
-    expect(keys.length).toBe(summary.bars);
-    expect(summary.bars).toBe(expectedBars);
-  });
-
-  test('real dataset: bars sorted by compositeScore descending', async () => {
-    ({ render } = await import('../js/components/composite-chart.js'));
-    const { compositeScore } = await import('../js/services/model-scorer.js');
-
-    render(target, MODELS);
-    const bars = Array.from(target.querySelectorAll('[data-model-key]'));
-    const scores = bars.map((el) => {
-      const key = el.getAttribute('data-model-key');
-      return { key, score: compositeScore(MODELS[key]) };
-    });
-    // Each consecutive pair must be non-increasing.
-    for (let i = 1; i < scores.length; i++) {
-      expect(scores[i - 1].score).toBeGreaterThanOrEqual(scores[i].score);
-    }
-    // And the top bar must equal the maximum score in the dataset.
-    const maxKey = Object.entries(MODELS)
-      .filter(([, m]) => m.tier !== 'reference' && !m.isReference)
-      .map(([k, m]) => ({ k, s: compositeScore(m) }))
-      .sort((a, b) => b.s - a.s)[0].k;
-    expect(scores[0].key).toBe(maxKey);
-  });
-
-  test('minimal fixture: 5 active models + 1 reference → 5 bars (descending)', async () => {
-    ({ render } = await import('../js/components/composite-chart.js'));
-
-    // 5 active models with clearly separated composite scores so the
-    // sort order is unambiguous. Plus 1 reference that must NOT appear.
     const FIXTURE = {
-      m_high:   { name: 'High-Model',   arena: 1600, swePro: 75, term: 80, input: 1, output: 3, tier: 'high' },
-      m_bal:    { name: 'Bal-Model',    arena: 1500, swePro: 60, term: 65, input: 1, output: 3, tier: 'balanced' },
-      m_low:    { name: 'Low-Model',    arena: 1400, swePro: 45, term: 50, input: 1, output: 3, tier: 'balanced' },
-      m_arena_only: { name: 'Arena-Only', arena: 1700, input: 1, output: 3, tier: 'high' },
-      m_swe_only:   { name: 'SWE-Only',   swePro: 90, input: 1, output: 3, tier: 'high' },
+      v: {
+        name: 'Verified',
+        benchlm: { score: 85, verified: true, reliability: 0.92, categories: {} },
+        tier: 'high',
+      },
+      e: {
+        name: 'Estimated',
+        benchlm: { score: 70, verified: false, reliability: 0.75, categories: {} },
+        tier: 'balanced',
+      },
+    };
+    render(target, FIXTURE);
+
+    const verifiedRow = Array.from(target.querySelectorAll('[data-model-key]')).find(
+      (el) => el.getAttribute('data-model-key') === 'v'
+    );
+    const estimatedRow = Array.from(target.querySelectorAll('[data-model-key]')).find(
+      (el) => el.getAttribute('data-model-key') === 'e'
+    );
+
+    expect(verifiedRow, 'verified row missing').toBeDefined();
+    expect(estimatedRow, 'estimated row missing').toBeDefined();
+
+    expect(verifiedRow.getAttribute('data-verified')).toBe('true');
+    expect(verifiedRow.getAttribute('data-reliability')).toBe('0.92');
+    expect(verifiedRow.innerHTML).toMatch(/verified/i);
+
+    expect(estimatedRow.getAttribute('data-verified')).toBe('false');
+    expect(estimatedRow.getAttribute('data-reliability')).toBe('0.75');
+    expect(estimatedRow.innerHTML).toMatch(/estimated/i);
+  });
+
+  test('(b) reliability renders floor(reliability * 5) filled dots in a 5-dot scale', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      r4: {
+        name: 'R-0.92',
+        benchlm: { score: 80, verified: true, reliability: 0.92, categories: {} },
+        tier: 'high',
+      },
+      r1: {
+        name: 'R-0.4',
+        benchlm: { score: 70, verified: true, reliability: 0.4, categories: {} },
+        tier: 'balanced',
+      },
+    };
+    render(target, FIXTURE);
+
+    const r4 = target.querySelector('[data-model-key="r4"] [data-reliability-dots]');
+    const r1 = target.querySelector('[data-model-key="r1"] [data-reliability-dots]');
+
+    expect(r4, 'r4 dot scale missing').toBeDefined();
+    expect(r1, 'r1 dot scale missing').toBeDefined();
+
+    const filled4 = r4.querySelectorAll('[data-dot="filled"]').length;
+    const filled1 = r1.querySelectorAll('[data-dot="filled"]').length;
+
+    // floor(0.92 * 5) = 4 → 4 filled, 1 empty
+    expect(filled4).toBe(4);
+    // floor(0.4 * 5) = 2 → 2 filled, 3 empty
+    expect(filled1).toBe(2);
+  });
+
+  test('(c) unavailable placeholder: null score row has NO bar fill + "unavailable" label', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      ok: {
+        name: 'OK-Model',
+        benchlm: { score: 78.3, verified: true, reliability: 0.9, categories: {} },
+        tier: 'high',
+      },
+      pending: {
+        // score is null sentinel → no bar
+        name: 'Pending-Model',
+        benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+        tier: 'balanced',
+      },
+      noblock: {
+        // no benchlm at all → also unavailable
+        name: 'No-Block',
+        tier: 'balanced',
+      },
+    };
+    const summary = render(target, FIXTURE);
+    // All three rows render (scored + unavailable combined).
+    expect(summary.scored + summary.unavailable).toBe(3);
+
+    const pendingRow = target.querySelector('[data-model-key="pending"]');
+    expect(pendingRow, 'pending row missing').toBeDefined();
+    expect(pendingRow.getAttribute('data-unavailable')).toBe('true');
+    // No bar fill on the unavailable row.
+    expect(pendingRow.querySelector('.bar-fill')).toBeNull();
+    // The unavailable placeholder label is shown.
+    expect(pendingRow.textContent).toMatch(/unavailable/i);
+
+    const noblockRow = target.querySelector('[data-model-key="noblock"]');
+    expect(noblockRow.getAttribute('data-unavailable')).toBe('true');
+
+    // The OK row DOES have a bar fill.
+    const okRow = target.querySelector('[data-model-key="ok"]');
+    expect(okRow.querySelector('.bar-fill')).not.toBeNull();
+  });
+
+  test('(d) scored rows sort descending; unavailable rows appended AFTER all scored', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      a: { benchlm: { score: 90, verified: true, reliability: 0.9 }, tier: 'high' },
+      b: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'high' },
+      c: { benchlm: { score: null, verified: false, reliability: 0 }, tier: 'balanced' }, // unavailable
+      d: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'high' },
+      e: { tier: 'balanced' }, // no benchlm → unavailable
+    };
+    render(target, FIXTURE);
+    const bars = Array.from(target.querySelectorAll('[data-model-key]'));
+    const keys = bars.map((el) => el.getAttribute('data-model-key'));
+    // Scored: a (90), d (75), b (60) — descending.
+    // Unavailable: c, e — appended after.
+    expect(keys).toEqual(['a', 'd', 'b', 'c', 'e']);
+  });
+
+  test('(e) freshness: when _meta.scrapers.benchlm.lastRun > 7 days ago, show "BenchLM stale" badge', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      m: { benchlm: { score: 80, verified: true, reliability: 0.9 }, tier: 'high' },
+    };
+    const staleLastRun = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+    render(target, FIXTURE, { scrapers: { benchlm: { lastRun: staleLastRun } } });
+    const staleBadge = target.querySelector('[data-test="benchlm-stale"]');
+    expect(staleBadge, 'BenchLM stale badge missing').toBeDefined();
+    expect(staleBadge.textContent).toMatch(/stale/i);
+  });
+
+  test('(e2) freshness: when lastRun is fresh (< 7 days), no stale badge', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      m: { benchlm: { score: 80, verified: true, reliability: 0.9 }, tier: 'high' },
+    };
+    const freshLastRun = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
+    render(target, FIXTURE, { scrapers: { benchlm: { lastRun: freshLastRun } } });
+    const staleBadge = target.querySelector('[data-test="benchlm-stale"]');
+    expect(staleBadge).toBeNull();
+  });
+
+  test('reference models still excluded from the rendered set', async () => {
+    ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
+    if (typeof resetForTests === 'function') resetForTests();
+
+    const FIXTURE = {
+      active: {
+        benchlm: { score: 80, verified: true, reliability: 0.9 },
+        tier: 'high',
+      },
+      ref: {
+        benchlm: { score: 99, verified: true, reliability: 0.95 },
+        tier: 'reference',
+        isReference: true,
+      },
+    };
+    render(target, FIXTURE);
+    const keys = Array.from(target.querySelectorAll('[data-model-key]')).map(
+      (el) => el.getAttribute('data-model-key')
+    );
+    expect(keys).toEqual(['active']);
+  });
+
+  test('minimal fixture: 5 active models with benchlm → 5 scored bars (descending)', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+
+    const FIXTURE = {
+      m_high:    { name: 'High',     benchlm: { score: 90, verified: true, reliability: 0.95 }, tier: 'high' },
+      m_bal:     { name: 'Balanced', benchlm: { score: 70, verified: true, reliability: 0.85 }, tier: 'balanced' },
+      m_low:     { name: 'Low',      benchlm: { score: 50, verified: false, reliability: 0.7 }, tier: 'balanced' },
+      m_amber:   { name: 'Amber',    benchlm: { score: 65, verified: false, reliability: 0.6 }, tier: 'high' },
+      m_swe:     { name: 'Top',      benchlm: { score: 85, verified: true, reliability: 0.9 }, tier: 'high' },
       m_ref: {
         name: 'Reference-Model',
-        arena: 1800, swePro: 95, term: 95,
-        input: 5, output: 25,
+        benchlm: { score: 99, verified: true, reliability: 0.99 },
         tier: 'reference',
         isReference: true,
       },
     };
 
-    const summary = render(target, FIXTURE);
-    const bars = Array.from(target.querySelectorAll('[data-model-key]'));
-    const order = bars.map((el) => el.getAttribute('data-model-key'));
-
-    expect(bars.length).toBe(5);
-    expect(summary.bars).toBe(5);
-    expect(order).not.toContain('m_ref');
-
-    // Order must be descending by composite score — recompute it from
-    // compositeScore so the test asserts the spec, not an implementation detail.
-    const { compositeScore } = await import('../js/services/model-scorer.js');
-    const expected = Object.entries(FIXTURE)
-      .filter(([, m]) => m.tier !== 'reference' && !m.isReference)
-      .map(([k, m]) => [k, compositeScore(m)])
-      .sort((a, b) => b[1] - a[1])
-      .map(([k]) => k);
-    expect(order).toEqual(expected);
-  });
-
-  test('every bar shows the model name and a numeric score', async () => {
-    ({ render } = await import('../js/components/composite-chart.js'));
-
-    const FIXTURE = {
-      a: { name: 'A-Model', arena: 1500, swePro: 70, term: 75, input: 1, output: 3, tier: 'high' },
-      b: { name: 'B-Model', arena: 1450, swePro: 65, term: 70, input: 1, output: 3, tier: 'balanced' },
-    };
     render(target, FIXTURE);
-    const html = target.innerHTML;
-    expect(html).toMatch(/A-Model/);
-    expect(html).toMatch(/B-Model/);
-    // Each bar should carry a numeric score (the chart formats compositeScore to 1 decimal).
-    expect(html).toMatch(/\b\d{2,3}\.\d/);
+    const rows = Array.from(target.querySelectorAll('[data-model-key]'));
+    expect(rows.length).toBe(5);
+
+    const scores = rows
+      .map((el) => Number(el.getAttribute('data-score')))
+      .filter((n) => Number.isFinite(n));
+    for (let i = 1; i < scores.length; i++) {
+      expect(scores[i - 1]).toBeGreaterThanOrEqual(scores[i]);
+    }
   });
 
   test('empty dataset → empty-state card, no bars', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const summary = render(target, {});
-    expect(summary.bars).toBe(0);
+    expect(summary.scored + summary.unavailable).toBe(0);
     expect(target.querySelectorAll('[data-model-key]').length).toBe(0);
     expect(target.textContent).toMatch(/No hay modelos|No model/i);
   });
@@ -139,7 +241,7 @@ describe('composite-chart — render() contract (spec.md)', () => {
   test('null dataset → empty-state card, no bars', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const summary = render(target, null);
-    expect(summary.bars).toBe(0);
+    expect(summary.scored + summary.unavailable).toBe(0);
     expect(target.querySelectorAll('[data-model-key]').length).toBe(0);
   });
 
@@ -154,8 +256,7 @@ describe('composite-chart — render() contract (spec.md)', () => {
     const evil = {
       x: {
         name: '<img src=x onerror=alert(1)>',
-        arena: 1500, swePro: 70, term: 75,
-        input: 1, output: 3,
+        benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
         tier: 'high',
       },
     };
