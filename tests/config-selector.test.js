@@ -97,16 +97,18 @@ describe('config-selector — twin judge constraint', () => {
 
     // Synthetic divergent dataset: judgeA gets the premium model, judgeB
     // gets the cheap one — they MUST resolve to different keys.
+    // PR3 fixture: benchlm blocks carry deterministic scores so
+    // compositeScore returns the expected values.
     const divergentModels = {
       judgeA_only: {
         name: 'Judge-A-Only',
-        arena: 1670, swePro: 92, term: 90,
+        benchlm: { score: 94, verified: true, reliability: 0.95, categories: {} },
         input: 5.00, output: 25.00,
         tier: 'high',
       },
       judgeB_only: {
         name: 'Judge-B-Only',
-        arena: 1660, swePro: 88, term: 86,
+        benchlm: { score: 91, verified: true, reliability: 0.9, categories: {} },
         input: 0.10, output: 1.00,
         tier: 'balanced',
       },

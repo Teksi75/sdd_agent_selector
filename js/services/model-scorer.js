@@ -12,52 +12,23 @@
 // The pure-function contract enables deterministic testing and lets the
 // justification UI in Phase 2 reuse the same scoring math.
 
-/**
- * Default weights for the four benchmarks V4 cares about.
- * Missing benchmarks redistribute weight proportionally among the
- * available ones (see compositeScore below).
- *
- * 4-benchmark weighting (was 3-benchmark until PR feat/swever-in-scoring):
- *   - arena (LMSYS ELO)        30% — general quality / preference
- *   - swePro (SWE-Bench Pro)   30% — production code (harder)
- *   - term (Terminal-Bench)    20% — agentic / CLI workflows
- *   - sweVer (SWE-Bench Ver)   20% — verified code (de-facto 2026 standard)
- *
- * Rationale: SWE-Bench Verified was added because it's the benchmark
- * that EVERY frontier lab publishes (Vals AI, Scale, OpenAI, Moonshot
- * all post a number). Excluding it made a large class of recent
- * models (Kimi K2.7, Claude Mythos 5, etc.) invisible in the ranking
- * even when they had strong code-generation evidence. Arena + swePro
- * keep the 60% majority for general quality + production code.
- *
- * @type {{arena: number, swePro: number, term: number, sweVer: number}}
- */
-export const SCORING_WEIGHTS = Object.freeze({
-  arena: 0.30,
-  swePro: 0.30,
-  term: 0.20,
-  sweVer: 0.20,
-});
-
-/**
- * Upper bound used to normalize LMSYS Arena ELO to the [0, 100] range.
- *
- * 1650 is chosen because the spec regression scenario (GLM-5.2 with
- * arena 1595, swePro 62.1, term 81.0, sweVer 77.8) requires a composite
- * score of 79.4 ± 0.1 under the 4-benchmark weights. With this
- * ceiling, the arena contribution is `1595/1650*100 ≈ 96.67` and the
- * weighted total lands at ~79.39, inside tolerance.
- *
- * Earlier draft used 1700 (the LMSYS "frontier" mark) but that
- * normalized GLM-5.2 to 93.82, producing 80.90 — outside the new spec
- * tolerance. 1650 is the smallest ceiling that satisfies the regression
- * scenario under the 4-benchmark weights.
- *
- * Capped at 100 even when data exceeds this value.
- *
- * @type {number}
- */
-const ARENA_NORMALIZATION_MAX = 1650;
+// js/services/model-scorer.js
+// PR3 (benchlm-replace-custom-scoring) — compositeScore now reads
+// `benchlm.score` directly per the benchlm-score-contract (spec).
+// The 4-benchmark weighted-average math from Phase 1 is removed; the
+// legacy `arena`/`swePro`/`sweVer`/`term` fields stay in `data/models.json`
+// for reference but are NOT consulted by `compositeScore` anymore.
+//
+// Public API (unchanged signatures):
+//   - compositeScore(model)         — benchlm.score clamped to [0,100]
+//   - costEstimate(model, profile?) — USD cost of a single request
+//   - findReferenceModel(models)    — tier:reference or highest benchlm
+//   - applyStrategy(role, strat)    — modify role by config strategy
+//   - getBestFor(agent, ...)        — pick the best model for an agent
+//
+// Removed in PR3: `SCORING_WEIGHTS`, `ARENA_NORMALIZATION_MAX`, and the
+// weighted-average / weight-redistribution branch in compositeScore. See
+// spec "REMOVED Requirements — 4-benchmark weighted average scoring".
 
 /**
  * Default request profile (per spec "costEstimate default"). Used when
@@ -86,75 +57,28 @@ function clamp(value, min, max) {
 }
 
 /**
- * Number of valid benchmark scores on this model (each in [0, 100]).
+ * Compute the composite score for a model, in [0, 100].
  *
- * @param {Object} model
- * @returns {number}
- */
-function validBenchmarkCount(model) {
-  let n = 0;
-  if (model?.arena !== null && model?.arena !== undefined && !Number.isNaN(model.arena)) n++;
-  if (model?.swePro !== null && model?.swePro !== undefined && !Number.isNaN(model.swePro)) n++;
-  if (model?.term !== null && model?.term !== undefined && !Number.isNaN(model.term)) n++;
-  return n;
-}
-
-/**
- * Compute the weighted composite score for a model in [0, 100].
+ * PR3 contract (spec "Scoring Service — compositeScore", benchlm-score-contract):
+ *   - Returns `model.benchlm.score` clamped to [0, 100].
+ *   - Returns `null` when benchlm data is missing/non-finite (NOT 0; the
+ *     chart + readers render null as an "unavailable" placeholder to honor
+ *     the benchlm-fail-soft contract — never a stale zero bar).
+ *   - Pure: deterministic, no side effects on the input.
  *
- * Algorithm (per spec "Scoring Service — compositeScore"):
- *   1. Each available benchmark is normalized to [0, 100] (arena via the
- *      ELO-to-100 ceiling; swePro, sweVer, and term are already percentages).
- *   2. Missing benchmarks are excluded from the weighted sum, and the
- *      weights of the available benchmarks are re-scaled so they still
- *      sum to 1.0 ("weights redistribute proportionally").
- *   3. If all benchmarks are missing, return 0.
- *
- * Pure function: deterministic for the same input; no side effects.
+ * The legacy 4-benchmark weighted average (arena/swePro/sweVer/term) is
+ * intentionally removed. Legacy fields remain in `data/models.json` for
+ * reference but are inert to this function.
  *
  * @param {Object} model - LLM model record (one entry from data/models.json)
- * @returns {number} score in [0, 100]
+ * @returns {number|null} score in [0, 100], or null when BenchLM data missing
  */
 export function compositeScore(model) {
-  if (!model || typeof model !== 'object') return 0;
+  if (!model || typeof model !== 'object') return null;
 
-  const parts = [];
-  const weights = [];
+  const score = model.benchlm?.score;
+  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
 
-  // arena: normalize the ELO value against the normalization max, capped.
-  if (model.arena !== null && model.arena !== undefined && !Number.isNaN(model.arena)) {
-    const norm = clamp((model.arena / ARENA_NORMALIZATION_MAX) * 100, 0, 100);
-    parts.push(norm);
-    weights.push(SCORING_WEIGHTS.arena);
-  }
-  // swePro: already a percent (0–100). Defensive clamp.
-  if (model.swePro !== null && model.swePro !== undefined && !Number.isNaN(model.swePro)) {
-    parts.push(clamp(model.swePro, 0, 100));
-    weights.push(SCORING_WEIGHTS.swePro);
-  }
-  // term: already a percent. Defensive clamp.
-  if (model.term !== null && model.term !== undefined && !Number.isNaN(model.term)) {
-    parts.push(clamp(model.term, 0, 100));
-    weights.push(SCORING_WEIGHTS.term);
-  }
-  // sweVer: SWE-Bench Verified score (0–100). Defensive clamp. Added in
-  //   PR feat/swever-in-scoring — was previously a data field but not
-  //   counted in the composite score, which made a large class of recent
-  //   models (Kimi K2.7, Claude Mythos 5) invisible in the ranking.
-  if (model.sweVer !== null && model.sweVer !== undefined && !Number.isNaN(model.sweVer)) {
-    parts.push(clamp(model.sweVer, 0, 100));
-    weights.push(SCORING_WEIGHTS.sweVer);
-  }
-
-  if (parts.length === 0) return 0;
-
-  // Redistribute weights proportionally among the available benchmarks.
-  const totalWeight = weights.reduce((acc, w) => acc + w, 0);
-  let score = 0;
-  for (let i = 0; i < parts.length; i++) {
-    score += parts[i] * (weights[i] / totalWeight);
-  }
-  // Guard against floating-point drift above 100.
   return clamp(score, 0, 100);
 }
 
@@ -339,6 +263,7 @@ export function getBestFor(
       const roleRefScore = compositeScore(roleRefModel);
       const roleRefCost = costEstimate(roleRefModel, profile);
       if (roleRefCost <= effectiveMaxCost) {
+        const scoreStr = roleRefScore == null ? 'unavailable' : roleRefScore.toFixed(1);
         return {
           key: roleRefKey,
           model: roleRefModel,
@@ -346,7 +271,7 @@ export function getBestFor(
           cost: roleRefCost,
           effectiveMaxCost,
           softFallback: true,
-          reason: `Soft fallback to role-designated reference (${roleRefKey}); score ${roleRefScore.toFixed(1)} < minReasoning ${modified.minReasoning} but cost within ceiling`,
+          reason: `Soft fallback to role-designated reference (${roleRefKey}); score ${scoreStr} < minReasoning ${modified.minReasoning} but cost within ceiling`,
           alternatives: [],
         };
       }
@@ -374,8 +299,19 @@ export function getBestFor(
       }
     }
     if (costClearing.length > 0) {
-      costClearing.sort((a, b) => b.score - a.score || a.cost - b.cost);
+      costClearing.sort((a, b) => {
+        // Null scores sort AFTER any numeric score (so the soft fallback
+        // prefers a model with a real score over one whose BenchLM data
+        // is missing).
+        const aS = a.score;
+        const bS = b.score;
+        if (aS == null && bS == null) return a.cost - b.cost;
+        if (aS == null) return 1;
+        if (bS == null) return -1;
+        return bS - aS || a.cost - b.cost;
+      });
       const [best, ...rest] = costClearing;
+      const scoreStr = best.score == null ? 'unavailable' : best.score.toFixed(1);
       return {
         key: best.key,
         model: best.model,
@@ -383,7 +319,7 @@ export function getBestFor(
         cost: best.cost,
         effectiveMaxCost,
         softFallback: true,
-        reason: `Soft fallback: no model meets minReasoning=${modified.minReasoning}, surfacing best cost-clearing model (${best.key}, score=${best.score.toFixed(1)})`,
+        reason: `Soft fallback: no model meets minReasoning=${modified.minReasoning}, surfacing best cost-clearing model (${best.key}, score=${scoreStr})`,
         alternatives: rest.slice(0, 3).map(({ key, model, score, cost }) => ({
           key,
           model,
