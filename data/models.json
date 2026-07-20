@@ -1,9 +1,14 @@
 {
   "_meta": {
-    "lastSynced": "2026-07-16",
+    "lastSynced": "2026-07-17",
     "source": "scrape-glm-blog",
     "nextSync": "2026-07-21",
-    "schemaVersion": 2
+    "schemaVersion": 2,
+    "scrapers": {
+      "benchlm": {
+        "lastRun": "2026-07-17"
+      }
+    }
   },
   "models": {
     "glm52": {
@@ -12,7 +17,23 @@
       "swePro": 62.1,
       "sweVer": 77.8,
       "term": 81,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 63.96,
+        "verified": false,
+        "reliability": 0.63,
+        "categories": {
+          "agentic": 54.62,
+          "coding": 65.09,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": 87,
+          "multilingual": null,
+          "instructionFollowing": 81,
+          "math": 81.4
+        },
+        "rank": 37,
+        "evidence": "estimated"
+      },
       "input": 1.4,
       "output": 4.4,
       "cacheRead": 0.26,
@@ -50,7 +71,23 @@
       "swePro": 60.6,
       "sweVer": 80.4,
       "term": 69.7,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 72.84,
+        "verified": true,
+        "reliability": 0.88,
+        "categories": {
+          "agentic": 38.63,
+          "coding": 54.95,
+          "reasoning": 85.4,
+          "multimodalGrounded": null,
+          "knowledge": 73.8,
+          "multilingual": 100,
+          "instructionFollowing": 91,
+          "math": 82
+        },
+        "rank": 10,
+        "evidence": "supported"
+      },
       "input": 2.5,
       "output": 7.5,
       "cacheRead": 0.5,
@@ -66,7 +103,23 @@
       "swePro": 58.4,
       "sweVer": null,
       "term": 63.5,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 67.74,
+        "verified": true,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 48.64,
+          "coding": 57.52,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": 82.3,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 64.6
+        },
+        "rank": 18,
+        "evidence": "supported"
+      },
       "input": 1.4,
       "output": 4.4,
       "cacheRead": 0.26,
@@ -81,7 +134,23 @@
       "swePro": 59,
       "sweVer": 80.5,
       "term": 65,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 69.75,
+        "verified": true,
+        "reliability": 0.63,
+        "categories": {
+          "agentic": 40.83,
+          "coding": 49.49,
+          "reasoning": null,
+          "multimodalGrounded": 48.2,
+          "knowledge": 68,
+          "multilingual": null,
+          "instructionFollowing": 85,
+          "math": null
+        },
+        "rank": 15,
+        "evidence": "supported"
+      },
       "input": 0.3,
       "output": 1.2,
       "cacheRead": 0.06,
@@ -96,7 +165,23 @@
       "swePro": 58.6,
       "sweVer": 78.2,
       "term": 67,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 55,
+        "verified": false,
+        "reliability": 0.25,
+        "categories": {
+          "agentic": 38.02,
+          "coding": 54.22,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": null,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 87,
+        "evidence": "estimated"
+      },
       "input": 0.95,
       "output": 4,
       "cacheRead": 0.19,
@@ -127,9 +212,25 @@
       "swePro": null,
       "sweVer": null,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
-      "input": 3.0,
-      "output": 15.0,
+      "benchlm": {
+        "score": 80.96,
+        "verified": true,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 66.64,
+          "coding": 78.02,
+          "reasoning": null,
+          "multimodalGrounded": 90.3,
+          "knowledge": 89.5,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 4,
+        "evidence": "supported"
+      },
+      "input": 3,
+      "output": 15,
       "cacheRead": 0.3,
       "tier": "high",
       "isNew": true,
@@ -166,7 +267,23 @@
       "swePro": 50.7,
       "sweVer": 76.8,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 59.66,
+        "verified": true,
+        "reliability": 1,
+        "categories": {
+          "agentic": 39.64,
+          "coding": 57.01,
+          "reasoning": 79.6,
+          "multimodalGrounded": 65.9,
+          "knowledge": 58.6,
+          "multilingual": 38.2,
+          "instructionFollowing": 90.3,
+          "math": 62.8
+        },
+        "rank": 54,
+        "evidence": "supported"
+      },
       "input": 0.6,
       "output": 3,
       "cacheRead": 0.16,
@@ -189,7 +306,23 @@
       "swePro": 58.6,
       "sweVer": 80.2,
       "term": 66.7,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 56.79,
+        "verified": false,
+        "reliability": 0.75,
+        "categories": {
+          "agentic": 38.03,
+          "coding": 51.99,
+          "reasoning": null,
+          "multimodalGrounded": 67.8,
+          "knowledge": 57.1,
+          "multilingual": null,
+          "instructionFollowing": 81.6,
+          "math": 72.3
+        },
+        "rank": 74,
+        "evidence": "estimated"
+      },
       "input": 0.95,
       "output": 4,
       "cacheRead": 0.16,
@@ -204,7 +337,23 @@
       "swePro": 55.4,
       "sweVer": 80.6,
       "term": 67.9,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 60.66,
+        "verified": true,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 43.78,
+          "coding": 43.47,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": 43.8,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 18.1
+        },
+        "rank": 46,
+        "evidence": "supported"
+      },
       "input": 1.74,
       "output": 3.48,
       "cacheRead": 0.0145,
@@ -219,7 +368,23 @@
       "swePro": 57.2,
       "sweVer": 78.9,
       "term": 68.4,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 70.19,
+        "verified": true,
+        "reliability": 0.38,
+        "categories": {
+          "agentic": 42.41,
+          "coding": 56.55,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": 74.8,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 14,
+        "evidence": "supported"
+      },
       "input": 1.74,
       "output": 3.48,
       "cacheRead": 0.0145,
@@ -231,7 +396,23 @@
       "swePro": null,
       "sweVer": null,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 67.22,
+        "verified": true,
+        "reliability": 1,
+        "categories": {
+          "agentic": 43.91,
+          "coding": 58.77,
+          "reasoning": 87.1,
+          "multimodalGrounded": 71.5,
+          "knowledge": 65.1,
+          "multilingual": 78.9,
+          "instructionFollowing": 91.4,
+          "math": 79.6
+        },
+        "rank": 21,
+        "evidence": "supported"
+      },
       "input": 0.4,
       "output": 1.6,
       "cacheRead": 0.04,
@@ -244,7 +425,23 @@
       "swePro": null,
       "sweVer": 78.8,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 65.2,
+        "verified": true,
+        "reliability": 1,
+        "categories": {
+          "agentic": 37.21,
+          "coding": 53.83,
+          "reasoning": 83.1,
+          "multimodalGrounded": 66.5,
+          "knowledge": 59.5,
+          "multilingual": 69.7,
+          "instructionFollowing": 86.4,
+          "math": 63
+        },
+        "rank": 30,
+        "evidence": "supported"
+      },
       "input": 0.5,
       "output": 3,
       "cacheRead": 0.05,
@@ -257,7 +454,23 @@
       "swePro": null,
       "sweVer": null,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 64.11,
+        "verified": true,
+        "reliability": 0.25,
+        "categories": {
+          "agentic": 34.76,
+          "coding": 47.57,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": null,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 36,
+        "evidence": "supported"
+      },
       "input": 0.3,
       "output": 1.2,
       "cacheRead": 0.06,
@@ -273,7 +486,23 @@
       "swePro": null,
       "sweVer": null,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 58.62,
+        "verified": false,
+        "reliability": 0.38,
+        "categories": {
+          "agentic": 53.8,
+          "coding": 50.6,
+          "reasoning": null,
+          "multimodalGrounded": 63.3,
+          "knowledge": null,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 62,
+        "evidence": "estimated"
+      },
       "input": 0.14,
       "output": 0.28,
       "cacheRead": 0.0028,
@@ -285,7 +514,23 @@
       "swePro": null,
       "sweVer": 80.2,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 59.52,
+        "verified": true,
+        "reliability": 0.25,
+        "categories": {
+          "agentic": 44.23,
+          "coding": 53.6,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": null,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 55,
+        "evidence": "supported"
+      },
       "input": 0.3,
       "output": 1.2,
       "cacheRead": 0.06,
@@ -298,7 +543,23 @@
       "swePro": null,
       "sweVer": 79,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 58.88,
+        "verified": false,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 36.41,
+          "coding": 47.12,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": 34.4,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 27.2
+        },
+        "rank": 61,
+        "evidence": "estimated"
+      },
       "input": 0.14,
       "output": 0.28,
       "cacheRead": 0.0028,
@@ -313,7 +574,23 @@
       "swePro": null,
       "sweVer": 77.8,
       "term": null,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 66.06,
+        "verified": true,
+        "reliability": 0.88,
+        "categories": {
+          "agentic": 54.83,
+          "coding": 59.38,
+          "reasoning": 78.9,
+          "multimodalGrounded": null,
+          "knowledge": 80.8,
+          "multilingual": 48.7,
+          "instructionFollowing": 86.5,
+          "math": 57.2
+        },
+        "rank": 28,
+        "evidence": "supported"
+      },
       "input": 1,
       "output": 3.2,
       "tier": "budget"
@@ -324,7 +601,23 @@
       "swePro": 69.2,
       "sweVer": 88.6,
       "term": 85,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 78.34,
+        "verified": true,
+        "reliability": 0.63,
+        "categories": {
+          "agentic": 64.02,
+          "coding": 70.61,
+          "reasoning": null,
+          "multimodalGrounded": 91.5,
+          "knowledge": 92.5,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 66.9
+        },
+        "rank": 5,
+        "evidence": "supported"
+      },
       "input": 5,
       "output": 25,
       "tier": "reference",
@@ -338,7 +631,23 @@
       "swePro": 58.6,
       "sweVer": 83.4,
       "term": 84,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 73.51,
+        "verified": false,
+        "reliability": 0.88,
+        "categories": {
+          "agentic": 65.78,
+          "coding": 71.41,
+          "reasoning": 94.9,
+          "multimodalGrounded": 69.8,
+          "knowledge": 83.5,
+          "multilingual": null,
+          "instructionFollowing": 85.7,
+          "math": 71.3
+        },
+        "rank": 9,
+        "evidence": "estimated"
+      },
       "input": 5,
       "output": 30,
       "cacheRead": 0.5,
@@ -352,7 +661,23 @@
       "swePro": 58.6,
       "sweVer": 91.5,
       "term": 84.3,
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 72.57,
+        "verified": false,
+        "reliability": 0.75,
+        "categories": {
+          "agentic": 73.09,
+          "coding": 65.99,
+          "reasoning": null,
+          "multimodalGrounded": 74.9,
+          "knowledge": 81.5,
+          "multilingual": null,
+          "instructionFollowing": 83.6,
+          "math": 97.1
+        },
+        "rank": 11,
+        "evidence": "estimated"
+      },
       "input": 2.5,
       "output": 15,
       "cacheRead": 0.25,
@@ -377,7 +702,23 @@
     },
     "gpt54": {
       "name": "gpt-5.4",
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 74.24,
+        "verified": true,
+        "reliability": 0.63,
+        "categories": {
+          "agentic": 57,
+          "coding": 59.61,
+          "reasoning": null,
+          "multimodalGrounded": 68.9,
+          "knowledge": 82,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 65.9
+        },
+        "rank": 8,
+        "evidence": "supported"
+      },
       "tier": "high",
       "input": 2.5,
       "output": 15,
@@ -391,7 +732,23 @@
     },
     "claudeFable5": {
       "name": "Claude Fable 5",
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 83.68,
+        "verified": true,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 63.89,
+          "coding": 80.55,
+          "reasoning": null,
+          "multimodalGrounded": 65.2,
+          "knowledge": 73.3,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 2,
+        "evidence": "supported"
+      },
       "tier": "high",
       "input": 10,
       "output": 50,
@@ -405,7 +762,23 @@
     },
     "sonnet5": {
       "name": "Claude Sonnet 5",
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 65.32,
+        "verified": false,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 58.71,
+          "coding": 68.38,
+          "reasoning": null,
+          "multimodalGrounded": 78.9,
+          "knowledge": 91.2,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 29,
+        "evidence": "estimated"
+      },
       "tier": "balanced",
       "input": null,
       "output": null,
@@ -418,7 +791,23 @@
     },
     "haiku45": {
       "name": "Claude Haiku 4.5",
-      "benchlm": { "score": null, "verified": false, "reliability": 0, "categories": {} },
+      "benchlm": {
+        "score": 56.58,
+        "verified": false,
+        "reliability": 0.38,
+        "categories": {
+          "agentic": 50.43,
+          "coding": 47.98,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": null,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 29.2
+        },
+        "rank": 77,
+        "evidence": "estimated"
+      },
       "tier": "budget",
       "input": 1,
       "output": 5,
