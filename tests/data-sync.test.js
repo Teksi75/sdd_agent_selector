@@ -157,10 +157,10 @@ describe('data-sync — refresh() success path', () => {
     expect(result.ok).toBe(true);
     expect(result.files).toBe(5);
     // sessionStorage was updated.
-    const cached = sessionStorage.getItem('sdd-models-v1');
+    const cached = sessionStorage.getItem('sdd-models-v2');
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    expect(parsed.schemaVersion).toBe(1);
+    expect(parsed.schemaVersion).toBe(2);
     expect(parsed.data.models.glm52.name).toBe('GLM-5.2');
   });
 
@@ -197,9 +197,9 @@ describe('data-sync — refresh() failure path', () => {
     // Pre-seed sessionStorage with valid cached data so we can verify the
     //   fallback path keeps using the cache.
     sessionStorage.setItem(
-      'sdd-models-v1',
+      'sdd-models-v2',
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 2,
         timestamp: Date.now(),
         data: {
           models: { glm52: { name: 'cached-glm52' } },
@@ -228,7 +228,7 @@ describe('data-sync — refresh() failure path', () => {
       expect(result.ok).toBe(false);
       expect(result.error).toMatch(/network|fetch|TypeError/i);
       // Cached data still in storage.
-      const cached = JSON.parse(sessionStorage.getItem('sdd-models-v1'));
+      const cached = JSON.parse(sessionStorage.getItem('sdd-models-v2'));
       expect(cached.data.models.glm52.name).toBe('cached-glm52');
       // A warning was emitted.
       expect(warnSpy).toHaveBeenCalled();

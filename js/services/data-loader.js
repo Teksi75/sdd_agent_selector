@@ -19,7 +19,8 @@
 // shape change is a one-line bump + new tests.
 
 /** @type {string} */
-export const CACHE_KEY = 'sdd-models-v1';
+// v2 forces a one-time refetch after the manual BenchLM score backfill.
+export const CACHE_KEY = 'sdd-models-v2';
 
 /** @type {number} - bump to invalidate ALL cached entries.
  *  Exported as a test affordance so the integrity suite can pin the

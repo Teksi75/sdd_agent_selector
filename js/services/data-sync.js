@@ -25,7 +25,12 @@
 //   consumers (e.g., app.js forced-refresh re-validation) can react
 //   without re-reading storage.
 
-import { clearCache, invalidateMemoryCache, CACHE_KEY } from './data-loader.js';
+import {
+  clearCache,
+  invalidateMemoryCache,
+  CACHE_KEY,
+  CURRENT_SCHEMA_VERSION,
+} from './data-loader.js';
 
 /**
  * Default upstream URL for the auto-sync source. Points at the
@@ -200,20 +205,10 @@ function writeCache(data) {
   const backend = cacheBackend();
   if (!backend) return;
   try {
-    const existing = backend.getItem(CACHE_KEY);
-    let schemaVersion = 1;
-    if (existing) {
-      try {
-        const parsed = JSON.parse(existing);
-        if (Number.isFinite(parsed.schemaVersion)) schemaVersion = parsed.schemaVersion;
-      } catch {
-        /* ignore */
-      }
-    }
     backend.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion,
+        schemaVersion: CURRENT_SCHEMA_VERSION,
         timestamp: Date.now(),
         data,
       })
