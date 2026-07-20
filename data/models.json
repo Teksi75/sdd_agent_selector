@@ -700,6 +700,39 @@
         }
       ]
     },
+    "gpt56sol": {
+      "name": "GPT-5.6 Sol",
+      "benchlm": {
+        "score": 81.96,
+        "verified": true,
+        "reliability": 0.75,
+        "categories": {
+          "agentic": 75.22,
+          "coding": 78.89,
+          "reasoning": null,
+          "multimodalGrounded": 84.3,
+          "knowledge": 83.2,
+          "multilingual": null,
+          "instructionFollowing": 86.8,
+          "math": 97.1
+        },
+        "rank": 3,
+        "evidence": "supported"
+      },
+      "tier": "reference",
+      "isReference": true,
+      "isNew": true,
+      "input": 5,
+      "output": 30,
+      "cacheRead": 0.5,
+      "notes": "OpenAI flagship tier, 26 jun 2026. BenchLM rank #3 as of 2026-07-17.",
+      "sources": [
+        {
+          "url": "https://benchlm.ai/models/gpt-5-6-sol",
+          "date": "2026-07-17"
+        }
+      ]
+    },
     "gpt54": {
       "name": "gpt-5.4",
       "benchlm": {

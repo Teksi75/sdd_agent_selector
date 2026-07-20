@@ -43,6 +43,7 @@
   --composite-tier-high: #6ee7b7;
   --composite-tier-balanced: #a5b4fc;
   --composite-tier-budget: #fbbf24;
+  --composite-tier-reference: #fb7185;
 }
 
 /* V3 visual-parity classes — DO NOT MODIFY without re-running the

@@ -19,8 +19,12 @@
 // shape change is a one-line bump + new tests.
 
 /** @type {string} */
-// v2 forces a one-time refetch after the manual BenchLM score backfill.
-export const CACHE_KEY = 'sdd-models-v2';
+// v3 forces a one-time refetch after including reference-tier models
+// (GPT-5.6 Sol, GPT-5.6 Terra) in the Composite benchmark chart.
+export const CACHE_KEY = 'sdd-models-v3';
+
+/** @type {string[]} - frozen list of prior cache keys to fall back to. */
+export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v2']);
 
 /** @type {number} - bump to invalidate ALL cached entries.
  *  Exported as a test affordance so the integrity suite can pin the
@@ -92,10 +96,8 @@ function cacheBackend() {
  *
  * @returns {Object|null}
  */
-function readCache() {
-  const backend = cacheBackend();
-  if (!backend) return null;
-  const raw = backend.getItem(CACHE_KEY);
+function readCacheEntry(backend, key) {
+  const raw = backend.getItem(key);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw);
@@ -104,9 +106,20 @@ function readCache() {
     if (!parsed.data || typeof parsed.data !== 'object') return null;
     return parsed.data;
   } catch {
-    // Corrupted JSON → force re-fetch.
     return null;
   }
+}
+
+function readCache() {
+  const backend = cacheBackend();
+  if (!backend) return null;
+  const current = readCacheEntry(backend, CACHE_KEY);
+  if (current) return current;
+  for (const legacyKey of LEGACY_CACHE_KEYS) {
+    const legacy = readCacheEntry(backend, legacyKey);
+    if (legacy) return legacy;
+  }
+  return null;
 }
 
 /**
@@ -262,6 +275,9 @@ export function clearCache() {
   if (!backend) return;
   try {
     backend.removeItem(CACHE_KEY);
+    for (const legacyKey of LEGACY_CACHE_KEYS) {
+      backend.removeItem(legacyKey);
+    }
   } catch {
     // ignore
   }

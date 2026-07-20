@@ -7,7 +7,7 @@
 //   - render an "unavailable" placeholder (no bar fill) for null scores
 //   - sort: scored rows descending, unavailable rows AFTER all scored
 //   - show a "BenchLM stale" freshness badge when lastRun > 7d
-//   - keep reference-tier models excluded (unchanged)
+//   - include reference-tier models (with numeric BenchLM scores) in the chart
 
 import { describe, test, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -179,7 +179,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(staleBadge).toBeNull();
   });
 
-  test('reference models still excluded from the rendered set', async () => {
+  test('reference models with numeric BenchLM scores appear in the rendered set', async () => {
     ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
     if (typeof resetForTests === 'function') resetForTests();
 
@@ -189,6 +189,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
         tier: 'high',
       },
       ref: {
+        name: 'Ref-Model',
         benchlm: { score: 99, verified: true, reliability: 0.95 },
         tier: 'reference',
         isReference: true,
@@ -198,10 +199,64 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     const keys = Array.from(target.querySelectorAll('[data-model-key]')).map(
       (el) => el.getAttribute('data-model-key')
     );
-    expect(keys).toEqual(['active']);
+    expect(keys).toEqual(['ref', 'active']);
   });
 
-  test('minimal fixture: 5 active models with benchlm → 5 scored bars (descending)', async () => {
+  test('GPT-5.6 Terra appears and is marked data-tier="reference"', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const terra = MODELS.gpt56terra;
+    expect(terra, 'gpt56terra missing from models.json').toBeDefined();
+    render(target, MODELS);
+    const terraRow = target.querySelector('[data-model-key="gpt56terra"]');
+    expect(terraRow, 'gpt56terra row not rendered').toBeDefined();
+    expect(terraRow.getAttribute('data-tier')).toBe('reference');
+  });
+
+  test('reference bar uses rose reference color fallback (bg-rose-500)', async () => {
+    ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
+    if (typeof resetForTests === 'function') resetForTests();
+
+    const FIXTURE = {
+      ref: {
+        name: 'Ref-Rose',
+        benchlm: { score: 80, verified: true, reliability: 0.9 },
+        tier: 'reference',
+        isReference: true,
+      },
+    };
+    render(target, FIXTURE);
+    const fill = target.querySelector('[data-model-key="ref"] .bar-fill');
+    expect(fill, 'reference bar-fill missing').toBeDefined();
+    const cls = fill.getAttribute('class') || '';
+    expect(cls).toMatch(/bg-rose-500/);
+  });
+
+  test('sort remains descending by score, independent of tier (reference mixed with active)', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      low: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'budget' },
+      refHigh: {
+        name: 'Ref-High',
+        benchlm: { score: 95, verified: true, reliability: 0.95 },
+        tier: 'reference',
+        isReference: true,
+      },
+      mid: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'balanced' },
+      refLow: {
+        name: 'Ref-Low',
+        benchlm: { score: 50, verified: true, reliability: 0.8 },
+        tier: 'reference',
+        isReference: true,
+      },
+    };
+    render(target, FIXTURE);
+    const keys = Array.from(target.querySelectorAll('[data-model-key]')).map(
+      (el) => el.getAttribute('data-model-key')
+    );
+    expect(keys).toEqual(['refHigh', 'mid', 'low', 'refLow']);
+  });
+
+  test('fixture: 5 active + 1 reference model → 6 scored bars (descending)', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
 
     const FIXTURE = {
@@ -220,7 +275,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
 
     render(target, FIXTURE);
     const rows = Array.from(target.querySelectorAll('[data-model-key]'));
-    expect(rows.length).toBe(5);
+    expect(rows.length).toBe(6);
 
     const scores = rows
       .map((el) => Number(el.getAttribute('data-score')))

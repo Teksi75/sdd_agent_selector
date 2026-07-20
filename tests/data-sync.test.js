@@ -157,7 +157,7 @@ describe('data-sync — refresh() success path', () => {
     expect(result.ok).toBe(true);
     expect(result.files).toBe(5);
     // sessionStorage was updated.
-    const cached = sessionStorage.getItem('sdd-models-v2');
+    const cached = sessionStorage.getItem('sdd-models-v3');
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
     expect(parsed.schemaVersion).toBe(2);
@@ -197,7 +197,7 @@ describe('data-sync — refresh() failure path', () => {
     // Pre-seed sessionStorage with valid cached data so we can verify the
     //   fallback path keeps using the cache.
     sessionStorage.setItem(
-      'sdd-models-v2',
+      'sdd-models-v3',
       JSON.stringify({
         schemaVersion: 2,
         timestamp: Date.now(),
@@ -228,7 +228,7 @@ describe('data-sync — refresh() failure path', () => {
       expect(result.ok).toBe(false);
       expect(result.error).toMatch(/network|fetch|TypeError/i);
       // Cached data still in storage.
-      const cached = JSON.parse(sessionStorage.getItem('sdd-models-v2'));
+      const cached = JSON.parse(sessionStorage.getItem('sdd-models-v3'));
       expect(cached.data.models.glm52.name).toBe('cached-glm52');
       // A warning was emitted.
       expect(warnSpy).toHaveBeenCalled();
@@ -248,5 +248,47 @@ describe('data-sync — refresh() failure path', () => {
     } finally {
       warnSpy.mockRestore();
     }
+  });
+});
+
+describe('data-loader — legacy cache fallback', () => {
+  const legacyData = {
+    models: { legacyModel: { name: 'LEGACY' } },
+    phases: [],
+    configs: [],
+    roles: {},
+    profiles: {},
+  };
+
+  beforeEach(() => {
+    globalThis.sessionStorage = new FakeStorage();
+    globalThis.fetch = vi.fn();
+    vi.resetModules();
+  });
+
+  afterEach(() => {
+    delete globalThis.sessionStorage;
+    delete globalThis.fetch;
+  });
+
+  test('valid v2 cache is used when v3 is absent without fetching', async () => {
+    const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
+    sessionStorage.setItem(
+      LEGACY_CACHE_KEYS[0],
+      JSON.stringify({ schemaVersion: 2, timestamp: Date.now(), data: legacyData })
+    );
+    const data = await loadAll();
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(data.models.legacyModel.name).toBe('LEGACY');
+    expect(sessionStorage.getItem(CACHE_KEY)).toBeNull();
+  });
+
+  test('clearCache removes current v3 and legacy v2 keys', async () => {
+    const { clearCache, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schemaVersion: 2, data: {} }));
+    sessionStorage.setItem(LEGACY_CACHE_KEYS[0], JSON.stringify({ schemaVersion: 2, data: {} }));
+    clearCache();
+    expect(sessionStorage.getItem(CACHE_KEY)).toBeNull();
+    expect(sessionStorage.getItem(LEGACY_CACHE_KEYS[0])).toBeNull();
   });
 });

@@ -119,6 +119,7 @@ const KNOWN_V4_ONLY = new Set([
   'sonnet5',
   'haiku45',
   'gpt56terra',
+  'gpt56sol',
   'kimik27c',
   'kimik25',
   'kimik3',

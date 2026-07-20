@@ -11,8 +11,8 @@
 //
 // Behavior (spec benchlm-rendering + design "Chart Rendering"):
 //   - Reference-tier models (tier==='reference' OR isReference===true)
-//     are excluded.
-//   - Each non-reference row carries:
+//     are INCLUDED with a rose-colored bar (--composite-tier-reference).
+//   - Each row carries:
 //     * a bar fill (width = score / maxScore %) inside a track
 //     * a verified/estimated badge (verified=true → green, false → amber)
 //     * a 5-dot reliability scale (`floor(reliability*5)` filled dots)
@@ -45,15 +45,16 @@ function _resetTokenCache() {
  * chart renders correctly even when tokens.css has not been linked.
  *
  * @param {Document} doc
- * @param {'high'|'balanced'|'budget'} tier
+ * @param {'high'|'balanced'|'budget'|'reference'} tier
  * @returns {{ value: string, tw: string }} `value` is the resolved CSS
  *   color (or '' when absent); `tw` is the Tailwind class used as fallback.
  */
 function barColor(doc, tier) {
-  const slug = tier === 'high' ? 'high' : tier === 'budget' ? 'budget' : 'balanced';
+  const slug = tier === 'high' ? 'high' : tier === 'budget' ? 'budget' : tier === 'reference' ? 'reference' : 'balanced';
   const twClass =
     tier === 'high' ? 'bg-emerald-500' :
     tier === 'budget' ? 'bg-amber-500' :
+    tier === 'reference' ? 'bg-rose-500/80' :
     'bg-indigo-500';
   const cacheKey = `${slug}|${doc === document ? 'dom' : 'test'}`;
   if (cacheKey in _tokenCache) return _tokenCache[cacheKey];
@@ -84,20 +85,21 @@ function esc(s) {
 
 /**
  * Pick the tier tag for a model. Falls back to 'balanced' when the
- * field is missing or unrecognized.
+ * field is missing or unrecognized. Reference-tier models are returned
+ * as 'reference' so the bar color and data-tier attribute reflect it.
  *
  * @param {Object} m
- * @returns {'high'|'balanced'|'budget'}
+ * @returns {'high'|'balanced'|'budget'|'reference'}
  */
 function tierOf(m) {
   const t = m && m.tier;
-  if (t === 'high' || t === 'balanced' || t === 'budget') return t;
+  if (t === 'high' || t === 'balanced' || t === 'budget' || t === 'reference') return t;
   return 'balanced';
 }
 
 /**
- * Filter out reference-tier models and partition the remainder into
- * scored + unavailable groups.
+ * Partition all models (including reference-tier) into scored +
+ * unavailable groups.
  *
  * - Scored: compositeScore(model) is a finite number.
  * - Unavailable: compositeScore is null OR benchlm block is missing —
@@ -112,8 +114,7 @@ function tierOf(m) {
  * @returns {{ scored: Array<[string, Object, number]>, unavailable: Array<[string, Object]> }}
  */
 function rowsFor(models) {
-  const entries = Object.entries(models || {})
-    .filter(([, m]) => m && m.tier !== 'reference' && m.isReference !== true);
+  const entries = Object.entries(models || {}).filter(([, m]) => m);
 
   const scored = [];
   const unavailable = [];
