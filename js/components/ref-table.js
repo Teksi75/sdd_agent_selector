@@ -22,7 +22,9 @@
 // block, the row still renders with a "—" score and no badge/dots so
 // the user can see the model exists but BenchLM hasn't ingested it.
 
-import { compositeScore, lifecycleOf, isActive } from '../services/model-scorer.js';
+import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
+
+const REFERENCE_DISPLAY_ORDER = ['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna'];
 
 /**
  * Format a numeric value for display. Numbers render as-is; null /
@@ -118,8 +120,9 @@ function rowsFor(models) {
   const active = [];
   const nonActive = [];
   for (const entry of entries) {
-    if (isActive(entry[1])) active.push(entry);
-    else nonActive.push(entry);
+    const lc = lifecycleOf(entry[1]);
+    if (lc === 'active') active.push(entry);
+    else if (lc !== 'legacy') nonActive.push(entry);
   }
   const sortFn = (a, b) => {
     const sa = compositeScore(a[1]);
@@ -133,7 +136,13 @@ function rowsFor(models) {
     return ca - cb;
   };
   active.sort(sortFn);
-  nonActive.sort(sortFn);
+  const orderIndex = new Map(REFERENCE_DISPLAY_ORDER.map((k, i) => [k, i]));
+  nonActive.sort((a, b) => {
+    const ai = orderIndex.has(a[0]) ? orderIndex.get(a[0]) : Infinity;
+    const bi = orderIndex.has(b[0]) ? orderIndex.get(b[0]) : Infinity;
+    if (ai !== bi) return ai - bi;
+    return sortFn(a, b);
+  });
   return { active, nonActive };
 }
 
@@ -244,7 +253,7 @@ export function render(targetEl, models) {
       </table>
     </div>
     <p class="mt-3 text-xs text-slate-500">
-      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference/legacy)` : ''} ·
+      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference)` : ''} ·
       sorted by BenchLM score (desc) ·
       non-active rows appear below the separator for comparison baseline ·
       rows without BenchLM data show "—" (awaiting first scrape).
