@@ -120,6 +120,7 @@ const KNOWN_V4_ONLY = new Set([
   'haiku45',
   'gpt56terra',
   'gpt56sol',
+  'gpt56luna',
   'kimik27c',
   'kimik25',
   'kimik3',
@@ -199,13 +200,10 @@ describe('data-integrity: BenchLM-shape contract (PR3)', () => {
     expect(Array.isArray(placeholders)).toBe(true);
   });
 
-  test('24 tracked models carried by the curated catalog', () => {
-    // PR1 backfilled 24 models. PR3 keeps the count stable.
+  test('26 tracked models carried by the curated catalog', () => {
     const models = doc.models;
     const keys = Object.keys(models);
-    // Use ≥ so the test passes when additional tracked models are added
-    // post-merge, but assert ≥24 to pin the PR1 contract.
-    expect(keys.length).toBeGreaterThanOrEqual(24);
+    expect(keys.length).toBeGreaterThanOrEqual(26);
   });
 });
 
@@ -447,5 +445,66 @@ describe('data-integrity: Claude Sonnet 5 pricing (BenchLM 2026-07-17)', () => {
 
   test('sonnet5 benchlm evidence is estimated', () => {
     expect(sonnet5.benchlm.evidence).toBe('estimated');
+  });
+});
+
+// --- GPT-5.6 Luna catalog integrity (BenchLM 2026-07-20) -----------------
+
+describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
+  const raw = JSON.parse(
+    readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
+  );
+  const luna = raw.models.gpt56luna;
+
+  test('gpt56luna exists and has correct name', () => {
+    expect(luna).toBeDefined();
+    expect(luna.name).toBe('GPT-5.6 Luna');
+  });
+
+  test('benchlm score is 67.17, rank 22, evidence estimated', () => {
+    expect(luna.benchlm.score).toBe(67.17);
+    expect(luna.benchlm.rank).toBe(22);
+    expect(luna.benchlm.evidence).toBe('estimated');
+  });
+
+  test('pricing: input $1, output $6 per 1M tokens, no cacheRead', () => {
+    expect(luna.input).toBe(1);
+    expect(luna.output).toBe(6);
+    expect(luna.cacheRead).toBeUndefined();
+  });
+
+  test('lifecycle is reference, tier is budget', () => {
+    expect(luna.lifecycle).toBe('reference');
+    expect(luna.tier).toBe('budget');
+  });
+
+  test('Terminal-Bench 84.7, SWE-bench Pro 62.7', () => {
+    expect(luna.term).toBe(84.7);
+    expect(luna.swePro).toBe(62.7);
+  });
+
+  test('categories match BenchLM verified values', () => {
+    const c = luna.benchlm.categories;
+    expect(c.agentic).toBe(58.5);
+    expect(c.coding).toBe(72.6);
+    expect(c.reasoning).toBeNull();
+    expect(c.multimodalGrounded).toBe(65.7);
+    expect(c.knowledge).toBe(80.9);
+    expect(c.multilingual).toBeNull();
+    expect(c.instructionFollowing).toBeNull();
+    expect(c.math).toBe(97.1);
+  });
+
+  test('has BenchLM source dated 2026-07-20', () => {
+    expect(Array.isArray(luna.sources)).toBe(true);
+    const src = luna.sources.find(
+      (s) => s.url === 'https://benchlm.ai/models/gpt-5-6-luna' && s.date === '2026-07-20'
+    );
+    expect(src).toBeDefined();
+  });
+
+  test('notes document provisional score and cacheRead omission', () => {
+    expect(luna.notes).toMatch(/provisional/i);
+    expect(luna.notes).toMatch(/cacheRead not published/i);
   });
 });

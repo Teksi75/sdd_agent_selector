@@ -312,8 +312,8 @@ describe('lifecycle — data/models.json catalog classification', () => {
     }
   });
 
-  test('reference models: opus48, gpt55, gpt56terra, gpt56sol', () => {
-    for (const key of ['opus48', 'gpt55', 'gpt56terra', 'gpt56sol']) {
+  test('reference models: opus48, gpt55, gpt56terra, gpt56sol, gpt56luna', () => {
+    for (const key of ['opus48', 'gpt55', 'gpt56terra', 'gpt56sol', 'gpt56luna']) {
       expect(models[key].lifecycle, `${key} should be reference`).toBe('reference');
     }
   });
@@ -350,8 +350,8 @@ describe('lifecycle — data/models.json catalog classification', () => {
     expect(activeCount).toBe(19);
   });
 
-  test('non-active count is 6 (4 reference + 2 legacy)', () => {
+  test('non-active count is 7 (5 reference + 2 legacy)', () => {
     const nonActive = Object.values(models).filter((m) => m.lifecycle !== 'active');
-    expect(nonActive.length).toBe(6);
+    expect(nonActive.length).toBe(7);
   });
 });
