@@ -71,24 +71,21 @@ beforeEach(() => {
 });
 
 describe('ref-table — render() (PR3 benchlm columns)', () => {
-  test('includes all models; reference rows still sink to the bottom', () => {
+  test('includes all models; non-active rows in separated section after active rows', () => {
     const summary = render(target, FIXTURE);
-    // 3 active + 2 reference = 5 rows.
+    // 3 active + 2 non-active = 5 rows.
     expect(summary.rows).toBe(5);
 
-    const tbody = target.querySelector('tbody');
-    const visibleKeys = Array.from(tbody.querySelectorAll('tr')).map(
+    const activeRows = Array.from(target.querySelectorAll('[data-test="active-rows"] tr'));
+    const activeKeys = activeRows.map((tr) => tr.getAttribute('data-model-key'));
+    expect(activeKeys).toEqual(['alpha', 'beta', 'pending']);
+
+    const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
+    expect(nonActiveSection, 'non-active section missing').toBeDefined();
+    const nonActiveKeys = Array.from(nonActiveSection.querySelectorAll('tr')).map(
       (tr) => tr.getAttribute('data-model-key')
     );
-    expect(visibleKeys).toContain('alpha');
-    expect(visibleKeys).toContain('beta');
-    expect(visibleKeys).toContain('pending');
-    expect(visibleKeys).toContain('gamma');
-    expect(visibleKeys).toContain('delta');
-
-    // Active (non-reference) rows are first; reference rows last.
-    expect(visibleKeys.slice(0, 3)).toEqual(['alpha', 'beta', 'pending']);
-    expect(visibleKeys.slice(3)).toEqual(['delta', 'gamma']);
+    expect(nonActiveKeys).toEqual(['delta', 'gamma']);
   });
 
   test('(d) scored rows sort by benchlm.score descending; references last', () => {
@@ -105,13 +102,14 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
 
   test('(a) row shows benchlm score column; NO legacy 4-benchmark columns', () => {
     render(target, FIXTURE);
-    // PR3 columns: Modelo, Tier, Score, BenchLM, Input $, Output $, Sources = 7.
+    // Columns: Modelo, Tier, Lifecycle, Score, BenchLM, Input $, Output $, Sources = 8.
     const ths = target.querySelectorAll('thead th');
-    expect(ths.length).toBe(7);
+    expect(ths.length).toBe(8);
     // Specific columns present.
     const labels = Array.from(ths).map((th) => th.textContent.trim());
     expect(labels).toContain('Modelo');
     expect(labels).toContain('Tier');
+    expect(labels).toContain('Lifecycle');
     expect(labels).toContain('Score');
     expect(labels).toContain('BenchLM');
     // Legacy columns gone.

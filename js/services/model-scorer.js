@@ -31,6 +31,66 @@
 // spec "REMOVED Requirements — 4-benchmark weighted average scoring".
 
 /**
+ * Allowed lifecycle values. Exactly one must be present on every catalog
+ * record after the lifecycle migration (bounded work unit 2).
+ *
+ * @type {ReadonlyArray<string>}
+ */
+export const VALID_LIFECYCLES = Object.freeze([
+  'active',
+  'reference',
+  'legacy',
+  'benchmark-only',
+]);
+
+/**
+ * Lifecycles that participate in selector eligibility, the main Composite
+ * ranking, and Pricing/price-quality views.
+ *
+ * @type {ReadonlyArray<string>}
+ */
+export const ACTIVE_LIFECYCLES = Object.freeze(['active']);
+
+/**
+ * Resolve the lifecycle of a model record.
+ *
+ * Priority:
+ *   1. Explicit `model.lifecycle` if it is a valid value.
+ *   2. Explicitly present but invalid → fail closed as 'legacy' (non-active).
+ *      Do NOT silently coerce to active or derive from tier.
+ *   3. Backward-compat (lifecycle omitted): `tier === 'reference'` or
+ *      `isReference === true` → 'reference'.
+ *   4. Default → 'active'.
+ *
+ * Defensive: null/undefined model → 'active' (never throws).
+ *
+ * @param {Object|null|undefined} model
+ * @returns {string} one of VALID_LIFECYCLES
+ */
+export function lifecycleOf(model) {
+  if (!model || typeof model !== 'object') return 'active';
+  if (Object.prototype.hasOwnProperty.call(model, 'lifecycle')) {
+    const lc = model.lifecycle;
+    if (typeof lc === 'string' && VALID_LIFECYCLES.includes(lc)) return lc;
+    return 'legacy';
+  }
+  if (model.tier === 'reference' || model.isReference === true) return 'reference';
+  return 'active';
+}
+
+/**
+ * Whether a model is selector-eligible (active lifecycle only).
+ * Only active models participate in getBestFor selection, the main
+ * Composite ranking, Pricing views, and soft fallback paths.
+ *
+ * @param {Object|null|undefined} model
+ * @returns {boolean}
+ */
+export function isActive(model) {
+  return ACTIVE_LIFECYCLES.includes(lifecycleOf(model));
+}
+
+/**
  * Default request profile (per spec "costEstimate default"). Used when
  * no profile is supplied.
  *
@@ -123,15 +183,13 @@ export function findReferenceModel(models) {
   const list = Object.values(models).filter((m) => m && typeof m === 'object');
   if (list.length === 0) return null;
 
-  // First pass: prefer tier:reference.
-  const refs = list.filter((m) => m.tier === 'reference' || m.isReference === true);
+  const refs = list.filter((m) => lifecycleOf(m) === 'reference');
   if (refs.length > 0) {
     return refs.reduce((best, m) =>
       compositeScore(m) > compositeScore(best) ? m : best
     );
   }
 
-  // Fallback: highest compositeScore.
   return list.reduce((best, m) =>
     compositeScore(m) > compositeScore(best) ? m : best
   );
@@ -242,7 +300,7 @@ export function getBestFor(
   const eligible = [];
   for (const [key, m] of list) {
     if (!m || typeof m !== 'object') continue;
-    if (m.isReference === true || m.tier === 'reference') continue;
+    if (!isActive(m)) continue;
     const score = compositeScore(m);
     const cost = costEstimate(m, profile);
     if (score >= modified.minReasoning && cost <= effectiveMaxCost) {
@@ -251,14 +309,15 @@ export function getBestFor(
   }
 
   if (eligible.length === 0) {
-    // Soft fallback #1 (role-designated reference): if the role explicitly
+    // Soft fallback #1 (role-designated active model): if the role explicitly
     //   opts into a per-role reference (referenceModelId), and that
-    //   reference clears the role's hard cost ceiling, surface it as a
-    //   'soft-recommended' pick so the UI doesn't show a no-models critical
-    //   warning for roles like gentle-orchestrator where the user has
-    //   designated a specific reference by hand.
+    //   model is active-lifecycle and clears the role's hard cost ceiling,
+    //   surface it as a 'soft-recommended' pick so the UI doesn't show a
+    //   no-models critical warning for roles like gentle-orchestrator where
+    //   the user has designated a specific model by hand.
+    //   Non-active models (reference/legacy) are NEVER returned here.
     const roleRefKey = modified.referenceModelId;
-    if (roleRefKey && models && models[roleRefKey]) {
+    if (roleRefKey && models && models[roleRefKey] && isActive(models[roleRefKey])) {
       const roleRefModel = models[roleRefKey];
       const roleRefScore = compositeScore(roleRefModel);
       const roleRefCost = costEstimate(roleRefModel, profile);
@@ -277,22 +336,22 @@ export function getBestFor(
       }
     }
 
-    // Soft fallback #2 (general): when no model meets the modified reasoning
-    //   floor (e.g., max-quality strategy raises the floor above the top
-    //   non-reference composite score), but at least one non-reference model
-    //   still clears the cost ceiling, surface the highest-scoring one as
-    //   a soft fallback. This converts the "Sin modelo elegible" critical
-    //   stop into an actionable recommendation when the user has explicitly
-    //   asked for the most-strict preset.
+    // Soft fallback #2 (general): when no active model meets the modified
+    //   reasoning floor (e.g., max-quality strategy raises the floor above
+    //   the top active composite score), but at least one active model
+    //   still clears the cost ceiling, surface the highest-scoring active
+    //   one as a soft fallback. This converts the "Sin modelo elegible"
+    //   critical stop into an actionable recommendation when the user has
+    //   explicitly asked for the most-strict preset.
     //
     //   We drop the reasoning filter (which is what emptied `eligible`) but
-    //   keep the cost ceiling sacred — if the user can't afford ANY model
-    //   in the role's budget, no soft fallback is possible and we return
-    //   null with an explicit reason.
+    //   keep the cost ceiling sacred — if the user can't afford ANY active
+    //   model in the role's budget, no soft fallback is possible and we
+    //   return null with an explicit reason.
     const costClearing = [];
     for (const [key, m] of list) {
       if (!m || typeof m !== 'object') continue;
-      if (m.isReference === true || m.tier === 'reference') continue;
+      if (!isActive(m)) continue;
       const cost = costEstimate(m, profile);
       if (cost <= effectiveMaxCost) {
         costClearing.push({ key, model: m, score: compositeScore(m), cost });
@@ -331,13 +390,13 @@ export function getBestFor(
 
     // Distinguish "only reference models" vs "threshold not met" so UI can
     //   render an actionable message.
-    const onlyRefs =
-      list.length > 0 && list.every(([, m]) => m.isReference === true || m?.tier === 'reference');
+    const onlyNonActive =
+      list.length > 0 && list.every(([, m]) => !isActive(m));
     return {
       key: null,
       effectiveMaxCost,
-      reason: onlyRefs
-        ? 'No non-reference models available'
+      reason: onlyNonActive
+        ? 'No active-lifecycle models available (all non-active)'
         : `No model meets minReasoning=${modified.minReasoning} within costRatio=${modified.costRatio}`,
     };
   }

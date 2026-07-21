@@ -38,6 +38,7 @@
       "output": 4.4,
       "cacheRead": 0.26,
       "tier": "high",
+      "lifecycle": "active",
       "isNew": true,
       "notes": "MIT, 1M ctx, #2 Arena WebDev, #1 long-horizon open",
       "sources": [
@@ -92,6 +93,7 @@
       "output": 7.5,
       "cacheRead": 0.5,
       "tier": "high",
+      "lifecycle": "active",
       "cacheWrite": 3.125,
       "requestsPer5h": 950,
       "requestsPerWeek": 2390,
@@ -124,6 +126,7 @@
       "output": 4.4,
       "cacheRead": 0.26,
       "tier": "high",
+      "lifecycle": "legacy",
       "requestsPer5h": 880,
       "requestsPerWeek": 2150,
       "requestsPerMonth": 4300
@@ -155,6 +158,7 @@
       "output": 1.2,
       "cacheRead": 0.06,
       "tier": "balanced",
+      "lifecycle": "active",
       "requestsPer5h": 3200,
       "requestsPerWeek": 8000,
       "requestsPerMonth": 16000
@@ -186,6 +190,7 @@
       "output": 4,
       "cacheRead": 0.19,
       "tier": "balanced",
+      "lifecycle": "active",
       "isNew": true,
       "notes": "Moonshot K2 family, 12 jun 2026. 30% fewer thinking tokens vs K2.6. Vals AI 3rd-party: SWE-bench Verified 78.2 (#1 open-weight), Terminal-Bench 2.1 67 (#1 open-weight). SWE-bench Pro: proxy 58.6 from K2.6 (no independent K2.7 number published). Arena: estimated 1510 (K2.7 not on Arena leaderboard as of 2026-07-09; K2.5 was 1515 at launch, now 1400 per BenchLM Jul 2026).",
       "sources": [
@@ -233,6 +238,7 @@
       "output": 15,
       "cacheRead": 0.3,
       "tier": "high",
+      "lifecycle": "active",
       "isNew": true,
       "notes": "Moonshot flagship, released 2026-07-17 (catalog entry added 2026-07-18). Pricing: $3 input / $15 output / $0.30 cache read per 1M tokens via OpenCode Go (2026-07-17, last page update); cache write not listed for K3. Quota: 140 req/5h, 340/wk, 680/mo — the lowest among Go models (K3 is newer/more expensive, so the 6x multiplier doesn't apply yet). Arena: 1486 (LMArena Text Overall, tied #9 with gpt-5.6-sol-xhigh as of 2026-07-17); also #1 WebDev Overall at 1679. SWE-Ver: Vals AI ranks K3 3/71 on SWE-bench Verified as of 2026-07-17 (after Claude Fable 5 and GPT-5.6 Sol); per-difficulty resolution rates 92%/95%/93%/67% for <15min/15m-1h/1-4h/>4h — exact aggregate % not extracted from leaderboard (page shows 0.0% artifacts in the per-model card; only the by-difficulty breakdown is verbatim). SWE-Pro: not published as of 2026-07-18. Terminal-Bench 2.1: Vals AI rank 2/43 as of 2026-07-17; aggregate % not extracted. K3 is not on the public SWE-bench.com leaderboard yet (community baseline pending).",
       "sources": [
@@ -288,6 +294,7 @@
       "output": 3,
       "cacheRead": 0.16,
       "tier": "balanced",
+      "lifecycle": "active",
       "notes": "2026-07 data refresh: arena 1515→1400 (LMSYS leaderboard rotation since launch — newer models shifted K2.5 down). SWE-Pro 50.7, SWE-Ver 76.8 per Moonshot's own HuggingFace benchmark card (Thinking mode). Previous V3/V4 data was from launch and is stale.",
       "sources": [
         {
@@ -327,6 +334,7 @@
       "output": 4,
       "cacheRead": 0.16,
       "tier": "balanced",
+      "lifecycle": "active",
       "requestsPer5h": 1150,
       "requestsPerWeek": 2880,
       "requestsPerMonth": 5750
@@ -358,6 +366,7 @@
       "output": 3.48,
       "cacheRead": 0.0145,
       "tier": "high",
+      "lifecycle": "active",
       "requestsPer5h": 3450,
       "requestsPerWeek": 8550,
       "requestsPerMonth": 17150
@@ -388,7 +397,8 @@
       "input": 1.74,
       "output": 3.48,
       "cacheRead": 0.0145,
-      "tier": "high"
+      "tier": "high",
+      "lifecycle": "active"
     },
     "qwen37plus": {
       "name": "Qwen3.7 Plus",
@@ -417,6 +427,7 @@
       "output": 1.6,
       "cacheRead": 0.04,
       "tier": "balanced",
+      "lifecycle": "active",
       "cacheWrite": 0.5
     },
     "qwen36plus": {
@@ -446,6 +457,7 @@
       "output": 3,
       "cacheRead": 0.05,
       "tier": "balanced",
+      "lifecycle": "active",
       "cacheWrite": 0.625
     },
     "minimaxm27": {
@@ -475,6 +487,7 @@
       "output": 1.2,
       "cacheRead": 0.06,
       "tier": "budget",
+      "lifecycle": "active",
       "cacheWrite": 0.375,
       "requestsPer5h": 3400,
       "requestsPerWeek": 8500,
@@ -506,7 +519,8 @@
       "input": 0.14,
       "output": 0.28,
       "cacheRead": 0.0028,
-      "tier": "budget"
+      "tier": "budget",
+      "lifecycle": "active"
     },
     "minimaxm25": {
       "name": "MiniMax M2.5",
@@ -535,6 +549,7 @@
       "output": 1.2,
       "cacheRead": 0.06,
       "tier": "budget",
+      "lifecycle": "active",
       "cacheWrite": 0.375
     },
     "deepseekv4f": {
@@ -564,6 +579,7 @@
       "output": 0.28,
       "cacheRead": 0.0028,
       "tier": "budget",
+      "lifecycle": "active",
       "requestsPer5h": 31650,
       "requestsPerWeek": 79050,
       "requestsPerMonth": 158150
@@ -593,7 +609,8 @@
       },
       "input": 1,
       "output": 3.2,
-      "tier": "budget"
+      "tier": "budget",
+      "lifecycle": "legacy"
     },
     "opus48": {
       "name": "Claude Opus 4.8",
@@ -621,6 +638,7 @@
       "input": 5,
       "output": 25,
       "tier": "reference",
+      "lifecycle": "reference",
       "isReference": true,
       "notes": "Anthropic flagship, 28 may 2026. No en Go.",
       "cacheRead": 0.5
@@ -652,6 +670,7 @@
       "output": 30,
       "cacheRead": 0.5,
       "tier": "reference",
+      "lifecycle": "reference",
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
     },
@@ -682,6 +701,7 @@
       "output": 15,
       "cacheRead": 0.25,
       "tier": "reference",
+      "lifecycle": "reference",
       "isReference": true,
       "isNew": true,
       "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published).",
@@ -720,6 +740,7 @@
         "evidence": "supported"
       },
       "tier": "reference",
+      "lifecycle": "reference",
       "isReference": true,
       "isNew": true,
       "input": 5,
@@ -753,6 +774,7 @@
         "evidence": "supported"
       },
       "tier": "high",
+      "lifecycle": "active",
       "input": 2.5,
       "output": 15,
       "cacheRead": 0.25,
@@ -783,6 +805,7 @@
         "evidence": "supported"
       },
       "tier": "high",
+      "lifecycle": "active",
       "input": 10,
       "output": 50,
       "cacheRead": 1,
@@ -813,12 +836,17 @@
         "evidence": "estimated"
       },
       "tier": "balanced",
-      "input": null,
-      "output": null,
+      "lifecycle": "active",
+      "input": 2,
+      "output": 10,
       "sources": [
         {
           "url": "https://www.anthropic.com/pricing",
           "date": "2026-07-06"
+        },
+        {
+          "url": "https://benchlm.ai/",
+          "date": "2026-07-17"
         }
       ]
     },
@@ -842,6 +870,7 @@
         "evidence": "estimated"
       },
       "tier": "budget",
+      "lifecycle": "active",
       "input": 1,
       "output": 5,
       "cacheRead": 0.1,

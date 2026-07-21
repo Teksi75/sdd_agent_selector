@@ -179,7 +179,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(staleBadge).toBeNull();
   });
 
-  test('reference models with numeric BenchLM scores appear in the rendered set', async () => {
+  test('reference models are excluded from main ranking; shown in separated non-active catalog', async () => {
     ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
     if (typeof resetForTests === 'function') resetForTests();
 
@@ -187,32 +187,44 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
       active: {
         benchlm: { score: 80, verified: true, reliability: 0.9 },
         tier: 'high',
+        lifecycle: 'active',
       },
       ref: {
         name: 'Ref-Model',
         benchlm: { score: 99, verified: true, reliability: 0.95 },
         tier: 'reference',
+        lifecycle: 'reference',
         isReference: true,
       },
     };
-    render(target, FIXTURE);
-    const keys = Array.from(target.querySelectorAll('[data-model-key]')).map(
+    const summary = render(target, FIXTURE);
+    const mainBars = Array.from(target.querySelectorAll('[data-test="composite-bars"] [data-model-key]'));
+    const mainKeys = mainBars.map((el) => el.getAttribute('data-model-key'));
+    expect(mainKeys).toEqual(['active']);
+    expect(mainKeys).not.toContain('ref');
+
+    const nonActiveSection = target.querySelector('[data-test="non-active-catalog"]');
+    expect(nonActiveSection, 'non-active catalog section missing').toBeDefined();
+    const nonActiveKeys = Array.from(nonActiveSection.querySelectorAll('[data-model-key]')).map(
       (el) => el.getAttribute('data-model-key')
     );
-    expect(keys).toEqual(['ref', 'active']);
+    expect(nonActiveKeys).toEqual(['ref']);
+    expect(summary.nonActive).toBe(1);
   });
 
-  test('GPT-5.6 Terra appears and is marked data-tier="reference"', async () => {
+  test('GPT-5.6 Terra appears in non-active catalog, not in main ranking', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const terra = MODELS.gpt56terra;
     expect(terra, 'gpt56terra missing from models.json').toBeDefined();
     render(target, MODELS);
-    const terraRow = target.querySelector('[data-model-key="gpt56terra"]');
-    expect(terraRow, 'gpt56terra row not rendered').toBeDefined();
-    expect(terraRow.getAttribute('data-tier')).toBe('reference');
+    const mainBars = target.querySelectorAll('[data-test="composite-bars"] [data-model-key="gpt56terra"]');
+    expect(mainBars.length).toBe(0);
+    const nonActiveRow = target.querySelector('[data-test="non-active-catalog"] [data-model-key="gpt56terra"]');
+    expect(nonActiveRow, 'gpt56terra should be in non-active catalog').toBeDefined();
+    expect(nonActiveRow.getAttribute('data-lifecycle')).toBe('reference');
   });
 
-  test('reference bar uses rose reference color fallback (bg-rose-500)', async () => {
+  test('non-active row shows lifecycle badge', async () => {
     ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
     if (typeof resetForTests === 'function') resetForTests();
 
@@ -221,63 +233,59 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
         name: 'Ref-Rose',
         benchlm: { score: 80, verified: true, reliability: 0.9 },
         tier: 'reference',
+        lifecycle: 'reference',
         isReference: true,
       },
     };
     render(target, FIXTURE);
-    const fill = target.querySelector('[data-model-key="ref"] .bar-fill');
-    expect(fill, 'reference bar-fill missing').toBeDefined();
-    const cls = fill.getAttribute('class') || '';
-    expect(cls).toMatch(/bg-rose-500/);
+    const badge = target.querySelector('[data-test="non-active-catalog"] [data-lifecycle-badge="reference"]');
+    expect(badge, 'lifecycle badge missing').toBeDefined();
   });
 
-  test('sort remains descending by score, independent of tier (reference mixed with active)', async () => {
+  test('main ranking sort is descending by score among active models only', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      low: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'budget' },
+      low: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'budget', lifecycle: 'active' },
       refHigh: {
         name: 'Ref-High',
         benchlm: { score: 95, verified: true, reliability: 0.95 },
         tier: 'reference',
+        lifecycle: 'reference',
         isReference: true,
       },
-      mid: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'balanced' },
-      refLow: {
-        name: 'Ref-Low',
-        benchlm: { score: 50, verified: true, reliability: 0.8 },
-        tier: 'reference',
-        isReference: true,
-      },
+      mid: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'balanced', lifecycle: 'active' },
     };
     render(target, FIXTURE);
-    const keys = Array.from(target.querySelectorAll('[data-model-key]')).map(
+    const mainKeys = Array.from(target.querySelectorAll('[data-test="composite-bars"] [data-model-key]')).map(
       (el) => el.getAttribute('data-model-key')
     );
-    expect(keys).toEqual(['refHigh', 'mid', 'low', 'refLow']);
+    expect(mainKeys).toEqual(['mid', 'low']);
   });
 
-  test('fixture: 5 active + 1 reference model → 6 scored bars (descending)', async () => {
+  test('fixture: 5 active + 1 reference → 5 main bars + 1 non-active', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
 
     const FIXTURE = {
-      m_high:    { name: 'High',     benchlm: { score: 90, verified: true, reliability: 0.95 }, tier: 'high' },
-      m_bal:     { name: 'Balanced', benchlm: { score: 70, verified: true, reliability: 0.85 }, tier: 'balanced' },
-      m_low:     { name: 'Low',      benchlm: { score: 50, verified: false, reliability: 0.7 }, tier: 'balanced' },
-      m_amber:   { name: 'Amber',    benchlm: { score: 65, verified: false, reliability: 0.6 }, tier: 'high' },
-      m_swe:     { name: 'Top',      benchlm: { score: 85, verified: true, reliability: 0.9 }, tier: 'high' },
+      m_high:    { name: 'High',     benchlm: { score: 90, verified: true, reliability: 0.95 }, tier: 'high', lifecycle: 'active' },
+      m_bal:     { name: 'Balanced', benchlm: { score: 70, verified: true, reliability: 0.85 }, tier: 'balanced', lifecycle: 'active' },
+      m_low:     { name: 'Low',      benchlm: { score: 50, verified: false, reliability: 0.7 }, tier: 'balanced', lifecycle: 'active' },
+      m_amber:   { name: 'Amber',    benchlm: { score: 65, verified: false, reliability: 0.6 }, tier: 'high', lifecycle: 'active' },
+      m_swe:     { name: 'Top',      benchlm: { score: 85, verified: true, reliability: 0.9 }, tier: 'high', lifecycle: 'active' },
       m_ref: {
         name: 'Reference-Model',
         benchlm: { score: 99, verified: true, reliability: 0.99 },
         tier: 'reference',
+        lifecycle: 'reference',
         isReference: true,
       },
     };
 
-    render(target, FIXTURE);
-    const rows = Array.from(target.querySelectorAll('[data-model-key]'));
-    expect(rows.length).toBe(6);
+    const summary = render(target, FIXTURE);
+    const mainRows = target.querySelectorAll('[data-test="composite-bars"] [data-model-key]');
+    expect(mainRows.length).toBe(5);
+    expect(summary.nonActive).toBe(1);
 
-    const scores = rows
+    const scores = Array.from(mainRows)
       .map((el) => Number(el.getAttribute('data-score')))
       .filter((n) => Number.isFinite(n));
     for (let i = 1; i < scores.length; i++) {

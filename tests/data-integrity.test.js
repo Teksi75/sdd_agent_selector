@@ -405,3 +405,47 @@ describe('data-integrity: Kimi K3 provenance', () => {
     expect(k3.notes).toContain('SWE-Pro: not published as of 2026-07-18');
   });
 });
+
+// --- Claude Sonnet 5 pricing (BenchLM 2026-07-17 snapshot) -----------------
+
+import { costEstimate } from '../js/services/model-scorer.js';
+
+describe('data-integrity: Claude Sonnet 5 pricing (BenchLM 2026-07-17)', () => {
+  const raw = JSON.parse(
+    readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
+  );
+  const sonnet5 = raw.models.sonnet5;
+
+  test('sonnet5 is defined and active (not reference)', () => {
+    expect(sonnet5).toBeDefined();
+    expect(sonnet5.name).toBe('Claude Sonnet 5');
+    expect(sonnet5.tier).not.toBe('reference');
+    expect(sonnet5.isReference).toBeFalsy();
+  });
+
+  test('sonnet5.input === 2 and sonnet5.output === 10 (BenchLM v5.2 2026-07-17)', () => {
+    expect(sonnet5.input).toBe(2);
+    expect(sonnet5.output).toBe(10);
+  });
+
+  test('sonnet5 has no cacheRead field (absent/null per BenchLM source)', () => {
+    expect(sonnet5.cacheRead).toBeUndefined();
+  });
+
+  test('sonnet5 costEstimate with default profile (1000+500) equals 0.007 USD', () => {
+    const cost = costEstimate(sonnet5);
+    expect(cost).toBeCloseTo(0.007, 6);
+  });
+
+  test('sonnet5 has a BenchLM source dated 2026-07-17', () => {
+    expect(Array.isArray(sonnet5.sources)).toBe(true);
+    const benchlmSource = sonnet5.sources.find(
+      (s) => s.url && s.url.includes('benchlm') && s.date === '2026-07-17'
+    );
+    expect(benchlmSource).toBeDefined();
+  });
+
+  test('sonnet5 benchlm evidence is estimated', () => {
+    expect(sonnet5.benchlm.evidence).toBe('estimated');
+  });
+});

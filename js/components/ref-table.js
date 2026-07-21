@@ -22,7 +22,7 @@
 // block, the row still renders with a "—" score and no badge/dots so
 // the user can see the model exists but BenchLM hasn't ingested it.
 
-import { compositeScore } from '../services/model-scorer.js';
+import { compositeScore, lifecycleOf, isActive } from '../services/model-scorer.js';
 
 /**
  * Format a numeric value for display. Numbers render as-is; null /
@@ -107,30 +107,71 @@ function sourceBadges(m) {
 
 /**
  * Sort models: active rows first (by compositeScore desc; cheaper input
- * breaks ties), reference rows appended after (sorted among themselves
+ * breaks ties), non-active rows appended after (sorted among themselves
  * the same way).
  *
  * @param {Object<string, Object>} models
- * @returns {Array<[string, Object]>}
+ * @returns {{ active: Array<[string, Object]>, nonActive: Array<[string, Object]> }}
  */
 function rowsFor(models) {
-  return Object.entries(models || {})
-    .filter(([, m]) => m)
-    .sort((a, b) => {
-      const aRef = a[1].tier === 'reference' || a[1].isReference === true;
-      const bRef = b[1].tier === 'reference' || b[1].isReference === true;
-      if (aRef !== bRef) return aRef ? 1 : -1;
-      const sa = compositeScore(a[1]);
-      const sb = compositeScore(b[1]);
-      // Nulls sort AFTER any numeric score within the same tier group.
-      if (sa == null && sb == null) return 0;
-      if (sa == null) return 1;
-      if (sb == null) return -1;
-      if (sb !== sa) return sb - sa;
-      const ca = Number.isFinite(a[1].input) ? a[1].input : Infinity;
-      const cb = Number.isFinite(b[1].input) ? b[1].input : Infinity;
-      return ca - cb;
-    });
+  const entries = Object.entries(models || {}).filter(([, m]) => m);
+  const active = [];
+  const nonActive = [];
+  for (const entry of entries) {
+    if (isActive(entry[1])) active.push(entry);
+    else nonActive.push(entry);
+  }
+  const sortFn = (a, b) => {
+    const sa = compositeScore(a[1]);
+    const sb = compositeScore(b[1]);
+    if (sa == null && sb == null) return 0;
+    if (sa == null) return 1;
+    if (sb == null) return -1;
+    if (sb !== sa) return sb - sa;
+    const ca = Number.isFinite(a[1].input) ? a[1].input : Infinity;
+    const cb = Number.isFinite(b[1].input) ? b[1].input : Infinity;
+    return ca - cb;
+  };
+  active.sort(sortFn);
+  nonActive.sort(sortFn);
+  return { active, nonActive };
+}
+
+/**
+ * Build one table row's HTML.
+ *
+ * @param {string} key
+ * @param {Object} m
+ * @param {boolean} isNonActive
+ * @returns {string} HTML
+ */
+function rowHtml(key, m, isNonActive) {
+  const cs = compositeScore(m);
+  const score = cs == null ? '—' : cs.toFixed(1);
+  const lc = lifecycleOf(m);
+  const newBadge = m.isNew === true
+    ? ' <span class="src-badge src-new">NEW</span>'
+    : '';
+  const tierCell = isNonActive
+    ? `<span class="src-badge" style="background:rgba(244,63,94,.15);color:#fda4af;">${escapeHtml(lc.toUpperCase())}</span>`
+    : escapeHtml(m.tier || '—');
+  const lifecycleCell = isNonActive
+    ? `<span class="font-mono text-xs text-slate-400">${escapeHtml(lc)}</span>`
+    : `<span class="font-mono text-xs text-emerald-400">active</span>`;
+  const rowClass = isNonActive
+    ? 'opacity-60 bg-slate-900/30'
+    : 'hover:bg-slate-800/30 transition';
+  return `
+        <tr class="${rowClass}" data-model-key="${escapeAttr(key)}" data-lifecycle="${escapeAttr(lc)}" data-verified="${m.benchlm && m.benchlm.verified === true ? 'true' : 'false'}" ${cs == null ? 'data-unavailable="true"' : ''}>
+          <td class="py-2.5 px-3 font-medium">${escapeHtml(m.name || key)}${newBadge}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-xs">${tierCell}</td>
+          <td class="py-2.5 px-3 text-center">${lifecycleCell}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-xs" data-score="${cs == null ? '0' : cs.toFixed(2)}">${score}</td>
+          <td class="py-2.5 px-3 text-center">${benchlmProvenanceHtml(m)}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-xs">${fmtPrice(m.input)}</td>
+          <td class="py-2.5 px-3 text-right font-mono text-xs">${fmtPrice(m.output)}</td>
+          <td class="py-2.5 px-3 text-center text-[11px] space-x-1">${sourceBadges(m)}</td>
+        </tr>`;
 }
 
 /**
@@ -152,12 +193,13 @@ export function render(targetEl, models) {
     return { rows: 0, topKey: null, referenceModel: null };
   }
 
-  const rows = rowsFor(models);
+  const { active, nonActive } = rowsFor(models);
+  const allRows = [...active, ...nonActive];
   const referenceModel =
-    Object.values(models).find((m) => m && (m.tier === 'reference' || m.isReference === true)) ||
+    Object.values(models).find((m) => m && lifecycleOf(m) === 'reference') ||
     null;
 
-  if (rows.length === 0) {
+  if (allRows.length === 0) {
     targetEl.innerHTML = `
       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
         No non-reference models in the dataset.
@@ -165,35 +207,20 @@ export function render(targetEl, models) {
     return { rows: 0, topKey: null, referenceModel };
   }
 
-  const body = rows
-    .map(([key, m]) => {
-      const cs = compositeScore(m);
-      const score = cs == null ? '—' : cs.toFixed(1);
-      const isRef = m.tier === 'reference' || m.isReference === true;
-      const newBadge = m.isNew === true
-        ? ' <span class="src-badge src-new">NEW</span>'
-        : '';
-      const tierCell = isRef
-        ? `<span class="src-badge" style="background:rgba(244,63,94,.15);color:#fda4af;">REFERENCE</span>`
-        : escapeHtml(m.tier || '—');
-      const rowClass = isRef
-        ? 'opacity-80 bg-slate-900/30'
-        : 'hover:bg-slate-800/30 transition';
-      return `
-        <tr class="${rowClass}" data-model-key="${escapeAttr(key)}" data-verified="${m.benchlm && m.benchlm.verified === true ? 'true' : 'false'}" ${cs == null ? 'data-unavailable="true"' : ''}>
-          <td class="py-2.5 px-3 font-medium">${escapeHtml(m.name || key)}${newBadge}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-xs">${tierCell}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-xs" data-score="${cs == null ? '0' : cs.toFixed(2)}">${score}</td>
-          <td class="py-2.5 px-3 text-center">${benchlmProvenanceHtml(m)}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-xs">${fmtPrice(m.input)}</td>
-          <td class="py-2.5 px-3 text-right font-mono text-xs">${fmtPrice(m.output)}</td>
-          <td class="py-2.5 px-3 text-center text-[11px] space-x-1">${sourceBadges(m)}</td>
-        </tr>`;
-    })
+  const activeBody = active
+    .map(([key, m]) => rowHtml(key, m, false))
+    .join('');
+  const nonActiveBody = nonActive
+    .map(([key, m]) => rowHtml(key, m, true))
     .join('');
 
-  const activeCount = rows.filter(([, m]) => m.tier !== 'reference' && m.isReference !== true).length;
-  const refCount = rows.length - activeCount;
+  const activeCount = active.length;
+  const nonActiveCount = nonActive.length;
+
+  const nonActiveSection = nonActiveCount > 0 ? `
+        <tbody class="divide-y divide-slate-800/30 border-t-2 border-slate-700/50" data-test="non-active-rows">
+          ${nonActiveBody}
+        </tbody>` : '';
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
@@ -202,6 +229,7 @@ export function render(targetEl, models) {
           <tr>
             <th class="py-2.5 px-3 font-semibold">Modelo</th>
             <th class="py-2.5 px-3 font-semibold text-center">Tier</th>
+            <th class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
             <th class="py-2.5 px-3 font-semibold text-center">Score</th>
             <th class="py-2.5 px-3 font-semibold text-center">BenchLM</th>
             <th class="py-2.5 px-3 font-semibold text-right">Input $</th>
@@ -209,22 +237,23 @@ export function render(targetEl, models) {
             <th class="py-2.5 px-3 font-semibold text-center">Sources</th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-slate-800/60">
-          ${body}
+        <tbody class="divide-y divide-slate-800/60" data-test="active-rows">
+          ${activeBody}
         </tbody>
+        ${nonActiveSection}
       </table>
     </div>
     <p class="mt-3 text-xs text-slate-500">
-      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${refCount > 0 ? ` + ${refCount} reference` : ''} ·
+      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference/legacy)` : ''} ·
       sorted by BenchLM score (desc) ·
-      reference rows appear at the bottom for comparison baseline ·
+      non-active rows appear below the separator for comparison baseline ·
       rows without BenchLM data show "—" (awaiting first scrape).
     </p>
   `;
 
   return {
-    rows: rows.length,
-    topKey: rows[0]?.[0] ?? null,
+    rows: allRows.length,
+    topKey: allRows[0]?.[0] ?? null,
     referenceModel,
   };
 }

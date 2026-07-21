@@ -5,7 +5,7 @@
 //   reference tier excluded, USD label (e.g. `$0.00028`), tier-based colors
 //   from --pricing-tier-{high,balanced,budget} tokens with Tailwind fallback.
 
-import { costEstimate } from '../services/model-scorer.js';
+import { costEstimate, isActive } from '../services/model-scorer.js';
 
 // Cache of CSS-token lookups per tier so we don't re-read getComputedStyle
 // on every render. Only populated during a real run with a <styles> link
@@ -85,10 +85,10 @@ function tierOf(m) {
   return 'balanced';
 }
 
-/** Filter out reference-tier models and sort the remainder by costEstimate ASCENDING. */
+/** Filter out non-active models and sort the remainder by costEstimate ASCENDING. */
 function rowsFor(models) {
   return Object.entries(models || {})
-    .filter(([, m]) => m && m.tier !== 'reference' && m.isReference !== true)
+    .filter(([, m]) => m && isActive(m))
     .map(([k, m]) => [k, m, costEstimate(m)])
     .sort((a, b) => {
       if (a[2] !== b[2]) return a[2] - b[2];
