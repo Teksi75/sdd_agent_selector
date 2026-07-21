@@ -208,3 +208,131 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(target.innerHTML).toMatch(/&lt;img/);
   });
 });
+
+describe('ref-table — reference display order and legacy filtering', () => {
+  const CATALOG_FIXTURE = {
+    glm52: {
+      name: 'GLM-5.2',
+      tier: 'high',
+      lifecycle: 'active',
+      benchlm: { score: 63.96, verified: false, reliability: 0.63, categories: {} },
+      input: 1.4,
+      output: 4.4,
+    },
+    gpt56sol: {
+      name: 'GPT-5.6 Sol',
+      tier: 'reference',
+      lifecycle: 'reference',
+      isReference: true,
+      benchlm: { score: 81.96, verified: true, reliability: 0.75, categories: {} },
+      input: 5,
+      output: 30,
+      isNew: true,
+    },
+    opus48: {
+      name: 'Claude Opus 4.8',
+      tier: 'reference',
+      lifecycle: 'reference',
+      isReference: true,
+      benchlm: { score: 78.34, verified: true, reliability: 0.63, categories: {} },
+      input: 5,
+      output: 25,
+    },
+    gpt55: {
+      name: 'gpt-5.5',
+      tier: 'reference',
+      lifecycle: 'reference',
+      isReference: true,
+      benchlm: { score: 73.51, verified: false, reliability: 0.88, categories: {} },
+      input: 5,
+      output: 30,
+    },
+    gpt56terra: {
+      name: 'GPT-5.6 Terra',
+      tier: 'reference',
+      lifecycle: 'reference',
+      isReference: true,
+      benchlm: { score: 72.57, verified: false, reliability: 0.75, categories: {} },
+      input: 2.5,
+      output: 15,
+      isNew: true,
+    },
+    gpt56luna: {
+      name: 'GPT-5.6 Luna',
+      tier: 'budget',
+      lifecycle: 'reference',
+      isReference: true,
+      benchlm: { score: 67.17, verified: false, reliability: 0.5, categories: {} },
+      input: 1,
+      output: 6,
+    },
+    glm51: {
+      name: 'GLM-5.1',
+      tier: 'high',
+      lifecycle: 'legacy',
+      benchlm: { score: 67.74, verified: true, reliability: 0.5, categories: {} },
+      input: 1.4,
+      output: 4.4,
+    },
+    glm5: {
+      name: 'GLM-5',
+      tier: 'budget',
+      lifecycle: 'legacy',
+      benchlm: { score: 66.06, verified: true, reliability: 0.88, categories: {} },
+      input: 1,
+      output: 3.2,
+    },
+  };
+
+  test('visible non-active keys are exactly [gpt56sol, opus48, gpt56terra, gpt56luna, gpt55] in that order', () => {
+    render(target, CATALOG_FIXTURE);
+    const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
+    const nonActiveKeys = Array.from(nonActiveSection.querySelectorAll('tr')).map(
+      (tr) => tr.getAttribute('data-model-key')
+    );
+    expect(nonActiveKeys).toEqual(['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna', 'gpt55']);
+  });
+
+  test('legacy rows (glm51, glm5) do not render', () => {
+    render(target, CATALOG_FIXTURE);
+    const allKeys = Array.from(target.querySelectorAll('tr[data-model-key]')).map(
+      (tr) => tr.getAttribute('data-model-key')
+    );
+    expect(allKeys).not.toContain('glm51');
+    expect(allKeys).not.toContain('glm5');
+  });
+
+  test('active rows remain before reference rows', () => {
+    render(target, CATALOG_FIXTURE);
+    const activeRows = Array.from(target.querySelectorAll('[data-test="active-rows"] tr'));
+    const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
+    const nonActiveRows = Array.from(nonActiveSection.querySelectorAll('tr'));
+    expect(activeRows.length).toBe(1);
+    expect(activeRows[0].getAttribute('data-model-key')).toBe('glm52');
+    expect(nonActiveRows.length).toBe(5);
+  });
+
+  test('summary visible non-active count reflects five reference rows, not seven total non-active records', () => {
+    const summary = render(target, CATALOG_FIXTURE);
+    expect(summary.rows).toBe(6);
+    const summaryText = target.querySelector('p.mt-3').textContent;
+    expect(summaryText).toMatch(/\+ 5 non-active/);
+    expect(summaryText).not.toMatch(/\+ 7 non-active/);
+  });
+
+  test('preserve score/tier/lifecycle rendering for visible reference rows', () => {
+    render(target, CATALOG_FIXTURE);
+    const gpt56sol = target.querySelector('tr[data-model-key="gpt56sol"]');
+    expect(gpt56sol.textContent).toMatch(/82\.0/);
+    expect(gpt56sol.textContent).toMatch(/REFERENCE/);
+    expect(gpt56sol.getAttribute('data-lifecycle')).toBe('reference');
+
+    const opus48 = target.querySelector('tr[data-model-key="opus48"]');
+    expect(opus48.textContent).toMatch(/78\.3/);
+    expect(opus48.textContent).toMatch(/REFERENCE/);
+
+    const gpt55 = target.querySelector('tr[data-model-key="gpt55"]');
+    expect(gpt55.textContent).toMatch(/73\.5/);
+    expect(gpt55.textContent).toMatch(/REFERENCE/);
+  });
+});
