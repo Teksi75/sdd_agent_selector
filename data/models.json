@@ -1,8 +1,8 @@
 {
   "_meta": {
-    "lastSynced": "2026-07-17",
+    "lastSynced": "2026-07-21",
     "source": "scrape-glm-blog",
-    "nextSync": "2026-07-21",
+    "nextSync": "2026-07-26",
     "schemaVersion": 2,
     "scrapers": {
       "benchlm": {
@@ -59,6 +59,11 @@
         {
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
           "date": "2026-07-16",
+          "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
+          "date": "2026-07-21",
           "scraper": "scrape-glm-blog"
         }
       ],
@@ -362,9 +367,9 @@
         "rank": 46,
         "evidence": "supported"
       },
-      "input": 1.74,
-      "output": 3.48,
-      "cacheRead": 0.0145,
+      "input": 0.435,
+      "output": 0.87,
+      "cacheRead": 0.003625,
       "tier": "high",
       "lifecycle": "active",
       "requestsPer5h": 3450,
@@ -394,9 +399,9 @@
         "rank": 14,
         "evidence": "supported"
       },
-      "input": 1.74,
-      "output": 3.48,
-      "cacheRead": 0.0145,
+      "input": 0.435,
+      "output": 0.87,
+      "cacheRead": 0.003625,
       "tier": "high",
       "lifecycle": "active"
     },
@@ -667,9 +672,9 @@
         "evidence": "estimated"
       },
       "input": 5,
-      "output": 30,
+      "output": null,
       "cacheRead": 0.5,
-      "tier": "reference",
+      "tier": "high",
       "lifecycle": "reference",
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
@@ -811,9 +816,9 @@
       },
       "tier": "high",
       "lifecycle": "active",
-      "input": 2.5,
-      "output": 15,
-      "cacheRead": 0.25,
+      "input": 5,
+      "output": null,
+      "cacheRead": 0.5,
       "sources": [
         {
           "url": "https://platform.openai.com/docs/pricing",
@@ -873,8 +878,8 @@
       },
       "tier": "balanced",
       "lifecycle": "active",
-      "input": 2,
-      "output": 10,
+      "input": null,
+      "output": null,
       "sources": [
         {
           "url": "https://www.anthropic.com/pricing",
