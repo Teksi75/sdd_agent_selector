@@ -11,6 +11,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 const MODELS = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')).models;
 
+import { isActive } from '../js/services/model-scorer.js';
+
 let target;
 beforeEach(() => {
   target = document.createElement('section');
@@ -30,15 +32,15 @@ describe('pricing-chart — render() contract (spec.md)', () => {
     const bars = target.querySelectorAll('[data-model-key]');
     const keys = Array.from(bars).map((el) => el.getAttribute('data-model-key'));
 
-    // Reference models (tier:reference OR isReference:true) must be excluded.
+    // Non-active models (reference, legacy, benchmark-only) must be excluded.
     expect(keys).not.toContain('opus48');
     expect(keys).not.toContain('gpt55');
-    // Expected bar count is the non-reference subset of the current
+    expect(keys).not.toContain('glm5');
+    expect(keys).not.toContain('glm51');
+    // Expected bar count is the active subset of the current
     //   dataset — computed dynamically so the test stays correct when new
     //   models are added via sync / manual add without bumping this test.
-    const expectedBars = Object.values(MODELS).filter(
-      (m) => m.tier !== 'reference' && !m.isReference
-    ).length;
+    const expectedBars = Object.values(MODELS).filter((m) => isActive(m)).length;
     expect(keys.length).toBe(summary.bars);
     expect(summary.bars).toBe(expectedBars);
   });
@@ -59,7 +61,7 @@ describe('pricing-chart — render() contract (spec.md)', () => {
     }
     // Top bar = cheapest in dataset, bottom bar = most expensive non-reference.
     const expectedAsc = Object.entries(MODELS)
-      .filter(([, m]) => m.tier !== 'reference' && !m.isReference)
+      .filter(([, m]) => isActive(m))
       .map(([k, m]) => ({ k, c: costEstimate(m) }))
       .sort((a, b) => a.c - b.c);
     expect(rows[0].key).toBe(expectedAsc[0].k);

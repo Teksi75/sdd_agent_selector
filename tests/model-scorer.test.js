@@ -446,7 +446,7 @@ describe('model-scorer — getBestFor', () => {
     const refs = { opus48: OPUS48, gpt55: GPT55 };
     const result = getBestFor('sdd-archive', refs, ROLE_MATRIX, REQUEST_PROFILES, 'balanced');
     expect(result.key).toBeNull();
-    expect(result.reason).toMatch(/reference/i);
+    expect(result.reason).toMatch(/non-active|active-lifecycle/i);
   });
 
   test('result shape is the documented BestForResult contract', () => {
@@ -649,12 +649,11 @@ describe('model-scorer — role-designated reference soft fallback', () => {
     'gentle-orchestrator': { inputTokens: 4000, outputTokens: 2000 },
   };
 
-  test('role-designated reference is surfaced when no normal eligible model exists', () => {
+  test('role-designated reference is blocked when non-active; general soft fallback picks active model', () => {
     const result = getBestFor('gentle-orchestrator', POOL, ORCH_ROLE, ORCH_PROFILES, 'balanced');
-    expect(result.key).toBe('orch-ref');
+    expect(result.key).toBe('cheap');
     expect(result.softFallback).toBe(true);
-    expect(result.reason).toMatch(/role-designated reference/);
-    expect(result.reason).toMatch(/orch-ref/);
+    expect(result.reason).not.toMatch(/role-designated reference/);
     expect(result.cost).toBeLessThanOrEqual(result.effectiveMaxCost + 1e-9);
   });
 

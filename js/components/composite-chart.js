@@ -26,7 +26,7 @@
 //     render a "BenchLM stale" amber badge above the bars. When fresh (or
 //     metadata absent), the badge is omitted.
 
-import { compositeScore } from '../services/model-scorer.js';
+import { compositeScore, lifecycleOf, isActive } from '../services/model-scorer.js';
 
 // Cache of CSS-token lookups per tier so we don't re-read getComputedStyle
 // on every render. Only populated during a real run with a <styles> link
@@ -98,27 +98,32 @@ function tierOf(m) {
 }
 
 /**
- * Partition all models (including reference-tier) into scored +
- * unavailable groups.
+ * Partition all models into active-scored, active-unavailable, and
+ * non-active groups.
  *
- * - Scored: compositeScore(model) is a finite number.
- * - Unavailable: compositeScore is null OR benchlm block is missing —
- *   these will render as placeholder rows (per the benchlm-fail-soft
- *   contract).
+ * - Active scored: isActive(model) && compositeScore is finite.
+ * - Active unavailable: isActive(model) && compositeScore is null.
+ * - Non-active: NOT isActive(model) — rendered in a separated catalog
+ *   section (never in the main ranking).
  *
- * Returns `{ scored, unavailable }` where scored is sorted descending
- * (with the cheaper-input tie-breaker) and unavailable is appended
- * verbatim at the end of the rendered list.
+ * Active scored sorted descending (cheaper input tie-break).
+ * Active unavailable appended after scored.
+ * Non-active returned separately.
  *
  * @param {Object<string, Object>} models
- * @returns {{ scored: Array<[string, Object, number]>, unavailable: Array<[string, Object]> }}
+ * @returns {{ scored: Array, unavailable: Array, nonActive: Array }}
  */
 function rowsFor(models) {
   const entries = Object.entries(models || {}).filter(([, m]) => m);
 
   const scored = [];
   const unavailable = [];
+  const nonActive = [];
   for (const [k, m] of entries) {
+    if (!isActive(m)) {
+      nonActive.push([k, m]);
+      continue;
+    }
     const score = compositeScore(m);
     if (score == null || !Number.isFinite(score)) {
       unavailable.push([k, m]);
@@ -132,7 +137,15 @@ function rowsFor(models) {
     const cb = Number.isFinite(b[1]?.input) ? b[1].input : Infinity;
     return ca - cb;
   });
-  return { scored, unavailable };
+  nonActive.sort((a, b) => {
+    const sa = compositeScore(a[1]);
+    const sb = compositeScore(b[1]);
+    if (sa == null && sb == null) return 0;
+    if (sa == null) return 1;
+    if (sb == null) return -1;
+    return sb - sa;
+  });
+  return { scored, unavailable, nonActive };
 }
 
 /**
@@ -230,6 +243,26 @@ function unavailableRowHtml(key, m) {
 }
 
 /**
+ * Build one NON-ACTIVE row's HTML. Shows lifecycle badge, reduced
+ * opacity, and is rendered in a separated catalog section.
+ */
+function nonActiveRowHtml(key, m) {
+  const lc = lifecycleOf(m);
+  const score = compositeScore(m);
+  const scoreStr = score != null && Number.isFinite(score) ? score.toFixed(1) : '—';
+  const badgeClass = lc === 'reference' ? 'bg-rose-500/20 text-rose-300 border-rose-500/30'
+    : lc === 'legacy' ? 'bg-slate-500/20 text-slate-400 border-slate-500/30'
+    : 'bg-violet-500/20 text-violet-300 border-violet-500/30';
+  return `
+    <div class="flex items-center gap-3 opacity-50" data-model-key="${esc(key)}" data-lifecycle="${esc(lc)}" data-score="${score != null ? score.toFixed(2) : '0'}" data-non-active="true">
+      <div class="w-32 md:w-40 text-xs font-medium text-slate-400 truncate">${esc(m.name || key)}</div>
+      <span class="${badgeClass} border px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider" data-lifecycle-badge="${esc(lc)}">${esc(lc)}</span>
+      <div class="flex-1"></div>
+      <div class="w-14 text-right text-xs font-mono text-slate-500">${scoreStr}</div>
+    </div>`;
+}
+
+/**
  * Compute days since `lastRun` ISO string. Returns Infinity when
  * the timestamp is missing or unparseable (treat as "we don't know
  * how stale it is, so don't show the warning").
@@ -298,13 +331,13 @@ export function render(targetEl, models, _meta) {
     return { scored: 0, unavailable: 0, maxScore: null };
   }
 
-  const { scored, unavailable } = rowsFor(models);
-  if (scored.length === 0 && unavailable.length === 0) {
+  const { scored, unavailable, nonActive } = rowsFor(models);
+  if (scored.length === 0 && unavailable.length === 0 && nonActive.length === 0) {
     targetEl.innerHTML = `
       <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
         No hay modelos activos para mostrar.
       </div>`;
-    return { scored: 0, unavailable: 0, maxScore: null };
+    return { scored: 0, unavailable: 0, nonActive: 0, maxScore: null };
   }
 
   const maxScore = scored.length > 0 ? scored[0][2] : null;
@@ -319,26 +352,41 @@ export function render(targetEl, models, _meta) {
   const unavailableBody = unavailable
     .map(([key, m]) => unavailableRowHtml(key, m))
     .join('');
+  const nonActiveBody = nonActive
+    .map(([key, m]) => nonActiveRowHtml(key, m))
+    .join('');
 
   const stale = staleBadgeHtml(_meta);
+
+  const nonActiveSection = nonActive.length > 0 ? `
+      <div class="mt-4 pt-3 border-t border-slate-700/50" data-test="non-active-catalog">
+        <div class="flex items-center justify-between mb-2">
+          <h4 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Reference / Legacy catalog</h4>
+          <span class="text-[10px] text-slate-500">${nonActive.length} non-active · not in ranking</span>
+        </div>
+        <div class="space-y-1.5" data-test="non-active-rows">
+          ${nonActiveBody}
+        </div>
+      </div>` : '';
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold text-slate-200">Composite benchmark</h3>
-        <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} modelos · BenchLM (0-100)</span>
+        <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} active models · BenchLM (0-100)</span>
       </div>
       ${stale}
       <div class="space-y-2.5" data-test="composite-bars">
         ${scoredBody}${unavailableBody}
       </div>
+      ${nonActiveSection}
       <p class="mt-3 text-[11px] text-slate-500">
         Scores y badges vienen de BenchLM (<code>benchlm</code> con score/verified/reliability);
         fallback a Tailwind cuando el token no está definido.
       </p>
     </div>`;
 
-  return { scored: scored.length, unavailable: unavailable.length, maxScore };
+  return { scored: scored.length, unavailable: unavailable.length, nonActive: nonActive.length, maxScore };
 }
 
 /** Reset module state. Exported only for jsdom test isolation. */
