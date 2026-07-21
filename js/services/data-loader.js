@@ -19,12 +19,13 @@
 // shape change is a one-line bump + new tests.
 
 /** @type {string} */
-// v4 forces a one-time refetch after correcting Claude Sonnet 5 pricing
-// (input: 2, output: 10 per BenchLM 2026-07-17 snapshot).
-export const CACHE_KEY = 'sdd-models-v4';
+// v5 invalidates cached catalog after lifecycle/reference-table and
+// curated scraper data corrections (post-v4 ref-table ordering, legacy
+// filtering, and updated model lifecycle/tier values).
+export const CACHE_KEY = 'sdd-models-v5';
 
 /** @type {string[]} - frozen list of prior cache keys to fall back to. */
-export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v3', 'sdd-models-v2']);
+export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v4', 'sdd-models-v3', 'sdd-models-v2']);
 
 /** @type {number} - bump to invalidate ALL cached entries.
  *  Exported as a test affordance so the integrity suite can pin the
