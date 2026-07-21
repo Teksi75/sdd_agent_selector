@@ -720,6 +720,42 @@
         }
       ]
     },
+    "gpt56luna": {
+      "name": "GPT-5.6 Luna",
+      "arena": null,
+      "swePro": 62.7,
+      "sweVer": null,
+      "term": 84.7,
+      "benchlm": {
+        "score": 67.17,
+        "verified": false,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 58.5,
+          "coding": 72.6,
+          "reasoning": null,
+          "multimodalGrounded": 65.7,
+          "knowledge": 80.9,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": 97.1
+        },
+        "rank": 22,
+        "evidence": "estimated"
+      },
+      "input": 1,
+      "output": 6,
+      "tier": "budget",
+      "lifecycle": "reference",
+      "isReference": true,
+      "notes": "OpenAI budget tier, 26 jun 2026. BenchLM public score is provisional (24 verified + 17 provisional records). Cheapest GPT-5.6 family tier ($1/$6 per 1M tokens). cacheRead not published by source.",
+      "sources": [
+        {
+          "url": "https://benchlm.ai/models/gpt-5-6-luna",
+          "date": "2026-07-20"
+        }
+      ]
+    },
     "gpt56sol": {
       "name": "GPT-5.6 Sol",
       "benchlm": {
