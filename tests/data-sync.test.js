@@ -157,7 +157,7 @@ describe('data-sync — refresh() success path', () => {
     expect(result.ok).toBe(true);
     expect(result.files).toBe(5);
     // sessionStorage was updated.
-    const cached = sessionStorage.getItem('sdd-models-v4');
+    const cached = sessionStorage.getItem('sdd-models-v5');
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
     expect(parsed.schemaVersion).toBe(2);
@@ -197,7 +197,7 @@ describe('data-sync — refresh() failure path', () => {
     // Pre-seed sessionStorage with valid cached data so we can verify the
     //   fallback path keeps using the cache.
     sessionStorage.setItem(
-      'sdd-models-v4',
+      'sdd-models-v5',
       JSON.stringify({
         schemaVersion: 2,
         timestamp: Date.now(),
@@ -228,7 +228,7 @@ describe('data-sync — refresh() failure path', () => {
       expect(result.ok).toBe(false);
       expect(result.error).toMatch(/network|fetch|TypeError/i);
       // Cached data still in storage.
-      const cached = JSON.parse(sessionStorage.getItem('sdd-models-v4'));
+      const cached = JSON.parse(sessionStorage.getItem('sdd-models-v5'));
       expect(cached.data.models.glm52.name).toBe('cached-glm52');
       // A warning was emitted.
       expect(warnSpy).toHaveBeenCalled();
@@ -271,7 +271,7 @@ describe('data-loader — legacy cache fallback', () => {
     delete globalThis.fetch;
   });
 
-  test('valid v3 fallback returned on network failure; fetch attempted, v4 absent', async () => {
+  test('valid v4 fallback returned on network failure; fetch attempted, v5 absent', async () => {
     globalThis.fetch = vi.fn(async () => { throw new TypeError('network down'); });
     const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
     sessionStorage.setItem(
@@ -285,7 +285,7 @@ describe('data-loader — legacy cache fallback', () => {
     expect(sessionStorage.getItem(CACHE_KEY)).toBeNull();
   });
 
-  test('clearCache removes current v4 and legacy v3/v2 keys', async () => {
+  test('clearCache removes current v5 and legacy v4/v3/v2 keys', async () => {
     const { clearCache, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schemaVersion: 2, data: {} }));
     sessionStorage.setItem(LEGACY_CACHE_KEYS[0], JSON.stringify({ schemaVersion: 2, data: {} }));
