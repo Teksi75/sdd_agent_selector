@@ -19,12 +19,12 @@
 // shape change is a one-line bump + new tests.
 
 /** @type {string} */
-// v3 forces a one-time refetch after including reference-tier models
-// (GPT-5.6 Sol, GPT-5.6 Terra) in the Composite benchmark chart.
-export const CACHE_KEY = 'sdd-models-v3';
+// v4 forces a one-time refetch after correcting Claude Sonnet 5 pricing
+// (input: 2, output: 10 per BenchLM 2026-07-17 snapshot).
+export const CACHE_KEY = 'sdd-models-v4';
 
 /** @type {string[]} - frozen list of prior cache keys to fall back to. */
-export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v2']);
+export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v3', 'sdd-models-v2']);
 
 /** @type {number} - bump to invalidate ALL cached entries.
  *  Exported as a test affordance so the integrity suite can pin the
@@ -113,8 +113,12 @@ function readCacheEntry(backend, key) {
 function readCache() {
   const backend = cacheBackend();
   if (!backend) return null;
-  const current = readCacheEntry(backend, CACHE_KEY);
-  if (current) return current;
+  return readCacheEntry(backend, CACHE_KEY);
+}
+
+function readLegacyFallback() {
+  const backend = cacheBackend();
+  if (!backend) return null;
   for (const legacyKey of LEGACY_CACHE_KEYS) {
     const legacy = readCacheEntry(backend, legacyKey);
     if (legacy) return legacy;
@@ -222,7 +226,15 @@ export async function loadAll() {
     inMemory = cached;
     return cached;
   }
-  if (inflight) return inflight;
+  const legacyFallback = readLegacyFallback();
+  if (inflight) {
+    try {
+      return await inflight;
+    } catch (err) {
+      if (legacyFallback) return legacyFallback;
+      throw err;
+    }
+  }
 
   // Local capture so an `invalidateMemoryCache()` mid-flight that sets
   // the module-level `inflight = null` cannot turn the `await` below
@@ -257,6 +269,9 @@ export async function loadAll() {
     // await — the fresh inMemory (if any) wins.
     if (myGeneration === loadGeneration) inMemory = composed;
     return composed;
+  } catch (err) {
+    if (legacyFallback) return legacyFallback;
+    throw err;
   } finally {
     // Only clear `inflight` if it's still ours — a newer loadAll() may
     // have replaced it with its own Promise in the meantime.
