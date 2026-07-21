@@ -171,17 +171,21 @@ async function main() {
     const patch = {
       name: info.display,
       tier: info.tier,
-      input: card.input,
-      output: card.output,
-      ...(card.cacheRead != null ? { cacheRead: card.cacheRead } : {}),
-      ...(card.cacheWrite != null ? { cacheWrite: card.cacheWrite } : {}),
     };
+    if (Number.isFinite(card.input)) patch.input = card.input;
+    if (Number.isFinite(card.output)) patch.output = card.output;
+    if (Number.isFinite(card.cacheRead)) patch.cacheRead = card.cacheRead;
+    if (Number.isFinite(card.cacheWrite)) patch.cacheWrite = card.cacheWrite;
     if (info.isReference) {
       patch.isReference = true;
     }
     if (existing) {
-      // Preserve `arena`, `swePro`, `sweVer`, `term`, `notes`, `sources` etc.
-      // Only overwrite the price + tier + name.
+      if (!Number.isFinite(patch.input) && Number.isFinite(existing.input)) {
+        patch.input = existing.input;
+      }
+      if (!Number.isFinite(patch.output) && Number.isFinite(existing.output)) {
+        patch.output = existing.output;
+      }
       updatedModels[info.key] = { ...existing, ...patch };
     } else {
       patch.sources = [{ url, date: today }];

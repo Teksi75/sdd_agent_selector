@@ -126,6 +126,14 @@ const KNOWN_V4_ONLY = new Set([
   'kimik3',
 ]);
 
+// Models whose V4 input/output prices legitimately differ from the V3
+// snapshot due to upstream provider price changes (not scraper corruption).
+// The V3 monolith is a frozen historical snapshot and is NOT updated.
+const KNOWN_UPSTREAM_PRICE_UPDATES = new Set([
+  'deepseekv4p',  // OpenCode price drop: 1.74/3.48 → 0.435/0.87 (2026-07)
+  'mimo25pro',    // OpenCode price drop: 1.74/3.48 → 0.435/0.87 (2026-07)
+]);
+
 // --- PR3 assertions (always run, no V3 dependency required) ----------------
 
 describe('data-integrity: BenchLM-shape contract (PR3)', () => {
@@ -259,8 +267,10 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
       const b = v4[key];
       expect(b, `V4 missing model ${key}`).toBeDefined();
       expect(nameEqual(b.name, a.name), `V4 name "${b.name}" != V3 name "${a.name}"`).toBe(true);
-      expect(b.input).toBeCloseTo(Number(a.input), 6);
-      expect(b.output).toBeCloseTo(Number(a.output), 6);
+      if (!KNOWN_UPSTREAM_PRICE_UPDATES.has(key)) {
+        expect(b.input).toBeCloseTo(Number(a.input), 6);
+        expect(b.output).toBeCloseTo(Number(a.output), 6);
+      }
       expect(b.tier).toBe(normalizeTier(a.tier));
     }
   });

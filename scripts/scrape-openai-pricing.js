@@ -259,17 +259,33 @@ async function main() {
       skipped.push(key);
       continue;
     }
-    const tier = 'high';
     const patch = {
       name: row.name.split(' (')[0], // strip "(<272K context length)" suffix
-      tier,
       input: row.input,
       output: row.output,
       ...(row.cacheRead != null ? { cacheRead: row.cacheRead } : {}),
     };
     if (existing) {
+      if (
+        existing.lifecycle === 'reference' ||
+        existing.isReference === true ||
+        existing.tier === 'reference'
+      ) {
+        patch.tier = 'reference';
+      } else if (existing.tier) {
+        patch.tier = existing.tier;
+      } else {
+        patch.tier = 'high';
+      }
+      if (!Number.isFinite(patch.input) && Number.isFinite(existing.input)) {
+        delete patch.input;
+      }
+      if (!Number.isFinite(patch.output) && Number.isFinite(existing.output)) {
+        delete patch.output;
+      }
       updatedModels[key] = { ...existing, ...patch };
     } else {
+      patch.tier = 'high';
       updatedModels[key] = { ...patch, sources: [{ url, date: today.toISOString().slice(0, 10) }] };
     }
     updated.push(key);

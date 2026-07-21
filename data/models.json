@@ -672,9 +672,9 @@
         "evidence": "estimated"
       },
       "input": 5,
-      "output": null,
+      "output": 30,
       "cacheRead": 0.5,
-      "tier": "high",
+      "tier": "reference",
       "lifecycle": "reference",
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
@@ -878,8 +878,8 @@
       },
       "tier": "balanced",
       "lifecycle": "active",
-      "input": null,
-      "output": null,
+      "input": 2,
+      "output": 10,
       "sources": [
         {
           "url": "https://www.anthropic.com/pricing",
