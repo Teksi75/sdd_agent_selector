@@ -61,10 +61,17 @@ function findConfig(key) {
 /**
  * Paint .active on the chosen button (and remove it from siblings).
  * MUST be called only AFTER the twin judge check has succeeded.
+ *
+ * V5+ — also set aria-pressed so screen readers announce the toggle
+ * state. The 5 config buttons are a "single-select" toggle group; the
+ * spec calls for `aria-pressed` (not `aria-selected` — that would imply
+ * a tab/listbox role with arrow-key navigation we don't implement).
  */
 function paintActive(key) {
   for (const b of _targetEl.querySelectorAll('button[data-config-key]')) {
-    b.classList.toggle('active', b.dataset.configKey === key);
+    const isActive = b.dataset.configKey === key;
+    b.classList.toggle('active', isActive);
+    b.setAttribute('aria-pressed', isActive ? 'true' : 'false');
   }
 }
 
@@ -148,13 +155,13 @@ export function render(targetEl, configs, onSelect) {
   _activeKey = null;
 
   targetEl.innerHTML =
-    '<div role="group" aria-label="Selector de configuración">' +
+    '<div role="group" aria-label="Selector de configuración" class="config-selector-group">' +
     configs
       .map(
         (c) =>
           `<button type="button" data-config-key="${esc(c.key)}" data-config-strategy="${esc(
             c.strategy || ''
-          )}" class="config-btn">${esc(c.name)}</button>`
+          )}" class="config-btn" aria-pressed="false">${esc(c.name)}</button>`
       )
       .join('') +
     '</div>';

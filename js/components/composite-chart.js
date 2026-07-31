@@ -204,7 +204,7 @@ function barRowHtml(key, m, score, width, bgClass, bgValue) {
       ? ' <span class="src-badge src-new ml-1">NEW</span>'
       : '';
   const tierLabel = esc(tierOf(m));
-  const fillStyle = bgValue ? ` style="width:${width}%;background-color:${esc(bgValue)}"` : ` style="width:${width}%"`;
+  const fillStyle = bgValue ? ` style="transform:scaleX(${(width / 100).toFixed(4)});background-color:${esc(bgValue)}"` : ` style="transform:scaleX(${(width / 100).toFixed(4)})"`;
   const fillClass = bgValue ? 'bar-fill' : `bar-fill ${bgClass}`;
   const badge = badgeHtml(m.benchlm);
   const dots = reliabilityDotsHtml(m.benchlm?.reliability);

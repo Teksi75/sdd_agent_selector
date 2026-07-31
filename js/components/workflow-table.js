@@ -148,9 +148,9 @@ export function render(targetEl, assignments, models, phases) {
       <table class="w-full text-left text-sm text-slate-200">
         <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
           <tr>
-            <th class="py-2.5 px-3 font-semibold">Fase</th>
-            <th class="py-2.5 px-3 font-semibold">Descripción</th>
-            <th class="py-2.5 px-3 font-semibold text-right">Modelo</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold">Fase</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold">Descripción</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-right">Modelo</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/60">

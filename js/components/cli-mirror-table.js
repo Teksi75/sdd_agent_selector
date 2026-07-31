@@ -218,9 +218,9 @@ export function render(targetEl, agentsAssignments, agentRoles) {
       <table class="w-full text-left text-sm text-slate-200">
         <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
           <tr>
-            <th class="py-2 px-3 font-semibold">Agent</th>
-            <th class="py-2 px-3 font-semibold">Role</th>
-            <th class="py-2 px-3 font-semibold text-right">Modelo asignado</th>
+            <th scope="col" class="py-2 px-3 font-semibold">Agent</th>
+            <th scope="col" class="py-2 px-3 font-semibold">Role</th>
+            <th scope="col" class="py-2 px-3 font-semibold text-right">Modelo asignado</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/60">
