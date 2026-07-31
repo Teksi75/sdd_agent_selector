@@ -33,6 +33,10 @@ let _models = null;
 let _roleMatrix = null;
 let _profiles = null;
 let _activeKey = null;
+// V5+ P2-2: track the previous assignment set so we can diff against
+// the next one and scroll to the first changed agent. `null` on first
+// select (no diff to compute → no scroll).
+let _previousAssignments = null;
 
 /**
  * Inject the data layer. The component does NOT fetch on its own.
@@ -49,6 +53,7 @@ export function resetForTests() {
   _targetEl = _configs = _onSelect = null;
   _models = _roleMatrix = _profiles = null;
   _activeKey = null;
+  _previousAssignments = null;
 }
 
 /** Find a config by key. Returns null when no config registered or key missing. */
@@ -89,12 +94,72 @@ function computeAssignments(strategy) {
 }
 
 /**
+ * V5+ P2-2: scroll-to-impact. After a successful selectConfig, diff the
+ * new assignments against the previous set. The first agent whose
+ * `modelKey` changed is the "impact" — its justification card scrolls
+ * into view and flashes a 1.4s ring so the user sees the consequence
+ * of their click. Skips on the first select (no previous set).
+ *
+ * Implementation notes:
+ *   - We wait 2 RAFs before scrolling because the caller's onSelect
+ *     triggers a re-render of cli-mirror + justification. Without the
+ *     wait, scrollIntoView would target a stale node (the old card).
+ *   - The flash class lives in tokens.css; it honors prefers-reduced-motion
+ *     via the global `*` transition-duration override.
+ *   - The card target is `[data-agent="<id>"]` which is the same selector
+ *     the cli-mirror and justification components already emit, so no
+ *     markup change is needed.
+ *
+ * @param {Object<string, Object>} prev  previous assignments (agentId → {key, ...})
+ * @param {Object<string, Object>} next  new assignments
+ */
+function scrollToFirstChange(prev, next) {
+  if (!prev) return;
+  const agents = Object.keys(next);
+  let firstChanged = null;
+  for (const agent of agents) {
+    const p = prev[agent]?.key ?? null;
+    const n = next[agent]?.key ?? null;
+    if (p !== n) {
+      firstChanged = agent;
+      break;
+    }
+  }
+  if (!firstChanged) return;
+  // Two RAFs: one to flush the click handler stack, one to let the
+  // re-rendered DOM land. Without this, scrollIntoView can target a
+  // detached node from the previous paint.
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      const card = document.querySelector(`[data-agent="${firstChanged}"]`);
+      if (!card) return;
+      // Defensive: jsdom + some older browsers don't implement
+      // scrollIntoView at all. The flash effect is the primary affordance
+      // here; the scroll is a progressive enhancement. We no-op silently
+      // when the API is missing.
+      if (typeof card.scrollIntoView === 'function') {
+        try {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch {
+          try { card.scrollIntoView(); } catch { /* ignore */ }
+        }
+      }
+      card.classList.add('flash-card');
+      setTimeout(() => card.classList.remove('flash-card'), 1400);
+    });
+  });
+}
+
+/**
  * Select a config by `key`. Implements the spec flow:
  *   1. validate config exists              → throw InvalidConfigError
  *   2. idempotency: same key → silent no-op
  *   3. compute 18-agent assignments via getBestFor
  *   4. twin judge: jd-judge-a.key === jd-judge-b.key; else throw (no DOM mutation)
- *   5. paint .active + invoke onSelect(assignments)
+ *   5. paint .active + invoke onSelect(assignments, prev)
+ *      (V5+ P2-2: prev is passed so the caller can drive scroll-to-impact;
+ *       existing callers that ignore the 2nd arg are unaffected)
+ *   6. V5+ P2-2: scroll to the first-changed agent's card and flash it
  * @param {string} key
  * @throws {InvalidConfigError}
  */
@@ -116,9 +181,14 @@ export function selectConfig(key) {
     );
   }
 
+  const prev = _previousAssignments;
   _activeKey = key;
+  _previousAssignments = assignments;
   paintActive(key);
-  if (typeof _onSelect === 'function') _onSelect(assignments);
+  if (typeof _onSelect === 'function') _onSelect(assignments, prev);
+  // V5+ P2-2: scroll to the first agent whose assignment changed.
+  // Runs AFTER onSelect so the DOM is up to date by the time we query.
+  scrollToFirstChange(prev, assignments);
   // V5 — user feedback: tell the user the click took effect and what was
   // applied. The tier count tells them how many agents got a model (out of
   // 18); softFallbacks flag the data needs attention.

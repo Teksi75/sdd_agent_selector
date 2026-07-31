@@ -137,3 +137,115 @@ describe('config-selector — twin judge constraint', () => {
     expect(target.querySelectorAll('button.active').length).toBe(0);
   });
 });
+
+// jsdom does not implement scrollIntoView. Stub it on Element.prototype
+// so the source code's defensive `typeof card.scrollIntoView === 'function'`
+// check passes and the flash-card class is added. Without this stub, the
+// source would no-op on jsdom and the test would fail to observe the flash.
+if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = function () { /* noop for jsdom */ };
+}
+
+// V5+ P2-2: scroll-to-impact. The onSelect callback receives
+// (assignments, prev) so the caller can react to changes. The component
+// itself scrolls + flashes the first changed agent's card.
+describe('config-selector — V5+ P2-2 scroll-to-impact', () => {
+  test('onSelect recibe (assignments, prev) — el 2do arg es la selección anterior', async () => {
+    ({ render, selectConfig, setData, resetForTests } = await import(
+      '../js/components/config-selector.js'
+    ));
+    resetForTests();
+    setData({ models: MODELS, roleMatrix: ROLE_MATRIX, profiles: PROFILES });
+    let lastCall = null;
+    render(target, CONFIGS, (assignments, prev) => {
+      lastCall = { assignments, prev };
+    });
+
+    selectConfig('balanceado');
+    expect(lastCall.assignments).toBeDefined();
+    expect(lastCall.prev).toBeNull();     // first select → no previous
+
+    selectConfig('economico');
+    expect(lastCall.prev).toBeDefined();
+    expect(lastCall.prev).not.toBeNull();
+    expect(lastCall.assignments).toBeDefined();
+
+    // Flush any RAFs queued by the 2 selectConfig calls. Without this
+    // they fire during the NEXT test's setup and contaminate its DOM.
+    await new Promise((r) => setTimeout(r, 50));
+  });
+
+  test('primer select no flashea ningún card (no hay diff)', async () => {
+    ({ render, selectConfig, setData, resetForTests } = await import(
+      '../js/components/config-selector.js'
+    ));
+    resetForTests();
+    setData({ models: MODELS, roleMatrix: ROLE_MATRIX, profiles: PROFILES });
+
+    // Plant cards for ALL 18 agents so we can detect ANY flash.
+    // (The test asserts the OPPOSITE — that none flash on the first
+    // select, because there is no previous assignment set to diff
+    // against.)
+    const allAgents = Object.keys(ROLE_MATRIX);
+    const planted = allAgents.map((agent) => {
+      const el = document.createElement('div');
+      el.setAttribute('data-agent', agent);
+      el.className = 'justification-card';
+      document.body.appendChild(el);
+      return el;
+    });
+
+    render(target, CONFIGS, () => {});
+    selectConfig('balanceado');
+    // Wait for the RAF chain to flush.
+    await new Promise((r) => setTimeout(r, 50));
+
+    const flashed = planted.filter((c) => c.classList.contains('flash-card'));
+    expect(flashed.length).toBe(0);
+
+    // Cleanup.
+    planted.forEach((c) => c.remove());
+  });
+
+  test('segundo select con strategy diferente flashea al menos un card', async () => {
+    ({ render, selectConfig, setData, resetForTests } = await import(
+      '../js/components/config-selector.js'
+    ));
+    resetForTests();
+    setData({ models: MODELS, roleMatrix: ROLE_MATRIX, profiles: PROFILES });
+
+    // Plant cards for ALL 18 agents — the diff will hit at least one
+    // of them (and likely more, since balanceado vs min-cost produce
+    // different model selections across most roles).
+    const allAgents = Object.keys(ROLE_MATRIX);
+    const planted = allAgents.map((agent) => {
+      const el = document.createElement('div');
+      el.setAttribute('data-agent', agent);
+      el.className = 'justification-card';
+      document.body.appendChild(el);
+      return el;
+    });
+
+    render(target, CONFIGS, () => {});
+    selectConfig('balanceado');
+    await new Promise((r) => setTimeout(r, 50));
+
+    selectConfig('economico');
+    await new Promise((r) => setTimeout(r, 50));
+
+    const flashed = planted.filter((c) => c.classList.contains('flash-card'));
+    expect(flashed.length).toBeGreaterThan(0);
+
+    // Verify the flash class is auto-removed after the 1400ms window.
+    // We don't wait 1.4s (would slow the suite) — instead we verify
+    // that the class IS set immediately after the RAF flush, and trust
+    // the setTimeout in the component source.
+    expect(flashed[0].classList.contains('flash-card')).toBe(true);
+
+    // Cleanup.
+    planted.forEach((c) => {
+      c.classList.remove('flash-card');
+      c.remove();
+    });
+  });
+});

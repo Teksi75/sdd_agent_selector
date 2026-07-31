@@ -119,3 +119,52 @@ a:focus-visible,
   border-radius:6px
 }
 .config-selector-group{display:flex;flex-wrap:wrap;gap:.5rem}
+
+/* V5+ — P2 polish (2026-07-31, P2-1/P2-2/P2-3/P2-6).
+   1. scroll-margin-top on the 3 tier sections: when deep-linking via
+      #tier-1/2/3, the viewport scrolls so the h2 sits below the
+      (potentially sticky) config bar instead of being covered by it.
+   2. .config-sticky: pins the config-selector bar to the top of the
+      viewport with a blurred dark tint. The 5 strategy buttons stay
+      reachable while scrolling the long catalog. The .tier-1 wrapper
+      sets `overflow: visible` (default) so position:sticky works
+      against the body scroll, not a local scroll container.
+   3. .flash-card: brief outline pulse on justification cards when the
+      user picks a new config and the first-changed agent scrolls into
+      view. Honors prefers-reduced-motion via the @media above.
+   4. .tier-tag shape prefixes: color-blind safe indicator. Each tier
+      gets a Unicode shape (▲●▽◆) injected via ::before so the tier
+      is identifiable even when all colors look the same (protanopia,
+      deuteranopia, monochrome print). The text label is still the
+      source of truth; the shape is a redundant visual cue. */
+#tier-1,#tier-2,#tier-3{scroll-margin-top:5rem}
+.config-sticky{
+  position:sticky;
+  top:.5rem;
+  z-index:20;
+  padding:.5rem 0;
+  margin:-.5rem 0;
+  background:rgba(2,6,23,.72);
+  -webkit-backdrop-filter:blur(10px);
+  backdrop-filter:blur(10px);
+  border-radius:.5rem
+}
+.flash-card{
+  animation:flash-pulse 1.4s ease-out 1;
+  outline:2px solid #818cf8;
+  outline-offset:2px;
+  border-radius:.75rem
+}
+@keyframes flash-pulse{
+  0%{box-shadow:0 0 0 0 rgba(129,140,248,.65)}
+  70%{box-shadow:0 0 0 14px rgba(129,140,248,0)}
+  100%{box-shadow:0 0 0 0 rgba(129,140,248,0)}
+}
+.tier-tag[data-tier="high"]::before{content:"\25B2\00A0"}
+.tier-tag[data-tier="balanced"]::before{content:"\25CF\00A0"}
+.tier-tag[data-tier="budget"]::before{content:"\25BD\00A0"}
+.tier-tag[data-tier="reference"]::before{content:"\25C6\00A0"}
+.model-tier-tag[data-tier="high"]::before{content:"\25B2\00A0"}
+.model-tier-tag[data-tier="balanced"]::before{content:"\25CF\00A0"}
+.model-tier-tag[data-tier="budget"]::before{content:"\25BD\00A0"}
+.model-tier-tag[data-tier="reference"]::before{content:"\25C6\00A0"}

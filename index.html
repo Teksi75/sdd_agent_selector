@@ -78,17 +78,23 @@
       </header>
 
       <!-- ─── Tier 1 — Acción → resultado ─────────────────────────── -->
-      <section aria-labelledby="tier-1-label" class="space-y-6">
+      <section id="tier-1" aria-labelledby="tier-1-label" class="space-y-6">
         <h2 id="tier-1-label" class="text-[11px] uppercase tracking-wider font-semibold text-indigo-300/90">
           1 · Acción → resultado
         </h2>
-        <section id="config-mount" aria-label="Selector de configuración"></section>
+        <!-- P2-3: sticky config-selector. The wrapper pins to the top of
+             the viewport so the 5 strategy buttons stay reachable while
+             scrolling the long justification + catalog sections. The
+             backdrop blur + slight tint separate it from the page bg. -->
+        <div class="config-sticky">
+          <section id="config-mount" aria-label="Selector de configuración"></section>
+        </div>
         <section id="cli-mirror-mount" aria-label="CLI mirror: 18 agentes"></section>
         <section id="justification-mount" aria-label="Justificación por agente"></section>
       </section>
 
       <!-- ─── Tier 2 — Datos de soporte ────────────────────────────── -->
-      <section aria-labelledby="tier-2-label" class="space-y-6">
+      <section id="tier-2" aria-labelledby="tier-2-label" class="space-y-6">
         <h2 id="tier-2-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
           2 · Datos de soporte
         </h2>
@@ -98,7 +104,7 @@
       </section>
 
       <!-- ─── Tier 3 — Catálogo completo ───────────────────────────── -->
-      <section aria-labelledby="tier-3-label" class="space-y-6">
+      <section id="tier-3" aria-labelledby="tier-3-label" class="space-y-6">
         <h2 id="tier-3-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">
           3 · Catálogo completo
         </h2>
