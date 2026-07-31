@@ -66,8 +66,12 @@ function tokenBg(doc, tier) {
  * @returns {{ slug: string, label: string }}
  */
 function tagFor(tier) {
-  if (tier === 'high') return { slug: 'max', label: 'max' };
-  if (tier === 'budget') return { slug: 'min', label: 'min' };
+  // V5: labels match the data-tier (high/budget/balanced). The slug stays
+  // mapped to the V3 token names (max/min/balanced) so the CSS tokens in
+  // tokens.css keep working without a rename. Slug is internal; the label
+  // is what the user sees.
+  if (tier === 'high') return { slug: 'max', label: 'high' };
+  if (tier === 'budget') return { slug: 'min', label: 'budget' };
   return { slug: 'balanced', label: 'balanced' };
 }
 

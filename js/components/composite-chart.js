@@ -361,6 +361,15 @@ export function render(targetEl, models, _meta) {
       <div class="space-y-2.5" data-test="composite-bars">
         ${scoredBody}${unavailableBody}
       </div>
+      <details class="mt-3 text-[11px] text-slate-500 group" data-test="composite-legend">
+        <summary class="cursor-pointer text-slate-400 hover:text-slate-300 select-none">Cómo leer las barras</summary>
+        <div class="mt-2 space-y-1.5 pl-2">
+          <p><strong class="text-slate-300">Color del tier</strong> (alto/balanceado/económico/reference) sale del precio y rol del modelo. emerald=alto (flagship), indigo=balanceado, amber=económico, rose=reference (ancla del cost ceiling).</p>
+          <p><strong class="text-slate-300">Badge verified / estimated</strong>: <span class="text-emerald-300">verified</span> = BenchLM con datos confirmados; <span class="text-amber-300">estimated</span> = provisional, puede cambiar.</p>
+          <p><strong class="text-slate-300">5 puntos de reliability</strong> (escala 0–5): cuántos más puntos verdes, más consistente es el score de BenchLM en el tiempo.</p>
+          <p><strong class="text-slate-300">— unavailable —</strong> = modelo todavía sin scrape de BenchLM (llega en la próxima sync).</p>
+        </div>
+      </details>
       <p class="mt-3 text-[11px] text-slate-500">
         Scores y badges vienen de BenchLM (<code>benchlm</code> con score/verified/reliability);
         fallback a Tailwind cuando el token no está definido.

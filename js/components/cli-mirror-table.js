@@ -55,10 +55,12 @@ function tierSlug(tier) {
   return 'balanced';
 }
 
-/** Resolve the tier → badge label. */
+/** Resolve the tier → badge label. V5: label matches the data-tier
+    (high/budget/reference/balanced) so the visible text is consistent
+    with the data model. */
 function tierLabel(tier) {
   if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'min';
+  if (tier === 'budget') return 'budget';
   if (tier === 'reference') return 'reference';
   return 'balanced';
 }

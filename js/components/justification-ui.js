@@ -38,8 +38,9 @@ function tierSlug(tier) {
 }
 
 function tierLabel(tier) {
+  // V5: label matches the data-tier (high/budget/reference/balanced).
   if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'min';
+  if (tier === 'budget') return 'budget';
   if (tier === 'reference') return 'reference';
   return 'balanced';
 }
