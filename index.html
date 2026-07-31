@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <!--
-  SDD Agent Selector V4 - index.html
+  SDD Agent Selector - index.html
   ============================================================================
   Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
 
@@ -20,13 +20,21 @@
 
   Runtime is CDN-free - no remote script src, no remote link href, no remote
   @import url. All assets are bundled into the single HTML.
+
+  V5 page structure (P0-1 + P0-2 from impeccable critique 2026-07-31):
+    <header class="hero">            — cold open: title, lede, "cómo leer",
+                                       freshness badge ("datos del DD/MM")
+    <main>
+      Tier 1 — Acción → resultado    (config + cli-mirror + justification)
+      Tier 2 — Datos de soporte      (workflow + composite + pricing)
+      Tier 3 — Catálogo completo     (ref-table)
 -->
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="SDD Agent Selector V4 — selector modular de modelos SDD" />
-  <title>SDD Agent Selector V4</title>
+  <meta name="description" content="Selector de modelos para SDD — curá data de modelos LLM para alimentar gentle-ai" />
+  <title>Selector de modelos para SDD</title>
 
   <!-- Tailwind + design tokens inlined by the build (Phase 4). -->
   <!-- __INLINE_CSS__ -->
@@ -38,21 +46,65 @@
 </head>
 <body class="bg-surface text-on-surface">
   <div id="app">
-    <main class="mx-auto max-w-6xl px-6 py-8 space-y-6">
-      <header class="space-y-1">
-        <h1 class="text-2xl font-bold text-slate-100">SDD Agent Selector V4</h1>
-        <p class="text-sm text-slate-400">
-          Selector modular de modelos SDD. Fuente de verdad visual: <code class="text-xs">v3-monolith-backup.html</code>.
-        </p>
+    <main class="mx-auto max-w-6xl px-6 py-10 space-y-10">
+
+      <!-- Hero / framing (P0-1: cold-open for non-developer users) -->
+      <header class="space-y-4">
+        <div class="space-y-2">
+          <h1 class="text-3xl sm:text-4xl font-bold text-slate-100 tracking-tight">
+            Selector de modelos para SDD
+          </h1>
+          <p class="text-base text-slate-300 max-w-3xl">
+            Elegí una estrategia de asignación, revisá la justificación por agente, exportá los 18 assignments y pegá en <code class="text-sm font-mono text-slate-200 bg-slate-800/60 px-1.5 py-0.5 rounded">gentle-ai/agents/*.md</code>.
+          </p>
+        </div>
+        <details class="group rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2 max-w-3xl">
+          <summary class="cursor-pointer text-sm text-slate-300 select-none flex items-center gap-2">
+            <span aria-hidden="true" class="text-slate-500 group-open:rotate-90 transition-transform inline-block">▸</span>
+            Cómo leer esta página
+          </summary>
+          <div class="mt-3 text-sm text-slate-400 space-y-2 pl-6">
+            <p>La página tiene 3 niveles, de lo que tocás arriba hacia los datos crudos abajo:</p>
+            <ol class="list-decimal pl-5 space-y-1.5">
+              <li><strong class="text-slate-200">Acción → resultado.</strong> Eligís una estrategia (min-cost, balanced, max-quality, etc.) y abajo aparecen los 18 agentes con su modelo asignado + justificación.</li>
+              <li><strong class="text-slate-200">Datos de soporte.</strong> Tabla de fases SDD, scores BenchLM, pricing por request. Para entender por qué.</li>
+              <li><strong class="text-slate-200">Catálogo completo.</strong> Los 24 modelos activos con tier, score y precio. La fuente de verdad curada.</li>
+            </ol>
+            <p class="text-xs text-slate-500">El badge de "datos del DD/MM" arriba te dice cuándo se actualizó el catálogo por última vez.</p>
+          </div>
+        </details>
+        <!-- Freshness badge lives in the hero (P0-2: trust signal at the top, not buried) -->
+        <div id="freshness-mount" class="pt-1"></div>
       </header>
-      <section id="config-mount" aria-label="Selector de configuración"></section>
-      <section id="workflow-mount" aria-label="Workflow SDD"></section>
-      <section id="justification-mount" aria-label="Justificación por agente"></section>
-      <section id="cli-mirror-mount" aria-label="CLI mirror: 18 agentes"></section>
-      <section id="composite-chart-mount" aria-label="Composite benchmark"></section>
-      <section id="pricing-chart-mount" aria-label="Pricing por request"></section>
-      <section id="freshness-mount" aria-label="Frescura de datos"></section>
-      <section id="ref-table-mount" aria-label="Tabla de modelos activos"></section>
+
+      <!-- ─── Tier 1 — Acción → resultado ─────────────────────────── -->
+      <section aria-labelledby="tier-1-label" class="space-y-6">
+        <h2 id="tier-1-label" class="text-[11px] uppercase tracking-wider font-semibold text-indigo-300/90">
+          1 · Acción → resultado
+        </h2>
+        <section id="config-mount" aria-label="Selector de configuración"></section>
+        <section id="cli-mirror-mount" aria-label="CLI mirror: 18 agentes"></section>
+        <section id="justification-mount" aria-label="Justificación por agente"></section>
+      </section>
+
+      <!-- ─── Tier 2 — Datos de soporte ────────────────────────────── -->
+      <section aria-labelledby="tier-2-label" class="space-y-6">
+        <h2 id="tier-2-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+          2 · Datos de soporte
+        </h2>
+        <section id="workflow-mount" aria-label="Workflow SDD"></section>
+        <section id="composite-chart-mount" aria-label="Composite benchmark"></section>
+        <section id="pricing-chart-mount" aria-label="Pricing por request"></section>
+      </section>
+
+      <!-- ─── Tier 3 — Catálogo completo ───────────────────────────── -->
+      <section aria-labelledby="tier-3-label" class="space-y-6">
+        <h2 id="tier-3-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+          3 · Catálogo completo
+        </h2>
+        <section id="ref-table-mount" aria-label="Tabla de modelos activos"></section>
+      </section>
+
     </main>
     <noscript>
       <p>Esta app necesita JavaScript habilitado para funcionar.</p>
