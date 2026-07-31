@@ -23,6 +23,8 @@
 // the user can see the model exists but BenchLM hasn't ingested it.
 
 import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
+import { render as renderExportButton } from './export-button.js';
+import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
 const REFERENCE_DISPLAY_ORDER = ['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna'];
 
@@ -231,8 +233,31 @@ export function render(targetEl, models) {
           ${nonActiveBody}
         </tbody>` : '';
 
+  // Build the export formats. Markdown is the paste-ready form
+  // (table for the full catalog); JSON is the full model record set.
+  const exportRows = [...active, ...nonActive].map(([key, m]) => {
+    const sc = compositeScore(m);
+    return [
+      m.name || key,
+      m.tier || '—',
+      lifecycleOf(m),
+      Number.isFinite(sc) ? sc.toFixed(1) : '—',
+      Number.isFinite(m.input) ? `$${m.input.toFixed(2)}` : '—',
+      Number.isFinite(m.output) ? `$${m.output.toFixed(2)}` : '—',
+    ];
+  });
+  const exportMd = `# SDD Models (${activeCount} active + ${nonActiveCount} non-active)\n\n` + markdownTable(
+    ['Modelo', 'Tier', 'Lifecycle', 'Score', 'Input $', 'Output $'],
+    exportRows
+  ) + '\n';
+  const exportJson = toJSON({ active: activeCount, nonActive: nonActiveCount, models: allRows.map(([k, m]) => [k, m]) });
+
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
+        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${activeCount} activos${nonActiveCount > 0 ? ` + ${nonActiveCount} reference` : ''}</span>
+        <div data-test="ref-table-export"></div>
+      </div>
       <table class="w-full text-left text-sm text-slate-200">
         <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
           <tr>
@@ -259,6 +284,34 @@ export function render(targetEl, models) {
       rows without BenchLM data show "—" (awaiting first scrape).
     </p>
   `;
+
+  // Mount the export button into the placeholder container. The
+  // destroy() at the start of renderExportButton.render() is idempotent,
+  // so re-renders of ref-table don't leak document listeners.
+  const exportMount = targetEl.querySelector('[data-test="ref-table-export"]');
+  if (exportMount) {
+    renderExportButton(exportMount, {
+      sectionId: 'ref-table',
+      formats: [
+        { id: 'copy-md', label: 'Copiar markdown', content: exportMd },
+        {
+          id: 'download-md',
+          label: 'Descargar markdown',
+          content: exportMd,
+          filename: exportFilename('ref-table', 'md'),
+        },
+        {
+          id: 'download-json',
+          label: 'Descargar JSON',
+          content: exportJson,
+          filename: exportFilename('ref-table', 'json'),
+          mime: 'application/json',
+        },
+      ],
+      copyMessage: 'Tabla copiada al portapapeles',
+      downloadMessage: 'Descarga iniciada',
+    });
+  }
 
   return {
     rows: allRows.length,

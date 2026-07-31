@@ -8,6 +8,13 @@
 //     the two checks (score ≥ minReasoning, cost ≤ effectiveMaxCost),
 //     and top 3 alternatives. Null assignment → critical warning with
 //     the getBestFor reason. Colors via tokens.css with Tailwind fallback.
+//
+// V5 — export button (Exportar ▾) in a small header. Two formats:
+//   - Copy markdown justification block (per-agent rationale table)
+//   - Download JSON of the full justification set
+
+import { render as renderExportButton } from './export-button.js';
+import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
 const CANONICAL_ORDER = Object.freeze([
   'gentle-orchestrator', 'sdd-init', 'sdd-explore', 'sdd-propose', 'sdd-spec',
@@ -168,6 +175,7 @@ export function render(targetEl, agentsAssignments, roleMatrix, models) {
   const doc = targetEl.ownerDocument ?? document;
   let withA = 0;
   let withoutA = 0;
+  const exportAssignments = [];
   const cards = ordered
     .filter((agent) => Object.prototype.hasOwnProperty.call(roleMatrix, agent))
     .map((agent) => {
@@ -175,11 +183,70 @@ export function render(targetEl, agentsAssignments, roleMatrix, models) {
       const a = safeA[agent];
       const hasKey = !!(a && a.key);
       if (hasKey) withA++; else withoutA++;
+      exportAssignments.push({ key: agent, role: role.role, ...(a || {}) });
       return cardHtml(agent, role, a, doc);
     })
     .join('');
-  targetEl.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-test="justification-cards">${cards}</div>
+
+  // V5 — build export formats. The markdown is a table per agent:
+  // agent | role | model | tier | score | cost | checks
+  const exportRows = exportAssignments.map((ea) => {
+    const m = ea.model || {};
+    const sc = Number.isFinite(ea.score) ? ea.score.toFixed(1) : '—';
+    const cs = Number.isFinite(ea.cost) ? `$${ea.cost.toFixed(6)}`.replace(/0+$/, '').replace(/\.$/, '') || '$0' : '—';
+    return [
+      ea.key,
+      ea.role || '—',
+      m.name || (ea.key ? '(sin modelo)' : '—'),
+      m.tier || '—',
+      sc,
+      cs,
+      ea.softFallback ? 'soft fallback' : (ea.key ? 'ok' : '—'),
+    ];
+  });
+  const exportMd = `# Justificación por agente (${withA}/18 con asignación)\n\n` + markdownTable(
+    ['Agent', 'Role', 'Modelo', 'Tier', 'Score', 'Costo/req', 'Estado'],
+    exportRows
+  ) + '\n';
+  const exportJson = toJSON({
+    timestamp: new Date().toISOString(),
+    withAssignment: withA,
+    withoutAssignment: withoutA,
+    assignments: exportAssignments,
+  });
+
+  targetEl.innerHTML = `<div class="flex items-center justify-between gap-2 mb-3">
+      <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 agentes con asignación</span>
+      <div data-test="justification-export"></div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-test="justification-cards">${cards}</div>
     <p class="mt-3 text-xs text-slate-500">${withA}/18 agentes con asignación · colores desde <code>tokens.css</code>.</p>`;
+
+  const exportMount = targetEl.querySelector('[data-test="justification-export"]');
+  if (exportMount) {
+    renderExportButton(exportMount, {
+      sectionId: 'justification',
+      formats: [
+        { id: 'copy-md', label: 'Copiar tabla', content: exportMd },
+        {
+          id: 'download-md',
+          label: 'Descargar markdown',
+          content: exportMd,
+          filename: exportFilename('justification', 'md'),
+        },
+        {
+          id: 'download-json',
+          label: 'Descargar JSON',
+          content: exportJson,
+          filename: exportFilename('justification', 'json'),
+          mime: 'application/json',
+        },
+      ],
+      copyMessage: 'Tabla copiada al portapapeles',
+      downloadMessage: 'Descarga iniciada',
+    });
+  }
+
   return { cards: ordered.length, withAssignment: withA, withoutAssignment: withoutA };
 }
 

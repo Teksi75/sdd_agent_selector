@@ -31,6 +31,8 @@
 //     metadata absent), the badge is omitted.
 
 import { compositeScore, isActive } from '../services/model-scorer.js';
+import { render as renderExportButton } from './export-button.js';
+import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
 const _tokenCache = Object.create(null);
 const STALE_THRESHOLD_DAYS = 7;
@@ -326,11 +328,34 @@ export function render(targetEl, models, _meta) {
 
   const stale = staleBadgeHtml(_meta);
 
+  // V5 — build export formats. Markdown is a table of every ranked
+  // model (score + tier + lifecycle); JSON is the full record set.
+  const exportRows = [...scored, ...unavailable].map(([key, m, score]) => [
+    m.name || key,
+    tierOf(m),
+    m.lifecycle || '—',
+    Number.isFinite(score) ? score.toFixed(1) : '—',
+  ]);
+  const exportMd = `# Composite benchmark (${scored.length + unavailable.length} modelos)\n\n` + markdownTable(
+    ['Modelo', 'Tier', 'Lifecycle', 'Score'],
+    exportRows
+  ) + '\n';
+  const exportJson = toJSON({
+    timestamp: new Date().toISOString(),
+    scored: scored.length,
+    unavailable: unavailable.length,
+    maxScore,
+    models: [...scored, ...unavailable].map(([k, m]) => [k, m]),
+  });
+
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
-      <div class="flex items-center justify-between mb-3">
-        <h3 class="text-sm font-semibold text-slate-200">Composite benchmark</h3>
-        <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · BenchLM (0-100)</span>
+      <div class="flex items-center justify-between gap-2 mb-3">
+        <div class="flex items-baseline gap-3">
+          <h3 class="text-sm font-semibold text-slate-200">Composite benchmark</h3>
+          <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · BenchLM (0-100)</span>
+        </div>
+        <div data-test="composite-chart-export"></div>
       </div>
       ${stale}
       <div class="space-y-2.5" data-test="composite-bars">
@@ -341,6 +366,31 @@ export function render(targetEl, models, _meta) {
         fallback a Tailwind cuando el token no está definido.
       </p>
     </div>`;
+
+  const exportMount = targetEl.querySelector('[data-test="composite-chart-export"]');
+  if (exportMount) {
+    renderExportButton(exportMount, {
+      sectionId: 'composite-chart',
+      formats: [
+        { id: 'copy-md', label: 'Copiar tabla', content: exportMd },
+        {
+          id: 'download-md',
+          label: 'Descargar markdown',
+          content: exportMd,
+          filename: exportFilename('composite-chart', 'md'),
+        },
+        {
+          id: 'download-json',
+          label: 'Descargar JSON',
+          content: exportJson,
+          filename: exportFilename('composite-chart', 'json'),
+          mime: 'application/json',
+        },
+      ],
+      copyMessage: 'Tabla copiada al portapapeles',
+      downloadMessage: 'Descarga iniciada',
+    });
+  }
 
   return { scored: scored.length, unavailable: unavailable.length, maxScore };
 }
