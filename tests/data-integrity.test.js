@@ -483,8 +483,8 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
     expect(luna.cacheRead).toBeUndefined();
   });
 
-  test('lifecycle is reference, tier is budget', () => {
-    expect(luna.lifecycle).toBe('reference');
+  test('lifecycle is active (V5 demote), tier is budget', () => {
+    expect(luna.lifecycle).toBe('active');
     expect(luna.tier).toBe('budget');
   });
 

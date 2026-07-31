@@ -10,8 +10,12 @@
 //   resetForTests()                   — clears module-level cache
 //
 // Behavior (spec benchlm-rendering + design "Chart Rendering"):
-//   - Reference-tier models (tier==='reference' OR isReference===true)
-//     are INCLUDED with a rose-colored bar (--composite-tier-reference).
+//   - Only active-lifecycle models (lifecycleOf(m) === 'active') are
+//     INCLUDED. Reference/legacy/benchmark-only models are excluded.
+//   - Bar color follows `model.tier` (high → emerald, balanced → indigo,
+//     budget → amber). Reference-tier models used to render rose, but
+//     tier 'reference' is no longer a candidate for the main bars
+//     (per the V5 GPT-demote change — see feat/demote-gpt-from-reference).
 //   - Each row carries:
 //     * a bar fill (width = score / maxScore %) inside a track
 //     * a verified/estimated badge (verified=true → green, false → amber)
@@ -27,8 +31,6 @@
 //     metadata absent), the badge is omitted.
 
 import { compositeScore, isActive } from '../services/model-scorer.js';
-
-const COMPOSITE_REFERENCE_ALLOWLIST = new Set(['gpt56sol', 'gpt56terra', 'gpt56luna']);
 
 const _tokenCache = Object.create(null);
 const STALE_THRESHOLD_DAYS = 7;
@@ -99,10 +101,12 @@ function tierOf(m) {
 /**
  * Partition all models into scored and unavailable groups.
  *
- * Active models participate directly. Non-active models in the
- * COMPOSITE_REFERENCE_ALLOWLIST are also included as scored rows
- * (so specific reference models can appear in the main ranking for
- * comparison). All other non-active models are excluded entirely.
+ * Active models participate directly. Non-active models (reference,
+ * legacy, benchmark-only) are excluded entirely. The previous
+ * "always-include" allowlist for gpt56sol/terra/luna was removed in
+ * the V5 GPT-demote change — those models are now lifecycle:'active'
+ * with their natural tier (high/balanced/budget) determined by
+ * benchmark rank and pricing.
  *
  * Scored sorted descending (cheaper input tie-break).
  * Unavailable appended after scored.
@@ -116,8 +120,7 @@ function rowsFor(models) {
   const scored = [];
   const unavailable = [];
   for (const [k, m] of entries) {
-    const allowlisted = COMPOSITE_REFERENCE_ALLOWLIST.has(k);
-    if (!isActive(m) && !allowlisted) {
+    if (!isActive(m)) {
       continue;
     }
     const score = compositeScore(m);

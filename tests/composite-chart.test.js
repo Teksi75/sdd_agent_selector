@@ -179,7 +179,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(staleBadge).toBeNull();
   });
 
-  test('allowlisted reference models (Sol, Terra, Luna) appear in main bars; other non-active excluded', async () => {
+  test('GPT-5.6 family (Sol/Terra/Luna as active models) appear in main bars; other non-active excluded', async () => {
     ({ render, resetForTests } = await import('../js/components/composite-chart.js'));
     if (typeof resetForTests === 'function') resetForTests();
 
@@ -228,16 +228,15 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(target.querySelectorAll('[data-non-active="true"]').length).toBe(0);
   });
 
-  test('main ranking sort is descending by score; allowlisted reference models interleaved by score', async () => {
+  test('main ranking sort is descending by score; non-active models excluded (V5 — no allowlist)', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
       low: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'budget', lifecycle: 'active' },
       gpt56sol: {
         name: 'GPT-5.6 Sol',
         benchlm: { score: 95, verified: true, reliability: 0.95 },
-        tier: 'reference',
-        lifecycle: 'reference',
-        isReference: true,
+        tier: 'high',
+        lifecycle: 'active',
         input: 5,
       },
       mid: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'balanced', lifecycle: 'active' },
