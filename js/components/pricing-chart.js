@@ -113,7 +113,7 @@ function barRowHtml(key, m, cost, width, bgClass, bgValue) {
       ? ' <span class="src-badge src-new ml-1">NEW</span>'
       : '';
   const tierLabel = esc(tierOf(m));
-  const fillStyle = bgValue ? ` style="width:${width}%;background-color:${esc(bgValue)}"` : ` style="width:${width}%"`;
+  const fillStyle = bgValue ? ` style="transform:scaleX(${(width / 100).toFixed(4)});background-color:${esc(bgValue)}"` : ` style="transform:scaleX(${(width / 100).toFixed(4)})"`;
   const fillClass = bgValue ? 'bar-fill' : `bar-fill ${bgClass}`;
   return `
     <div class="flex items-center gap-3" data-model-key="${esc(key)}" data-cost="${cost.toFixed(COST_DECIMALS)}" data-width="${width}" data-tier="${tierLabel}">

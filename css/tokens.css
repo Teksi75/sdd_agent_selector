@@ -51,13 +51,19 @@
    v3-monolith-backup.html lines 9-35. */
 *{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .gradient-text{background:linear-gradient(120deg,#a855f7,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent}
-.config-btn{transition:all .2s ease;border:2px solid transparent}
+.config-btn{transition:all .2s ease;border:2px solid transparent;min-height:2.75rem;padding:.5rem 1rem}
 .config-btn:hover{transform:translateY(-1px)}
 .config-btn.active{border-color:currentColor;box-shadow:0 0 20px -5px currentColor}
 .workflow-row{transition:all .25s ease;opacity:0;transform:translateY(8px)}
 .workflow-row.visible{opacity:1;transform:translateY(0)}
 .bar-track{background:rgba(255,255,255,0.05);border-radius:4px;height:6px;overflow:hidden}
-.bar-fill{height:100%;border-radius:4px;transition:width .5s ease}
+/* V5+ — a11y/perf polish (critique 2026-07-31, P1-5/P1-6).
+   Animate `transform: scaleX` instead of `width` so the bar fill
+   transition runs on the compositor only (no layout reflow per frame).
+   `width:100%` makes the fill span the full track, then the inline
+   `transform: scaleX(<pct>/100)` from JS sets the visible length.
+   `transform-origin: left` keeps the bar anchored to the label side. */
+.bar-fill{height:100%;width:100%;border-radius:4px;transform-origin:left center;transition:transform .5s ease;will-change:transform}
 .scroll-fade{mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent)}
 .export-btn{transition:all .15s ease}
 .export-btn:hover{background:rgba(255,255,255,0.1)}
@@ -84,3 +90,32 @@
    (4.5:1) — text-slate-900 (#0f172a) gives 4.5–6.5:1 contrast across
    all 4 tier bgs (high, balanced, budget, reference). */
 .tier-tag{color:#0f172a;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;display:inline-block}
+
+/* V5+ — a11y/perf polish (critique 2026-07-31, P1-4/P1-5/P1-6/P1-8).
+   1. prefers-reduced-motion: kill all transition/animation durations so
+      the page respects OS-level motion preferences. Covers config-btn
+      hover lift, workflow-row fade, bar-fill transform, export-btn bg.
+   2. :focus-visible: keyboard focus ring on the dark surface. The accent
+      color (--color-accent-hover #818cf8) gives 4.5:1+ against the
+      slate-900 card backgrounds. outline:none on :focus (without
+      -visible) keeps mouse clicks free of the ring.
+   3. .config-selector-group is applied at the config-selector.js render
+      time to the role="group" wrapper, ensuring the 5 strategy buttons
+      wrap on viewports < 360px instead of truncating. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+    scroll-behavior:auto!important
+  }
+}
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[role="tab"]:focus-visible{
+  outline:2px solid #818cf8;
+  outline-offset:2px;
+  border-radius:6px
+}
+.config-selector-group{display:flex;flex-wrap:wrap;gap:.5rem}

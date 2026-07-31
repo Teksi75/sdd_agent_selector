@@ -261,14 +261,14 @@ export function render(targetEl, models) {
       <table class="w-full text-left text-sm text-slate-200">
         <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
           <tr>
-            <th class="py-2.5 px-3 font-semibold">Modelo</th>
-            <th class="py-2.5 px-3 font-semibold text-center">Tier</th>
-            <th class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
-            <th class="py-2.5 px-3 font-semibold text-center">Score</th>
-            <th class="py-2.5 px-3 font-semibold text-center">BenchLM</th>
-            <th class="py-2.5 px-3 font-semibold text-right">Input $</th>
-            <th class="py-2.5 px-3 font-semibold text-right">Output $</th>
-            <th class="py-2.5 px-3 font-semibold text-center">Sources</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold">Modelo</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Tier</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Score</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-center">BenchLM</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-right">Input $</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-right">Output $</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Sources</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-slate-800/60" data-test="active-rows">
