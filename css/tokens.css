@@ -72,8 +72,15 @@
 .rank-2{background:rgba(99,102,241,0.12);color:#a5b4fc}
 .rank-3{background:rgba(245,158,11,0.1);color:#fbbf24}
 
-/* Tag tiers — semantic shortcuts for workflow-table / pricing-chart /
+/* Tag tiers - semantic shortcuts for workflow-table / pricing-chart /
    composite-chart. JS reads these via getComputedStyle('--tag-X-bg'). */
 .tag-optimal{background:var(--tag-optimal-bg);color:var(--tag-optimal-fg);border:1px solid var(--tag-optimal-border)}
 .tag-balanced{background:var(--tag-balanced-bg);color:var(--tag-balanced-fg);border:1px solid var(--tag-balanced-border)}
 .tag-max{background:var(--tag-max-bg);color:var(--tag-max-fg);border:1px solid var(--tag-max-border)}
+
+/* V5 — tier-tag (used by workflow-table, cli-mirror-table, justification-ui).
+   The background is set inline by JS (via getComputedStyle of --cli-tier-X).
+   The text color must be DARK on the bright tier backgrounds to meet WCAG AA
+   (4.5:1) — text-slate-900 (#0f172a) gives 4.5–6.5:1 contrast across
+   all 4 tier bgs (high, balanced, budget, reference). */
+.tier-tag{color:#0f172a;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;display:inline-block}

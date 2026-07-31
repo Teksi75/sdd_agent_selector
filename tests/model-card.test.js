@@ -35,7 +35,7 @@ describe('model-card — render() contract (PR3 benchlm row)', () => {
     const card = target.querySelector('.model-card');
     expect(card).toBeDefined();
     expect(card.textContent).toMatch(/MiMo V2\.5/);
-    expect(card.querySelector('.model-tier-tag').textContent).toMatch(/min/);
+    expect(card.querySelector('.model-tier-tag').textContent).toMatch(/budget/);
   });
 
   test('renders NEW badge when isNew=true', async () => {

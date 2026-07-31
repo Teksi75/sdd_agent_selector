@@ -9,8 +9,13 @@
 //     selectConfig(key)                       — validate + compute + paint + fire
 //
 // Twin judge message is pinned byte-for-byte to the spec requirement.
+//
+// V5 — config selection feedback: emit a toast on every successful
+// selectConfig() so the user knows the click took effect. Uses the
+// shared showToast from the exporter service.
 
 import { getBestFor } from '../services/model-scorer.js';
+import { showToast } from '../services/exporter.js';
 
 export class InvalidConfigError extends Error {
   constructor(message) {
@@ -107,6 +112,20 @@ export function selectConfig(key) {
   _activeKey = key;
   paintActive(key);
   if (typeof _onSelect === 'function') _onSelect(assignments);
+  // V5 — user feedback: tell the user the click took effect and what was
+  // applied. The tier count tells them how many agents got a model (out of
+  // 18); softFallbacks flag the data needs attention.
+  if (typeof showToast === 'function') {
+    const withModel = Object.values(assignments).filter((a) => a && a.key).length;
+    const softCount = Object.values(assignments).filter((a) => a && a.softFallback).length;
+    const softSuffix = softCount > 0
+      ? ` · ${softCount} soft fallback${softCount === 1 ? '' : 's'}`
+      : '';
+    showToast(
+      `Estrategia aplicada: ${cfg.name} (${withModel}/18 agentes${softSuffix})`,
+      { kind: 'success' }
+    );
+  }
 }
 
 /**
