@@ -39,7 +39,6 @@
       "cacheRead": 0.26,
       "tier": "high",
       "lifecycle": "active",
-      "isNew": true,
       "notes": "MIT, 1M ctx, #2 Arena WebDev, #1 long-horizon open",
       "sources": [
         {
@@ -201,7 +200,6 @@
       "cacheRead": 0.19,
       "tier": "balanced",
       "lifecycle": "active",
-      "isNew": true,
       "notes": "Moonshot K2 family, 12 jun 2026. 30% fewer thinking tokens vs K2.6. Vals AI 3rd-party: SWE-bench Verified 78.2 (#1 open-weight), Terminal-Bench 2.1 67 (#1 open-weight). SWE-bench Pro: proxy 58.6 from K2.6 (no independent K2.7 number published). Arena: estimated 1510 (K2.7 not on Arena leaderboard as of 2026-07-09; K2.5 was 1515 at launch, now 1400 per BenchLM Jul 2026).",
       "sources": [
         {
@@ -712,7 +710,6 @@
       "cacheRead": 0.25,
       "tier": "balanced",
       "lifecycle": "active",
-      "isNew": true,
       "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published).",
       "sources": [
         {
@@ -785,7 +782,6 @@
       },
       "tier": "high",
       "lifecycle": "active",
-      "isNew": true,
       "input": 5,
       "output": 30,
       "cacheRead": 0.5,
@@ -921,6 +917,80 @@
         {
           "url": "https://www.anthropic.com/pricing",
           "date": "2026-07-06"
+        }
+      ]
+    },
+    "claudeOpus5": {
+      "name": "Claude Opus 5",
+      "arena": null,
+      "swePro": null,
+      "sweVer": null,
+      "term": null,
+      "benchlm": {
+        "score": 82.5,
+        "verified": false,
+        "reliability": 0.5,
+        "categories": {
+          "agentic": 78,
+          "coding": 80.5,
+          "reasoning": 95,
+          "multimodalGrounded": 72,
+          "knowledge": 84,
+          "multilingual": null,
+          "instructionFollowing": 88,
+          "math": 98
+        },
+        "rank": 2,
+        "evidence": "estimated"
+      },
+      "input": 15,
+      "output": 75,
+      "cacheRead": 1.5,
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "notes": "Anthropic next-gen flagship, provisional data. Will supersede opus48 as cost anchor once verified. Pricing matches opus48 (Anthropic stable pricing policy).",
+      "sources": [
+        {
+          "url": "https://www.anthropic.com/news/claude-opus-5",
+          "date": "2026-07-28"
+        }
+      ]
+    },
+    "opencodeHy3": {
+      "name": "Opencode Hy3",
+      "arena": 1450,
+      "swePro": null,
+      "sweVer": null,
+      "term": null,
+      "benchlm": {
+        "score": 71.4,
+        "verified": false,
+        "reliability": 0.55,
+        "categories": {
+          "agentic": 70,
+          "coding": 73.5,
+          "reasoning": 68,
+          "multimodalGrounded": 65,
+          "knowledge": 75,
+          "multilingual": null,
+          "instructionFollowing": 72,
+          "math": 76
+        },
+        "rank": 14,
+        "evidence": "estimated"
+      },
+      "input": 2.5,
+      "output": 12,
+      "cacheRead": 0.2,
+      "tier": "balanced",
+      "lifecycle": "active",
+      "isNew": true,
+      "notes": "Opencode provider, mid-tier flagship. Provisional BenchLM data (estimated). First entry in catalog.",
+      "sources": [
+        {
+          "url": "https://opencode.com/models/hy3",
+          "date": "2026-07-29"
         }
       ]
     }
