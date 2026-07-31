@@ -80,7 +80,7 @@ describe('justification-ui — render() contract (spec.md)', () => {
     // Card shows assigned model name.
     expect(card.textContent).toMatch(/MiMo V2\.5/);
     // Card shows the role description (from roleMatrix['sdd-archive'].role).
-    expect(card.textContent).toMatch(/Mechanically copy.*cheapest role/i);
+    expect(card.textContent).toMatch(/Copiar.*formatear.*mec.nica.*m.s barato/i);
     // Both checks rendered (score ≥ 50 and cost ≤ effectiveMaxCost).
     const checkRows = card.querySelectorAll('[data-pass]');
     expect(checkRows.length).toBe(2);
