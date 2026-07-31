@@ -260,7 +260,14 @@ function composePayload(results) {
  * The `baseUrl` parameter is optional — defaults to `DEFAULT_DATA_URL`.
  * Tests pass a mock URL to keep the suite deterministic.
  *
- * @param {{baseUrl?: string, fetchImpl?: typeof fetch, dispatchEvent?: boolean}} [options]
+ * V5+ KI-2: optional `onProgress` callback fires on every phase so the
+ * caller can wire UI feedback (toast, button-disable, etc.) without
+ * coupling the service to the toast module.
+ *   - `{ phase: 'start' }`                  — emitted once before fetch
+ *   - `{ phase: 'success', files, lastSynced, source }` — on cache write
+ *   - `{ phase: 'failure', error, source }` — on fetch error or no fetch
+ *
+ * @param {{baseUrl?: string, fetchImpl?: typeof fetch, dispatchEvent?: boolean, onProgress?: (event: object) => void}} [options]
  * @returns {Promise<{ok: boolean, files?: number, lastSynced?: string, error?: string}>}
  */
 export async function refresh(options) {
@@ -268,12 +275,24 @@ export async function refresh(options) {
   const baseUrl = opts.baseUrl || DEFAULT_DATA_URL;
   const fetchImpl = opts.fetchImpl || (typeof fetch !== 'undefined' ? fetch : null);
   const dispatchEvent = opts.dispatchEvent !== false; // default true
+  // V5+ KI-2: optional progress callback. Safe to call even if the
+  // caller didn't pass one. The callback is sync (caller decides what
+  // to do — toast, disable button, etc.) so we don't await it.
+  const onProgress = typeof opts.onProgress === 'function' ? opts.onProgress : null;
 
   const doFetch = fetchImpl;
   if (typeof doFetch !== 'function') {
     const error = 'No fetch implementation available (SSR or unsupported env)';
     console.warn(`data-sync.refresh: ${error}`);
+    if (onProgress) {
+      try { onProgress({ phase: 'failure', error, source: baseUrl }); } catch { /* ignore */ }
+    }
     return { ok: false, error };
+  }
+
+  // V5+ KI-2: emit start so the UI can disable the button + show "loading".
+  if (onProgress) {
+    try { onProgress({ phase: 'start', source: baseUrl }); } catch { /* ignore */ }
   }
 
   try {
@@ -327,10 +346,24 @@ export async function refresh(options) {
       }
     }
 
+    if (onProgress) {
+      try {
+        onProgress({
+          phase: 'success',
+          files: results.length,
+          lastSynced,
+          source: baseUrl,
+        });
+      } catch { /* ignore */ }
+    }
+
     return { ok: true, files: results.length, lastSynced };
   } catch (err) {
     const error = err && err.message ? err.message : String(err);
     console.warn(`data-sync.refresh: fallback to cache (${error})`);
+    if (onProgress) {
+      try { onProgress({ phase: 'failure', error, source: baseUrl }); } catch { /* ignore */ }
+    }
     return { ok: false, error };
   }
 }
