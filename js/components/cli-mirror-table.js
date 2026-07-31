@@ -17,9 +17,16 @@
 // (11 SDD + 3 JD + 4 Review). A null assignment renders a warning cell
 // ("Sin modelo elegible") matching the workflow-table convention.
 //
+// V5 — export button (Exportar ▾) in the section header. Two formats:
+//   - Copy markdown agents block (paste-ready for gentle-ai's agents/*.md)
+//   - Download JSON of the full assignments
+//
 // Tier-based colors come from tokens.css (--cli-tier-{high,balanced,budget})
 // with a Tailwind fallback so the table renders correctly before tokens.css
 // ships. No global side effects.
+
+import { render as renderExportButton } from './export-button.js';
+import { toJSON, exportFilename, agentsMarkdown } from '../services/exporter.js';
 
 /** Canonical 18-agent order. MUST match spec.md / role-matrix-completeness. */
 const CANONICAL_ORDER = Object.freeze([
@@ -174,8 +181,38 @@ export function render(targetEl, agentsAssignments, agentRoles) {
     })
     .join('');
 
+  // V5 — build export formats. The agents markdown is the headline
+  // export: paste-ready into gentle-ai's `agents/*.md`. JSON is the
+  // backup for downstream tooling (CI diff, version control, etc.).
+  const exportAgents = ordered
+    .filter((agent) => Object.prototype.hasOwnProperty.call(agentRoles, agent))
+    .map((agent) => {
+      const role = agentRoles[agent] || {};
+      const a = safeAssignments[agent] || {};
+      return {
+        key: agent,
+        role: role.role,
+        model: a.model,
+        score: a.score,
+        cost: a.cost,
+        effectiveMaxCost: a.effectiveMaxCost,
+        softFallback: a.softFallback,
+      };
+    });
+  const exportMd = agentsMarkdown(exportAgents);
+  const exportJson = toJSON({
+    timestamp: new Date().toISOString(),
+    withAssignment: withA,
+    withoutAssignment: withoutA,
+    assignments: exportAgents,
+  });
+
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+      <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
+        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 agentes con modelo</span>
+        <div data-test="cli-mirror-export"></div>
+      </div>
       <table class="w-full text-left text-sm text-slate-200">
         <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
           <tr>
@@ -192,6 +229,31 @@ export function render(targetEl, agentsAssignments, agentRoles) {
     <p class="mt-3 text-xs text-slate-500">
       ${withA}/18 agentes con modelo asignado · colores desde <code>tokens.css</code>.
     </p>`;
+
+  const exportMount = targetEl.querySelector('[data-test="cli-mirror-export"]');
+  if (exportMount) {
+    renderExportButton(exportMount, {
+      sectionId: 'cli-mirror',
+      formats: [
+        { id: 'copy-md', label: 'Copiar agents.md', content: exportMd },
+        {
+          id: 'download-md',
+          label: 'Descargar agents.md',
+          content: exportMd,
+          filename: exportFilename('agents', 'md'),
+        },
+        {
+          id: 'download-json',
+          label: 'Descargar JSON',
+          content: exportJson,
+          filename: exportFilename('cli-mirror', 'json'),
+          mime: 'application/json',
+        },
+      ],
+      copyMessage: 'agents.md copiado al portapapeles',
+      downloadMessage: 'Descarga iniciada',
+    });
+  }
 
   return { rows: ordered.length, withAssignment: withA, withoutAssignment: withoutA };
 }
