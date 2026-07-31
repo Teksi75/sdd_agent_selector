@@ -33,7 +33,12 @@ import { render as renderPricingChart } from './components/pricing-chart.js';
 import { render as renderCliMirrorTable } from './components/cli-mirror-table.js';
 import { render as renderFreshnessBadge } from './components/freshness-badge.js';
 import { render as renderJustificationUI } from './components/justification-ui.js';
-import { refresh as dataSyncRefresh, isStale } from './services/data-sync.js';
+import { refresh as dataSyncRefresh, isStale, DEFAULT_DATA_URL } from './services/data-sync.js';
+// V5+ KI-2: showToast is the user feedback channel for the freshness-badge
+// "Actualizar ahora" button. Before this wiring, clicking the button ran
+// the fetch but emitted no UI feedback at all — failures (including the
+// 404 because Teksi75/sdd-data does not exist yet) were silent console.warn.
+import { showToast } from './services/exporter.js';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -395,25 +400,78 @@ function mountFreshnessBadge(data, revalidate) {
    * callback so the workflow + justification re-render with the
    * freshest data (e.g., if the reference model price changed and the
    * cost ceilings shifted).
+   *
+   * V5+ KI-2: wires `onProgress` to showToast so the user sees:
+   *   - start:  "Actualizando datos…"
+   *   - success: "Datos actualizados · N archivos" (with lastSynced date)
+   *   - failure: "No se pudo conectar al repo de datos" + an explanation
+   *     when the source repo returns 404 (Teksi75/sdd-data is not
+   *     published yet — see KNOWN_ISSUES.md KI-1).
+   * Also disables the button while the fetch is in flight so a double
+   * click can't fire two parallel refreshes.
    */
   async function handleRefreshClick() {
     console.log('js/app.js: refresh clicked — calling dataSync.refresh()');
-    const result = await dataSyncRefresh();
-    if (result.ok) {
-      console.log(`js/app.js: dataSync.refresh() OK — ${result.files} files updated`);
-      try {
-        const fresh = await loadAll();
-        // Re-inject the fresh data into the selectors so getBestFor uses the
-        //   new prices/benchmarks.
-        setSelectorData({ models: fresh.models, roleMatrix: fresh.roles, profiles: fresh.profiles });
-        if (typeof revalidate === 'function') revalidate(fresh);
-      } catch (err) {
-        console.warn('js/app.js: re-load after refresh failed', err);
+    // Disable the button + swap to a busy label so the user sees the
+    // click took effect. We re-query because repaintBadge() rebuilds
+    // the DOM, so a cached ref would dangle.
+    const btn = mount.querySelector('button[data-action="refresh"]');
+    const setBusy = (busy) => {
+      if (!btn) return;
+      btn.disabled = busy;
+      btn.setAttribute('aria-busy', busy ? 'true' : 'false');
+      const label = btn.querySelector('span:last-child');
+      if (label) label.textContent = busy ? 'Actualizando…' : 'Actualizar ahora';
+    };
+    setBusy(true);
+    try {
+      const result = await dataSyncRefresh({
+        onProgress: (evt) => {
+          if (typeof showToast !== 'function') return;
+          if (evt.phase === 'start') {
+            showToast('Actualizando datos…', { kind: 'success', durationMs: 1500 });
+          } else if (evt.phase === 'success') {
+            const dateSuffix = evt.lastSynced ? ` · sync ${evt.lastSynced}` : '';
+            showToast(
+              `Datos actualizados · ${evt.files} archivos${dateSuffix}`,
+              { kind: 'success' }
+            );
+          } else if (evt.phase === 'failure') {
+            // Special-case the 404 on the upstream repo: tell the user
+            // explicitly that the source repo doesn't exist (yet) and
+            // the page is using the version baked in by the last deploy.
+            // The data IS still up-to-date because each PR merge rebuilds
+            // dist/data/. KI-1 + KI-2 in KNOWN_ISSUES.md.
+            const is404 = /\b404\b/.test(evt.error || '');
+            const isRepoMissing = is404 && /sdd-data/.test(evt.source || DEFAULT_DATA_URL);
+            const message = isRepoMissing
+              ? 'No se pudo conectar al repo de datos — usando la versión local (actualizada en cada deploy)'
+              : 'No se pudo actualizar — usando la versión local (cache)';
+            showToast(message, { kind: 'error', durationMs: 4500 });
+          }
+        },
+      });
+      if (result.ok) {
+        console.log(`js/app.js: dataSync.refresh() OK — ${result.files} files updated`);
+        try {
+          const fresh = await loadAll();
+          // Re-inject the fresh data into the selectors so getBestFor uses the
+          //   new prices/benchmarks.
+          setSelectorData({ models: fresh.models, roleMatrix: fresh.roles, profiles: fresh.profiles });
+          if (typeof revalidate === 'function') revalidate(fresh);
+        } catch (err) {
+          console.warn('js/app.js: re-load after refresh failed', err);
+        }
+      } else {
+        console.warn(`js/app.js: dataSync.refresh() failed (${result.error}) — keeping cached data`);
       }
-    } else {
-      console.warn(`js/app.js: dataSync.refresh() failed (${result.error}) — keeping cached data`);
+    } finally {
+      // Re-enable the button regardless of success/failure so the user
+      // can retry. repaintBadge() below rebuilds the DOM (the disabled
+      // attr is lost), so the next click also goes through this path.
+      await repaintBadge();
+      setBusy(false);
     }
-    await repaintBadge();
   }
 
   // First paint of the badge. Then, if the meta is stale, fire ONE

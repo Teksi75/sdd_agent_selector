@@ -188,6 +188,37 @@ describe('data-sync — refresh() success path', () => {
     expect(DEFAULT_DATA_URL).toMatch(/raw\.githubusercontent\.com/);
     expect(DEFAULT_DATA_URL).toMatch(/sdd-data/);
   });
+
+  // V5+ KI-2: onProgress callback fires on every phase so the caller
+  // can wire UI feedback (toast, button-disable) without coupling the
+  // service to a UI module.
+  test('onProgress fires (start, success) with files + lastSynced', async () => {
+    const { refresh } = await import('../js/services/data-sync.js');
+    const events = [];
+    const result = await refresh({
+      onProgress: (evt) => events.push(evt),
+    });
+    expect(result.ok).toBe(true);
+    // Exactly 2 events: start + success.
+    expect(events.length).toBe(2);
+    expect(events[0].phase).toBe('start');
+    expect(typeof events[0].source).toBe('string');
+    expect(events[1].phase).toBe('success');
+    expect(events[1].files).toBe(5);
+    expect(events[1].lastSynced).toBe('2026-07-04');
+  });
+
+  test('onProgress callback that throws does NOT break refresh()', async () => {
+    const { refresh } = await import('../js/services/data-sync.js');
+    const result = await refresh({
+      onProgress: () => { throw new Error('callback blew up'); },
+    });
+    // The throw in onProgress is swallowed by the try/catch wrapper
+    // around each onProgress call in data-sync. The refresh itself
+    // should still succeed.
+    expect(result.ok).toBe(true);
+    expect(result.files).toBe(5);
+  });
 });
 
 describe('data-sync — refresh() failure path', () => {
@@ -248,6 +279,22 @@ describe('data-sync — refresh() failure path', () => {
     } finally {
       warnSpy.mockRestore();
     }
+  });
+
+  // V5+ KI-2: failure path also fires onProgress so the caller can show
+  // an error toast.
+  test('onProgress fires (start, failure) on network error', async () => {
+    const { refresh } = await import('../js/services/data-sync.js');
+    const events = [];
+    const result = await refresh({
+      onProgress: (evt) => events.push(evt),
+    });
+    expect(result.ok).toBe(false);
+    expect(events.length).toBe(2);
+    expect(events[0].phase).toBe('start');
+    expect(events[1].phase).toBe('failure');
+    expect(typeof events[1].error).toBe('string');
+    expect(events[1].error.length).toBeGreaterThan(0);
   });
 });
 
