@@ -104,6 +104,30 @@ function formatRowHtml(format, sectionId) {
 }
 
 /**
+ * V5+ critique v3 — P1-2: per-section styling for the export button.
+ * The dashboard has 4 export buttons (cli-mirror / justification /
+ * composite-chart / ref-table) that used to be visually identical.
+ * Now each section gets a tier-color left border + a 1-character icon
+ * prefix. The CSS modifier `.export-btn[data-section="..."]` in
+ * tokens.css adds the 2px border-l + pl-3; the `border-l-{color}-400`
+ * class is also set inline as a defensive fallback so the color
+ * survives a stale CSS cache and tests can query it without parsing
+ * the CSS file. Unknown sectionIds fall back to slate-400 + ↓.
+ */
+const SECTION_STYLING = Object.freeze({
+  'cli-mirror':      { border: 'border-l-indigo-400', icon: '▼' },
+  'justification':   { border: 'border-l-emerald-400', icon: '★' },
+  'composite-chart': { border: 'border-l-amber-400', icon: '▦' },
+  'ref-table':       { border: 'border-l-rose-400', icon: '◇' },
+});
+const DEFAULT_SECTION_STYLING = Object.freeze({ border: 'border-l-slate-400', icon: '↓' });
+
+/** Resolve per-section styling. Exported only for tests. */
+export function sectionStylingFor(sectionId) {
+  return SECTION_STYLING[sectionId] || DEFAULT_SECTION_STYLING;
+}
+
+/**
  * Build the dropdown shell HTML. The actual menu items are populated
  * from `options.formats` so the component has zero knowledge of the
  * section's data shape.
@@ -119,6 +143,7 @@ export function renderButton(options) {
     return ''; // nothing to export
   }
 
+  const style = sectionStylingFor(sectionId);
   const rows = formats.map((f) => formatRowHtml(f, sectionId)).join('');
   const dropdownId = `export-dd-${sectionId}`;
 
@@ -127,12 +152,13 @@ export function renderButton(options) {
       <button
         type="button"
         data-action="toggle-export-dropdown"
+        data-section="${esc(sectionId)}"
         aria-haspopup="menu"
         aria-expanded="false"
         aria-controls="${esc(dropdownId)}"
-        class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 transition"
+        class="export-btn inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 ${esc(style.border)} text-xs text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 transition"
       >
-        <span aria-hidden="true">↓</span>
+        <span aria-hidden="true">${esc(style.icon)}</span>
         <span>Exportar</span>
         <span aria-hidden="true" class="text-slate-400 text-[10px]">▾</span>
       </button>

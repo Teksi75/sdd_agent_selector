@@ -231,3 +231,61 @@ describe('export-button — V5+ P2-3 keyboard nav (WAI-ARIA menu)', () => {
     expect(document.activeElement).toBe(toggle);
   });
 });
+
+// V5+ critique v3 — P1-2: distinguish 4 export buttons per section.
+// Previously the 4 export buttons (cli-mirror / justification /
+// composite-chart / ref-table) were visually identical, all rendering
+// the same `↓ Exportar ▾` chrome. Now each section gets:
+//   - a `data-section` attribute on the button
+//   - a `border-l-{color}-400` Tailwind utility class (defensive)
+//   - a 1-character per-section icon prefix (▼★▦◇)
+// The 2px solid border + pl-3 are added by `.export-btn[data-section]`
+// rules in tokens.css. These tests pin the JS-side contract (attribute
+// + class + icon); the CSS rule is verified visually in Phase 4 / 5.
+describe('export-button — V5+ critique v3 P1-2 per-section styling', () => {
+  const formats = [
+    { id: 'copy-md', label: 'Copiar markdown', content: 'x' },
+  ];
+
+  test('cada uno de los 4 mounts rinde data-section + border-l-{color}-400 + icono', () => {
+    // Mapeo explícito de la spec P1-2: cada sección → border + icon.
+    const cases = [
+      { sectionId: 'cli-mirror',      border: 'border-l-indigo-400',  icon: '▼' },
+      { sectionId: 'justification',   border: 'border-l-emerald-400', icon: '★' },
+      { sectionId: 'composite-chart', border: 'border-l-amber-400',   icon: '▦' },
+      { sectionId: 'ref-table',       border: 'border-l-rose-400',    icon: '◇' },
+    ];
+    for (const c of cases) {
+      const html = renderButton({ sectionId: c.sectionId, formats });
+      // data-section en el <button>, no en el wrapper (que tiene data-section-id).
+      expect(html).toContain(`data-section="${c.sectionId}"`);
+      expect(html).toContain(c.border);
+      // El icono per-section aparece en el HTML antes de "Exportar".
+      // Usamos `.includes` (no regex literal) para evitar issues del parser
+      // con chars multi-byte; verificamos orden (icono < Exportar) en lugar
+      // de buscar el substring exacto (el template multi-línea pone el icono
+      // en su propia línea, así que `>▼` no funciona como match exacto).
+      expect(html).toContain(c.icon);
+      expect(html).toContain('Exportar');
+      expect(html.indexOf(c.icon)).toBeLessThan(html.indexOf('Exportar'));
+      // El wrapper sigue llevando data-section-id (existente, no se rompe).
+      expect(html).toContain(`data-section-id="${c.sectionId}"`);
+      // El botón tiene la clase base `export-btn` para que las reglas
+      // CSS `.export-btn:hover` y `.export-btn[data-section="..."]`
+      // de tokens.css matcheen.
+      expect(html).toMatch(/class="export-btn[^"]*"/);
+    }
+  });
+
+  test('render (mount) propaga data-section + border + icono al DOM real', () => {
+    render(target, { sectionId: 'justification', formats });
+    const btn = target.querySelector('[data-action="toggle-export-dropdown"]');
+    expect(btn).not.toBeNull();
+    expect(btn.getAttribute('data-section')).toBe('justification');
+    expect(btn.className).toMatch(/export-btn/);
+    expect(btn.className).toMatch(/border-l-emerald-400/);
+    // El icono per-section es el primer span (antes de "Exportar").
+    const iconSpan = btn.querySelector('span[aria-hidden="true"]');
+    expect(iconSpan.textContent).toBe('★');
+  });
+});

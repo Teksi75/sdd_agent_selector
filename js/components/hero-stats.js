@@ -101,9 +101,14 @@ export function buildStatsLine(data) {
  * times; overwrites the previous content.
  *
  * V5+ KI-P0-2: same dual-key tolerance as buildStatsLine — accepts
- * `data.roleMatrix` OR `data.roles`. Without this fix, the live page
- * shows "0 agentes (0 SDD + 0 JD + 0 review)" because the loader
- * composes the payload under the key `roles` (PR #46 regression).
+ * `data.roleMatrix` OR `data.roles` (PR #46 regression fix).
+ *
+ * V5+ critique v3 P1-1: visual hierarchy. Split into TWO blocks
+ * (Modelos / Agentes) separated by a thin vertical divider. The
+ * active model count + total agent count are the headline numbers
+ * (text-slate-100 font-semibold), everything else is muted. Both
+ * headlines carry a `data-test="hero-stats-headline"` marker + a
+ * `title` tooltip explaining what the number means.
  *
  * @param {HTMLElement|null} targetEl
  * @param {Object} data - { models, roleMatrix?, roles?, _meta? }
@@ -114,36 +119,57 @@ export function render(targetEl, data, options) {
   const modelCounts = countModelsByLifecycle(data?.models);
   const roleMatrix = data?.roles ?? data?.roleMatrix;
   const agentCounts = countAgentsByFamily(roleMatrix);
+  // P1-1 — tooltip text for the headline numbers. Kept short so the
+  // browser's default tooltip (which truncates ~in 512px) shows the
+  // whole sentence.
+  const modelsHeadlineTitle =
+    'Modelos activos en el catálogo actual (lifecycle = active). El resto son reference (techo de costo) y legacy.';
+  const agentsHeadlineTitle =
+    `Agentes totales del catálogo (${agentCounts.sdd} SDD + ${agentCounts.jd} JD + ${agentCounts.review} review).`;
   const html = `
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400" data-test="hero-stats">
       <span class="flex items-center gap-1.5" data-test="hero-stats-models">
-        <span class="font-mono text-slate-200">${modelCounts.active}</span>
+        <span class="text-slate-500" aria-hidden="true">Modelos:</span>
+        <strong
+          class="text-slate-100 font-semibold"
+          data-test="hero-stats-headline"
+          data-headline="models"
+          title="${modelsHeadlineTitle}"
+        >${modelCounts.active}</strong>
         <span>activos</span>
         ${
           modelCounts.reference > 0
             ? `<span class="text-slate-600">·</span>
-               <span class="font-mono text-rose-300">${modelCounts.reference}</span>
+               <span>${modelCounts.reference}</span>
                <span>reference</span>`
             : ''
         }
         ${
           modelCounts.legacy > 0
             ? `<span class="text-slate-600">·</span>
-               <span class="font-mono text-slate-500">${modelCounts.legacy}</span>
+               <span>${modelCounts.legacy}</span>
                <span>legacy</span>`
             : ''
         }
-        <span class="text-slate-600">·</span>
-        <span class="font-mono text-slate-200">${agentCounts.total}</span>
+      </span>
+      <span class="hidden sm:inline text-slate-700 mx-2" data-test="hero-stats-divider" aria-hidden="true">|</span>
+      <span class="flex items-center gap-1.5" data-test="hero-stats-agents">
+        <span class="text-slate-500" aria-hidden="true">Agentes:</span>
+        <strong
+          class="text-slate-100 font-semibold"
+          data-test="hero-stats-headline"
+          data-headline="agents"
+          title="${agentsHeadlineTitle}"
+        >${agentCounts.total}</strong>
         <span>agentes</span>
         <span class="text-slate-600">(</span>
-        <span class="font-mono text-slate-300">${agentCounts.sdd}</span>
+        <span>${agentCounts.sdd}</span>
         <span>SDD</span>
         <span class="text-slate-600">+</span>
-        <span class="font-mono text-slate-300">${agentCounts.jd}</span>
+        <span>${agentCounts.jd}</span>
         <span>JD</span>
         <span class="text-slate-600">+</span>
-        <span class="font-mono text-slate-300">${agentCounts.review}</span>
+        <span>${agentCounts.review}</span>
         <span>review</span>
         <span class="text-slate-600">)</span>
       </span>

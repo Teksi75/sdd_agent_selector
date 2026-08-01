@@ -260,3 +260,70 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
     expect(text).toMatch(/1\s+review/);
   });
 });
+
+// V5+ critique v3 — P1-1: hero micro-stats visual hierarchy. The line
+// now splits into TWO blocks (Modelos / Agentes) separated by a vertical
+// divider, with the headline numbers at a larger visual weight. These
+// tests pin the new shape so a future regression to the old single-row
+// muted line breaks the build instead of breaking the page.
+describe('hero-stats — V5+ critique v3 P1-1 visual hierarchy', () => {
+  test('renderiza 2 bloques + divider vertical con data-test markers', () => {
+    const data = {
+      models: { a: { lifecycle: 'active' }, b: { lifecycle: 'active' } },
+      roleMatrix: { 'sdd-init': {}, 'sdd-archive': {} },
+    };
+    render(target, data);
+    const modelsBlock = target.querySelector('[data-test="hero-stats-models"]');
+    const agentsBlock = target.querySelector('[data-test="hero-stats-agents"]');
+    const divider = target.querySelector('[data-test="hero-stats-divider"]');
+    expect(modelsBlock).not.toBeNull();
+    expect(agentsBlock).not.toBeNull();
+    expect(divider).not.toBeNull();
+    // Cada bloque es un <span> directo del wrapper, no anidado dentro
+    // del otro (la jerarquía previa era un solo span que contenía
+    // modelos + agentes).
+    expect(modelsBlock.contains(agentsBlock)).toBe(false);
+    expect(agentsBlock.contains(modelsBlock)).toBe(false);
+    // El divider es el pipe literal, oculto en mobile via hidden sm:inline
+    // para que la línea wrappee limpio en viewports chicos.
+    expect(divider.textContent.trim()).toBe('|');
+    expect(divider.className).toMatch(/\bhidden\b/);
+    expect(divider.className).toMatch(/\bsm:inline\b/);
+    expect(divider.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  test('los headline numbers (24 activos / 18 agentes) están en text-slate-100 font-semibold', () => {
+    const data = {
+      models: {
+        a: { lifecycle: 'active' }, b: { lifecycle: 'active' },
+        c: { lifecycle: 'active' }, d: { lifecycle: 'active' },
+        e: { lifecycle: 'reference' },
+      },
+      roleMatrix: {
+        'sdd-init': {}, 'sdd-explore': {}, 'sdd-archive': {},
+        'sdd-design': {}, 'sdd-tasks': {}, 'sdd-apply': {},
+        'sdd-verify': {}, 'sdd-onboard': {},
+        'jd-judge-a': {}, 'jd-judge-b': {}, 'jd-fix-agent': {},
+        'review-risk': {}, 'review-readability': {},
+        'review-reliability': {}, 'review-resilience': {},
+        'sdd-propose': {}, 'sdd-spec': {},
+        'gentle-orchestrator': {},
+      },
+    };
+    render(target, data);
+    const headlines = target.querySelectorAll('[data-test="hero-stats-headline"]');
+    // 1 por bloque (modelos y agentes) = 2 headlines.
+    expect(headlines.length).toBe(2);
+    headlines.forEach((h) => {
+      expect(h.className).toMatch(/\btext-slate-100\b/);
+      expect(h.className).toMatch(/\bfont-semibold\b/);
+      // Es el <strong> del bloque, no un span genérico.
+      expect(h.tagName.toLowerCase()).toBe('strong');
+    });
+    // Y los headlines son los números correctos: modelos=4, agentes=18.
+    const modelsHeadline = target.querySelector('[data-test="hero-stats-models"] [data-test="hero-stats-headline"]');
+    const agentsHeadline = target.querySelector('[data-test="hero-stats-agents"] [data-test="hero-stats-headline"]');
+    expect(modelsHeadline.textContent.trim()).toBe('4');
+    expect(agentsHeadline.textContent.trim()).toBe('18');
+  });
+});
