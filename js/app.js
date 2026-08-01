@@ -26,6 +26,7 @@ import { render as renderRefTable } from './components/ref-table.js';
 import {
   render as renderConfigSelector,
   setData as setSelectorData,
+  selectConfig,
 } from './components/config-selector.js';
 import { render as renderWorkflowTable } from './components/workflow-table.js';
 import { render as renderCompositeChart } from './components/composite-chart.js';
@@ -40,6 +41,14 @@ import { refresh as dataSyncRefresh, isStale, DEFAULT_DATA_URL } from './service
 // the fetch but emitted no UI feedback at all — failures (including the
 // 404 because Teksi75/sdd-data does not exist yet) were silent console.warn.
 import { showToast } from './services/exporter.js';
+
+// V5+ KI-P0-1: default config key to pre-select on first load. The
+// `configs.json` entry for this key has description "punto de partida
+// recomendado". Kept as a hardcoded constant here (not in configs.json)
+// so a future refactor doesn't accidentally swap it — the pre-select
+// is a UX decision about which strategy to show by default, and that's
+// not a property the data layer should own.
+const DEFAULT_CONFIG_KEY = 'balanceado';
 
 // Boot signal — useful to confirm bundle loaded in the right order.
 console.log('SDD Agent Selector V4 — boot');
@@ -541,6 +550,20 @@ async function bootAll() {
     // complete before the heavier tables start rendering.
     mountHeroStats(data);
     const reRender = mountConfigSelector(data);
+    // V5+ KI-P0-1: pre-select the recommended config on first load
+    // so the user lands on 18 working assignment cards instead of a
+    // wall of red "Sin modelo elegible" empties. The `{ silent: true }`
+    // flag suppresses the "Estrategia aplicada" toast (the user hasn't
+    // clicked anything — the toast would be misleading) but still runs
+    // the full onSelect chain so the downstream tables paint.
+    try {
+      selectConfig(DEFAULT_CONFIG_KEY, { silent: true });
+      console.log(`js/app.js: pre-selected default config (${DEFAULT_CONFIG_KEY})`);
+    } catch (err) {
+      // If the pre-select throws (e.g. data shape mismatch), log and
+      // continue — the user can still click a strategy manually.
+      console.warn('js/app.js: pre-select failed', err);
+    }
     const revalidate = (freshData) => {
       if (typeof reRender === 'function') {
         try {

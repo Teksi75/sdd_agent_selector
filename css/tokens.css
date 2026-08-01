@@ -101,7 +101,16 @@
       -visible) keeps mouse clicks free of the ring.
    3. .config-selector-group is applied at the config-selector.js render
       time to the role="group" wrapper, ensuring the 5 strategy buttons
-      wrap on viewports < 360px instead of truncating. */
+      wrap on viewports < 360px instead of truncating.
+   4. .skip-link (P2-2): visually hidden until focused. The link target
+      is the first tier section so keyboard / screen-reader users can
+      jump past the hero + 2 <details> disclosures straight to the
+      action surface. position:absolute + top:-100px (NOT display:none
+      or visibility:hidden — those remove the element from the
+      accessibility tree entirely). On :focus, slide it back into the
+      viewport at top:0. The offset doesn't matter for the user's flow
+      (Tab again moves focus into the next element) but it confirms
+      visually that the keyboard navigation is working. */
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{
     animation-duration:.001ms!important;
@@ -119,6 +128,22 @@ a:focus-visible,
   border-radius:6px
 }
 .config-selector-group{display:flex;flex-wrap:wrap;gap:.5rem}
+.skip-link{
+  position:absolute;
+  left:.5rem;
+  top:-100px;
+  z-index:50;
+  padding:.5rem .75rem;
+  background:#0f172a;
+  color:#e2e8f0;
+  border:2px solid #818cf8;
+  border-radius:.375rem;
+  text-decoration:none;
+  font-size:.875rem;
+  font-weight:600;
+  transition:top .15s ease
+}
+.skip-link:focus{top:.5rem}
 
 /* V5+ — P2 polish (2026-07-31, P2-1/P2-2/P2-3/P2-6).
    1. scroll-margin-top on the 3 tier sections: when deep-linking via

@@ -40,3 +40,4 @@ pnpm-store/
 # Local artifacts (no van al repo)
 .mavis/
 .secrets/
+tmp/

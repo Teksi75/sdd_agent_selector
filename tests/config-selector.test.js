@@ -249,3 +249,67 @@ describe('config-selector — V5+ P2-2 scroll-to-impact', () => {
     });
   });
 });
+
+// V5+ KI-P0-1: silent option for the boot pre-select path. When the
+// page first loads, app.js calls selectConfig('balanceado', { silent: true })
+// so the user lands on 18 working assignment cards instead of a wall
+// of red "Sin modelo elegible" empties. The silent flag suppresses
+// only the toast — onSelect, paintActive, and scrollToFirstChange
+// still run normally (so the post-boot end state matches a click).
+describe('config-selector — V5+ KI-P0-1 silent option', () => {
+  beforeEach(() => {
+    resetForTests();
+    // Clear any toasts left over from the previous describe's
+    // selectConfig() calls (those fire the success toast, which
+    // persists in document.body). Without this cleanup, the
+    // "no toast on silent" assertion would see a stale toast and
+    // fail with expected 1 to be +0.
+    document.querySelectorAll('[data-test="export-toast"]').forEach((t) => t.remove());
+    target = document.createElement('section');
+    document.body.appendChild(target);
+  });
+  afterEach(() => {
+    if (target.parentNode) target.parentNode.removeChild(target);
+    document.querySelectorAll('[data-test="export-toast"]').forEach((t) => t.remove());
+    resetForTests();
+  });
+
+  test('selectConfig(key, { silent: true }) ejecuta todo menos el toast', async () => {
+    ({ render, selectConfig, setData, resetForTests } = await import(
+      '../js/components/config-selector.js'
+    ));
+    resetForTests();
+    setData({ models: MODELS, roleMatrix: ROLE_MATRIX, profiles: PROFILES });
+    let onSelectCalls = 0;
+    render(target, CONFIGS, () => { onSelectCalls += 1; });
+
+    // Antes del select: ningún .active, ningún toast.
+    expect(target.querySelectorAll('button.active').length).toBe(0);
+    expect(document.querySelectorAll('[data-test="export-toast"]').length).toBe(0);
+
+    // Pre-select con silent.
+    selectConfig('balanceado', { silent: true });
+
+    // Después: el botón está activo, onSelect corrió, pero NO hay toast.
+    expect(target.querySelectorAll('button.active').length).toBe(1);
+    expect(onSelectCalls).toBe(1);
+    expect(document.querySelectorAll('[data-test="export-toast"]').length).toBe(0);
+
+    // Cleanup: flush RAFs del scrollToFirstChange (que se saltea con silent,
+    // pero por las dudas dejamos el cleanup explícito).
+    await new Promise((r) => setTimeout(r, 30));
+  });
+
+  test('selectConfig(key) sin silent SIGUE disparando el toast (regression guard)', async () => {
+    ({ render, selectConfig, setData, resetForTests } = await import(
+      '../js/components/config-selector.js'
+    ));
+    resetForTests();
+    setData({ models: MODELS, roleMatrix: ROLE_MATRIX, profiles: PROFILES });
+    render(target, CONFIGS, () => {});
+
+    selectConfig('balanceado');
+    // El toast debe aparecer (cualquier export-toast en el DOM).
+    expect(document.querySelectorAll('[data-test="export-toast"]').length).toBeGreaterThan(0);
+  });
+});

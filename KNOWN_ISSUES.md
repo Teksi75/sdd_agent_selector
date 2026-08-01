@@ -50,3 +50,73 @@ devuelve data fresca.
   `aria-busy="true"`. `try/finally` garantiza re-enable.
 - Con KI-1 cerrado (sdd-data existe), el caso 404 desaparece y el toast
   de success pasa a ser el path normal.
+
+---
+
+## Critique v2 · 2026-08-01 — Backlog de polish (Nielsen 28/40)
+
+Snapshot del critique: `.impeccable/critique/2026-08-01T04-30-00Z__sdd-agent-selector-v2.md`
+Score 28/40 (subió 25→28 desde el critique inicial). Items clasificados por
+severidad según el rubric del critique. Estado de cada uno al final de PR #47:
+
+### P0 · bloqueante · pendiente
+- **P0-1 (2da mitad) — copy de onboarding en el empty state.** PR #47 cerró
+  la primera mitad (pre-select `balanceado` con `silent: true` → 18 cards
+  con modelo asignado en vez de wall de rojos). Falta la copy: el
+  primer render aún no le dice al usuario "qué está mirando" ni cómo
+  cambiar de estrategia. Acción: agregar un `<p>` corto en el hero que
+  explique el flujo en 2 oraciones, link al glossary.
+
+### P0 · bloqueante · ✅ RESUELTO en este PR
+- **P0-2 — hero-stats "0 agentes".** El loader componía el payload bajo
+  la key `roles` pero el componente leía `roleMatrix` (regresión de
+  PR #46). Fix: dual-key resolution `data?.roles ?? data?.roleMatrix`
+  con preferencia por `roles` (la del data-loader real). Tres tests
+  pinnean la tolerancia para que un futuro rename de cualquier lado
+  rompa el build en vez del live.
+
+### P1 · alta · pendiente
+- **P1-1 — tier h2 labels casi invisibles.** `text-[11px] text-slate-400`
+  sobre fondo `slate-900` da contraste <3:1. Acción: subir a `text-sm`
+  o `text-base` + `text-slate-200`.
+- **P1-2 — SOFT badge se lee como error.** El `amber-300` actual está
+  overloaded con otros warnings. Acción: cambiar a `text-purple-300`
+  (color del fallback) o agregar un icono prefix `~` para disambiguar
+  de "warning".
+
+### P2 · eficiencia / a11y · mezcla
+- **P2-2 — skip-link.** ✅ RESUELTO en este PR: `<a class="skip-link"
+  data-test="skip-link" href="#tier-1">Saltar al contenido principal</a>`
+  con `.skip-link{position:absolute;top:-100px}` y
+  `.skip-link:focus{top:.5rem}`. 5 tests pinnean el shape HTML + CSS.
+- **P2-3 — export menu keyboard nav.** ✅ RESUELTO en este PR: roving
+  tabindex, `aria-activedescendant`, ArrowUp/Down con wrap-around
+  (estilo WAI-ARIA Authoring Practices), Home/End, Tab/Escape. 6 tests
+  en `export-button.test.js` + 2 shape tests en `p2-polish.test.js`.
+- **P2-5 — descripción de formatos en el export menu.** Los `<button>`
+  items solo tienen `Copiar` / `Descargar` — falta una línea de copy
+  que explique qué se exporta. Acción: agregar un `<span class="text-[10px] text-slate-500">`
+  debajo de cada label.
+- **P2 eficiencia — keyboard shortcuts.** Falta `?` para help,
+  `g+i/j/k` para navegar entre tiers, `r` para refresh. Acción:
+  documentar primero; agregar keybindings en el siguiente PR.
+- **P2-4 — aria-live per-card.** Las cards de justificación se
+  re-pintan en cada `selectConfig` sin anuncio. Acción: agregar
+  `aria-live="polite"` al mount + un `sr-only` "Configuración aplicada"
+  que se actualice.
+- **P2-6 — rename "CLI mirror".** El nombre "CLI mirror" no comunica
+  qué hace. Acción: cambiar a "Equivalentes CLI" o "Comando
+  equivalente" y agregar tooltip.
+- **P2-1 — refresh affordance.** El botón "Actualizar ahora" en
+  `freshness-badge` es pequeño y gris. KI-2 ya cerró el feedback del
+  click, pero el affordance visual sigue débil. Acción: subir a
+  `min-height:2.5rem` + `text-sm`.
+
+### P3 · SLOP false positives · ignorado
+- P3-1 indigo "intencional" (color de marca SDD)
+- P3-2 em-dashes "tipografía española"
+- P3-3 Inter "V3-parity"
+- P3-4 `.gradient-text` "clase muerta legacy"
+
+Estos los marcó el critique como SLOP heuristics pero el autor los
+defiende; no se actúa.

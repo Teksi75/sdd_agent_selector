@@ -160,10 +160,22 @@ function scrollToFirstChange(prev, next) {
  *      (V5+ P2-2: prev is passed so the caller can drive scroll-to-impact;
  *       existing callers that ignore the 2nd arg are unaffected)
  *   6. V5+ P2-2: scroll to the first-changed agent's card and flash it
+ *
+ * V5+ KI-P0-1: accepts an optional `{ silent: true }` second arg.
+ * When `silent` is true, the success toast is suppressed — used by
+ * the boot pre-select path so the first paint doesn't fire a noisy
+ * "Estrategia aplicada: Balanceado" before the user has done anything.
+ * The onSelect callback, the .active class paint, and the scroll-to-
+ * impact still run normally (the user sees the same end state as if
+ * they had clicked; they just don't get an unsolicited toast).
+ *
  * @param {string} key
+ * @param {{ silent?: boolean }} [options]
  * @throws {InvalidConfigError}
  */
-export function selectConfig(key) {
+export function selectConfig(key, options) {
+  const opts = options || {};
+  const silent = opts.silent === true;
   const cfg = findConfig(key);
   if (!cfg) throw new InvalidConfigError(`Unknown config key: "${key}"`);
   if (key === _activeKey) return;     // idempotent: no work, no re-render
@@ -188,11 +200,16 @@ export function selectConfig(key) {
   if (typeof _onSelect === 'function') _onSelect(assignments, prev);
   // V5+ P2-2: scroll to the first agent whose assignment changed.
   // Runs AFTER onSelect so the DOM is up to date by the time we query.
-  scrollToFirstChange(prev, assignments);
+  // Skipped on silent pre-select (no scroll for the first paint).
+  if (!silent) {
+    scrollToFirstChange(prev, assignments);
+  }
   // V5 — user feedback: tell the user the click took effect and what was
   // applied. The tier count tells them how many agents got a model (out of
-  // 18); softFallbacks flag the data needs attention.
-  if (typeof showToast === 'function') {
+  // 18); softFallbacks flag the data needs attention. Suppressed on the
+  // boot pre-select path (silent=true) so the first paint doesn't fire
+  // a "Estrategia aplicada: ..." toast before the user has clicked.
+  if (!silent && typeof showToast === 'function') {
     const withModel = Object.values(assignments).filter((a) => a && a.key).length;
     const softCount = Object.values(assignments).filter((a) => a && a.softFallback).length;
     const softSuffix = softCount > 0

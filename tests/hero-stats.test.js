@@ -197,3 +197,66 @@ describe('hero-stats — render()', () => {
     expect(second).not.toMatch(/1\s+activos/);
   });
 });
+
+// V5+ KI-P0-2 — data contract tolerance. PR #46 regressed by reading
+// `data.roleMatrix` while data-loader returns the key as `roles`. The
+// fix: accept either. These tests pin both the legacy name and the
+// live name so a future rename of either side breaks the build
+// instead of breaking the live page.
+describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
+  test('buildStatsLine acepta data.roles (live data-loader contract)', () => {
+    const data = {
+      models: { a: { lifecycle: 'active' } },
+      roles: { 'sdd-init': {}, 'sdd-archive': {} },
+    };
+    const line = buildStatsLine(data);
+    expect(line).toMatch(/2 agentes/);
+    expect(line).toMatch(/2 SDD/);
+  });
+
+  test('buildStatsLine acepta data.roleMatrix (legacy name)', () => {
+    const data = {
+      models: { a: { lifecycle: 'active' } },
+      roleMatrix: { 'sdd-init': {} },
+    };
+    const line = buildStatsLine(data);
+    expect(line).toMatch(/1 agentes/);
+    expect(line).toMatch(/1 SDD/);
+  });
+
+  test('buildStatsLine con ambas keys (roles + roleMatrix) prefiere roles', () => {
+    // Si ambas están presentes, gana `roles` (la del data-loader real).
+    const data = {
+      models: { a: { lifecycle: 'active' } },
+      roles: { 'sdd-init': {}, 'sdd-archive': {}, 'sdd-explore': {} },  // 3
+      roleMatrix: { 'sdd-init': {} },  // 1 — ignorado
+    };
+    const line = buildStatsLine(data);
+    expect(line).toMatch(/3 agentes/);
+  });
+
+  test('buildStatsLine con ninguna key cae a 0 agentes (no throw)', () => {
+    const data = { models: { a: { lifecycle: 'active' } } };
+    const line = buildStatsLine(data);
+    expect(line).toMatch(/0 agentes/);
+  });
+
+  test('render pinta el conteo correcto con data.roles', () => {
+    const data = {
+      models: { a: { lifecycle: 'active' } },
+      roles: {
+        'sdd-init': {}, 'sdd-archive': {}, 'sdd-archive2': {},
+        'jd-judge-a': {}, 'jd-judge-b': {},
+        'review-risk': {},
+      },
+    };
+    const out = render(target, data);
+    expect(out.mounted).toBe(true);
+    const text = target.textContent.replace(/\s+/g, ' ');
+    expect(text).toMatch(/1\s+activos/);
+    expect(text).toMatch(/6\s+agentes/);
+    expect(text).toMatch(/3\s+SDD/);
+    expect(text).toMatch(/2\s+JD/);
+    expect(text).toMatch(/1\s+review/);
+  });
+});
