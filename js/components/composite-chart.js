@@ -381,16 +381,18 @@ export function render(targetEl, models, _meta) {
     renderExportButton(exportMount, {
       sectionId: 'composite-chart',
       formats: [
-        { id: 'copy-md', label: 'Copiar tabla', content: exportMd },
+        { id: 'copy-md', label: 'Copiar tabla', description: 'Markdown con score compuesto + tier', content: exportMd },
         {
           id: 'download-md',
           label: 'Descargar markdown',
+          description: 'Archivo .md con todos los modelos',
           content: exportMd,
           filename: exportFilename('composite-chart', 'md'),
         },
         {
           id: 'download-json',
           label: 'Descargar JSON',
+          description: 'Snapshot completo · ordenado por score',
           content: exportJson,
           filename: exportFilename('composite-chart', 'json'),
           mime: 'application/json',
