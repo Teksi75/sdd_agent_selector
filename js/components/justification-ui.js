@@ -12,8 +12,16 @@
 // V5 — export button (Exportar ▾) in a small header. Two formats:
 //   - Copy markdown justification block (per-agent rationale table)
 //   - Download JSON of the full justification set
+//
+// V5+ critique v3 — P1-3: soft-fallback count summary banner.
+// The banner appears at the top of the mount when the current
+// strategy produces N>0 soft-fallbacks. The link inside the banner
+// calls selectConfig('balanceado') to switch the global strategy,
+// which clears the soft-fallbacks in the next paint and the banner
+// disappears by itself (no manual teardown needed).
 
 import { render as renderExportButton } from './export-button.js';
+import { selectConfig } from './config-selector.js';
 import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
 const CANONICAL_ORDER = Object.freeze([
@@ -226,18 +234,52 @@ export function render(targetEl, agentsAssignments, roleMatrix, models) {
   // V5+ critique v2 — P2-4: aria-live="polite" on the cards grid
   // so screen readers announce the new assignment set after the
   // user picks a different strategy. `polite` (not `assertive`)
-  // because the change is informational, not a critical alert —
-  // the SR waits for the current utterance to finish. `aria-atomic`
-  // is left at the default (false) so only the changed cards are
-  // read, not the whole 18-card block. The mount itself carries
-  // `aria-busy="true"` until the first render lands; that stays
-  // unchanged (it tells the SR to wait for the initial paint).
-  targetEl.innerHTML = `<div class="flex items-center justify-between gap-2 mb-3">
+  // because the change is informational, not a critical alert.
+  //
+  // V5+ critique v3 — P1-3: soft-fallback count summary banner.
+  // When the current strategy (e.g. "Experimental" or "Híbrido")
+  // produces N>0 soft-fallbacks, render a one-line summary above
+  // the cards with a "cambiar a Balanceado" link. The banner is
+  // absent for strategies with 0 soft-fallbacks (Balanceado /
+  // Máximo) — keeps the mount clean for the common case. Copy
+  // uses rioplatense "usan" (not "usa") and omits the article
+  // before "Balanceado" to read naturally in Spanish.
+  const softCount = Object.values(safeA).filter((a) => a && a.softFallback).length;
+  const softSummary = softCount > 0
+    ? `<div class="soft-summary" data-test="soft-summary" role="status" aria-live="polite">
+         <strong>${softCount}</strong> de <strong>18</strong> usan soft fallback — el rol no tiene un modelo que cumpla minReasoning estricto dentro del cost ceiling.
+         ¿Querés cambiar a <a href="#" data-action="switch-balanced">Balanceado</a>?
+       </div>`
+    : '';
+  targetEl.innerHTML = `${softSummary}
+    <div class="flex items-center justify-between gap-2 mb-3">
       <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 agentes con asignación</span>
       <div data-test="justification-export"></div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-test="justification-cards" aria-live="polite">${cards}</div>
     <p class="mt-3 text-xs text-slate-500">${withA}/18 agentes con asignación · colores desde <code>tokens.css</code>.</p>`;
+
+  // V5+ critique v3 — P1-3: wire the "switch to Balanceado" link.
+  // The link uses href="#" + data-action="switch-balanced" so users
+  // without JS still see a real anchor. preventDefault on click so
+  // the browser doesn't scroll to the top. selectConfig re-renders
+  // the dependent mounts and the next paint of this mount will have
+  // 0 soft-fallbacks under 'balanceado' — the banner disappears by
+  // itself. The try/catch covers the edge case where render() runs
+  // before config-selector.setData() (test harness). We log and
+  // bail; the rest of the mount still renders fine.
+  const switchLink = targetEl.querySelector('[data-action="switch-balanced"]');
+  if (switchLink) {
+    switchLink.addEventListener('click', (e) => {
+      e.preventDefault();
+      try {
+        selectConfig('balanceado');
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('justification-ui: switch to balanceado failed', err);
+      }
+    });
+  }
 
   const exportMount = targetEl.querySelector('[data-test="justification-export"]');
   if (exportMount) {

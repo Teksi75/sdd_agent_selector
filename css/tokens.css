@@ -67,6 +67,26 @@
 .scroll-fade{mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 2%,black 98%,transparent)}
 .export-btn{transition:all .15s ease}
 .export-btn:hover{background:rgba(255,255,255,0.1)}
+/* V5+ critique v3 — P1-2: per-section tier-color left border on the
+   export button. Each of the 4 sections (cli-mirror / justification /
+   composite-chart / ref-table) gets a 2px solid left border in a tier
+   color so the user can tell at a glance which section's export menu
+   they're about to open. The base `border border-slate-700` on the
+   button is overridden on the left side by these rules (2px instead
+   of 1px, color in the section's tier hue). `padding-left: 0.75rem`
+   (= Tailwind `pl-3`) keeps the icon + "Exportar" text off the border
+   so the leading character doesn't sit on top of the colored bar.
+   The `border-l-{color}-400` Tailwind utility class is ALSO set on the
+   button in JS as a defensive fallback (in case this file is stale,
+   the color is still applied via the utility class). */
+.export-btn[data-section="cli-mirror"]{border-left:2px solid #818cf8;padding-left:.75rem}
+.export-btn[data-section="justification"]{border-left:2px solid #34d399;padding-left:.75rem}
+.export-btn[data-section="composite-chart"]{border-left:2px solid #fbbf24;padding-left:.75rem}
+.export-btn[data-section="ref-table"]{border-left:2px solid #fb7185;padding-left:.75rem}
+/* Unknown section: keep the default 1px slate border, no extra padding.
+   The data-section attribute is still set on the button so a future
+   CSS rule can target new sections without touching JS. */
+.export-btn[data-section="unknown"]{border-left:1px solid #334155;padding-left:.5rem}
 .src-badge{font-size:9px;padding:1px 5px;border-radius:3px;white-space:nowrap}
 .src-arena{background:rgba(16,185,129,0.15);color:#6ee7b7}
 .src-swe{background:rgba(99,102,241,0.15);color:#a5b4fc}
@@ -360,3 +380,25 @@ a:focus-visible,
   color:#64748b;
   text-align:right
 }
+
+/* V5+ critique v3 — P1-3: soft-fallback count summary banner. Renders
+   at the top of the justification mount when the current strategy
+   produces N>0 soft-fallbacks. The purple-tinted background + border
+   matches the .soft-badge color so the visual association is clear.
+   The link inside uses #d8b4fe (the same purple-300 as .soft-badge
+   text) and a standard underline so it reads as actionable. */
+.soft-summary{
+  font-size:.8125rem;
+  color:#cbd5e1;
+  background:rgba(168,85,247,.08);
+  border:1px solid rgba(168,85,247,.25);
+  border-radius:.5rem;
+  padding:.5rem .75rem;
+  margin-bottom:.75rem
+}
+.soft-summary a{
+  color:#d8b4fe;
+  text-decoration:underline
+}
+.soft-summary a:hover{color:#e9d5ff}
+.soft-summary strong{color:#d8b4fe;font-weight:600}

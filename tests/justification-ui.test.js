@@ -270,3 +270,91 @@ describe('justification-ui — render() contract (spec.md)', () => {
     expect(html).toMatch(/data-tier="balanced"/);
   });
 });
+
+// V5+ critique v3 — P1-3: soft-fallback count summary banner. When the
+// current strategy produces N>0 soft-fallbacks, a one-line banner
+// appears at the top of the mount with a "cambiar a Balanceado" link
+// that fires selectConfig('balanceado'). The banner is absent when N=0.
+describe('justification-ui — V5+ critique v3 P1-3 soft-summary banner', () => {
+  test('aparece el banner cuando N>0 agentes usan soft fallback, con copy rioplatense', async () => {
+    ({ render } = await import('../js/components/justification-ui.js'));
+    const baseA = {
+      key: 'mimo25', model: MODELS.mimo25,
+      score: 86.97, cost: 0.000266, effectiveMaxCost: 0.00085, alternatives: [],
+    };
+    const softA = { ...baseA, softFallback: true, reason: 'soft fallback (minReasoning=95)' };
+    // 3 soft-fallbacks, el resto asignaciones normales. Suficiente para
+    // gatillar el banner y verificar el conteo.
+    const assignments = {
+      'sdd-archive': softA, 'sdd-apply': softA, 'sdd-design': softA,
+      'gentle-orchestrator': baseA,
+      'sdd-init': baseA, 'sdd-explore': baseA, 'sdd-propose': baseA,
+      'sdd-spec': baseA, 'sdd-tasks': baseA, 'sdd-verify': baseA,
+      'sdd-onboard': baseA,
+      'jd-judge-a': baseA, 'jd-judge-b': baseA, 'jd-fix-agent': baseA,
+      'review-risk': baseA, 'review-readability': baseA,
+      'review-reliability': baseA, 'review-resilience': baseA,
+    };
+    render(target, assignments, ROLE_MATRIX, MODELS);
+    const banner = target.querySelector('[data-test="soft-summary"]');
+    expect(banner).not.toBeNull();
+    expect(banner.textContent).toMatch(/3/);
+    expect(banner.textContent).toMatch(/de\s*18/);
+    // Rioplatense: "usan" (no "usa") y "cambiar a Balanceado" (sin artículo).
+    expect(banner.textContent).toMatch(/usan soft fallback/);
+    expect(banner.textContent).toMatch(/cambiar a\s*Balanceado/);
+    const link = banner.querySelector('[data-action="switch-balanced"]');
+    expect(link).not.toBeNull();
+    expect(link.getAttribute('href')).toBe('#');
+    expect(link.textContent).toBe('Balanceado');
+    // El banner aparece ANTES del grid de cards (es el primer hijo del mount).
+    const firstChild = target.firstElementChild;
+    expect(firstChild.getAttribute('data-test')).toBe('soft-summary');
+    // Conteo 0 → no se renderiza (verificamos el caso negativo en el mismo
+    // test re-renderizando con assignments todas-non-soft).
+    const allNormal = {};
+    for (const a of Object.keys(assignments)) allNormal[a] = baseA;
+    render(target, allNormal, ROLE_MATRIX, MODELS);
+    expect(target.querySelector('[data-test="soft-summary"]')).toBeNull();
+  });
+
+  test('click en el link llama selectConfig("balanceado") y hace preventDefault', async () => {
+    ({ render } = await import('../js/components/justification-ui.js'));
+    // Mockeamos el módulo config-selector para espiar selectConfig. Usamos
+    // vi.resetModules + vi.doMock para que el import del justification-ui
+    // (que arriba trae el módulo real) vea el mock en el segundo render.
+    const { vi } = await import('vitest');
+    vi.resetModules();
+    vi.doMock('../js/components/config-selector.js', () => ({
+      selectConfig: vi.fn(),
+    }));
+    const { render: renderMocked } = await import('../js/components/justification-ui.js');
+    const mockedConfig = await import('../js/components/config-selector.js');
+    const baseA = {
+      key: 'mimo25', model: MODELS.mimo25,
+      score: 86.97, cost: 0.000266, effectiveMaxCost: 0.00085, alternatives: [],
+    };
+    const softA = { ...baseA, softFallback: true };
+    const assignments = {
+      'gentle-orchestrator': baseA, 'sdd-init': baseA, 'sdd-explore': baseA,
+      'sdd-propose': baseA, 'sdd-spec': baseA, 'sdd-design': softA,
+      'sdd-tasks': baseA, 'sdd-apply': baseA, 'sdd-verify': baseA,
+      'sdd-archive': baseA, 'sdd-onboard': baseA,
+      'jd-judge-a': baseA, 'jd-judge-b': baseA, 'jd-fix-agent': baseA,
+      'review-risk': baseA, 'review-readability': baseA,
+      'review-reliability': baseA, 'review-resilience': baseA,
+    };
+    target.innerHTML = '';
+    renderMocked(target, assignments, ROLE_MATRIX, MODELS);
+    const link = target.querySelector('[data-action="switch-balanced"]');
+    expect(link).not.toBeNull();
+    const ev = new Event('click', { cancelable: true, bubbles: true });
+    link.dispatchEvent(ev);
+    expect(ev.defaultPrevented).toBe(true);
+    expect(mockedConfig.selectConfig).toHaveBeenCalledTimes(1);
+    expect(mockedConfig.selectConfig).toHaveBeenCalledWith('balanceado');
+    // Limpiamos el mock para no contaminar los tests siguientes.
+    vi.doUnmock('../js/components/config-selector.js');
+    vi.resetModules();
+  });
+});
