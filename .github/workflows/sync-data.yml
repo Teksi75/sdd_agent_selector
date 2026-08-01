@@ -1,0 +1,126 @@
+# .github/workflows/sync-data.yml
+# ============================================================================
+# V5+ — KI-1: mirror data/*.json from sdd_agent_selector → Teksi75/sdd-data
+#
+# Why this exists:
+#   The sdd_agent_selector page bakes the 5 data files into dist/data/ at
+#   build time, so the runtime is always self-contained. The "Actualizar
+#   ahora" button in the freshness badge, however, does a runtime fetch
+#   from Teksi75/sdd-data (the curated data feed). This workflow keeps
+#   the feed in sync with the canonical data/*.json so the refresh
+#   button returns fresh data without requiring a redeploy of the page.
+#
+# Triggers:
+#   1. push to main in sdd_agent_selector when any data/*.json changes
+#      → mirror the change to sdd-data (the common case)
+#   2. daily cron (06:00 UTC) → self-heal in case a push was missed
+#      (covers the data/sync-benchmarks.yml workflow that updates
+#      data/models.json without a human push)
+#   3. workflow_dispatch → manual re-sync
+#
+# Auth model:
+#   The default GITHUB_TOKEN only has write access to the same repo, so
+#   the workflow needs a PAT with `repo` scope to push to sdd-data. The
+#   PAT lives at sdd_agent_selector → Settings → Secrets → SDD_DATA_TOKEN.
+#
+# Operational notes:
+#   - The workflow clones sdd-data fresh (not via checkout action) so
+#     we own the local working copy and can `git push` back without
+#     conflicts.
+#   - The commit uses github-actions[bot] as author — shows in
+#     sdd-data's commit history as a "chore(data): sync ..." entry
+#     that points to the source SHA.
+#   - If no files changed (already in sync), the workflow exits 0
+#     without committing.
+#   - The "diff guard" (`git diff --cached --quiet`) prevents empty
+#     commits that would still trigger downstream notifications.
+
+name: sync-data
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'data/models.json'
+      - 'data/phases.json'
+      - 'data/configs.json'
+      - 'data/agent-roles.json'
+      - 'data/agent-request-profiles.json'
+  schedule:
+    # Daily 06:00 UTC. Picked at 06:00 because the data/sync-benchmarks.yml
+    # workflow runs on a separate cadence; the 06:00 self-heal covers any
+    # case where a model update lands without a push to main.
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+# Only one sync at a time — kills any in-flight re-sync to avoid
+# concurrent pushes to sdd-data racing on the same file.
+concurrency:
+  group: sync-data
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: mirror to Teksi75/sdd-data
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sdd_agent_selector
+        uses: actions/checkout@v4
+        with:
+          # Full history so we can read the commit SHA for the message.
+          fetch-depth: 0
+
+      - name: Validate SDD_DATA_TOKEN secret
+        env:
+          TOKEN: ${{ secrets.SDD_DATA_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::SDD_DATA_TOKEN secret is not set. Add a PAT with 'repo' scope at Settings → Secrets → Actions."
+            exit 1
+          fi
+          echo "SDD_DATA_TOKEN present ($(echo -n $TOKEN | wc -c) chars)"
+
+      - name: Clone Teksi75/sdd-data
+        env:
+          TOKEN: ${{ secrets.SDD_DATA_TOKEN }}
+          GIT_TERMINAL_PROMPT: '0'
+        run: |
+          git clone \
+            https://x-access-token:${TOKEN}@github.com/Teksi75/sdd-data.git \
+            /tmp/sdd-data \
+            --depth 20 \
+            --branch main \
+            --single-branch
+
+      - name: Copy the 5 data files
+        run: |
+          mkdir -p /tmp/sdd-data/data
+          for f in models phases configs agent-roles agent-request-profiles; do
+            if [ ! -f "data/${f}.json" ]; then
+              echo "::error::data/${f}.json missing in sdd_agent_selector"
+              exit 1
+            fi
+            cp "data/${f}.json" "/tmp/sdd-data/data/${f}.json"
+          done
+          echo "Copied 5 files. Diff vs HEAD:"
+          cd /tmp/sdd-data && git diff --stat data/
+
+      - name: Commit and push
+        run: |
+          cd /tmp/sdd-data
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No changes to commit — sdd-data already up to date."
+            exit 0
+          fi
+          SOURCE_SHA="${GITHUB_SHA:-$(git -C \"$GITHUB_WORKSPACE\" rev-parse HEAD)}"
+          SOURCE_SHA_SHORT="${SOURCE_SHA:0:8}"
+          git commit -m "chore(data): sync from sdd_agent_selector @ ${SOURCE_SHA_SHORT}"
+          git push origin main
+          echo "Pushed to sdd-data @ $(git rev-parse --short HEAD)"
