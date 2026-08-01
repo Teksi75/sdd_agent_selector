@@ -168,3 +168,75 @@ a:focus-visible,
 .model-tier-tag[data-tier="balanced"]::before{content:"\25CF\00A0"}
 .model-tier-tag[data-tier="budget"]::before{content:"\25BD\00A0"}
 .model-tier-tag[data-tier="reference"]::before{content:"\25C6\00A0"}
+
+/* V5+ — P2 polish (2026-07-31, P2-4/P2-5/P2-7/P2-8).
+   1. Skeleton placeholders: animated gray bars that show during the
+      ~100ms between first paint and JS render. The .skeleton class
+      applies the shimmer animation + base color. Variant classes
+      (skeleton-text, skeleton-btn, etc.) are for documentation only
+      — the visual is the same.
+   2. @media print: turns the page into a print-friendly single-column
+      layout. Hides interactive elements (sticky config, refresh
+      button, export buttons), strips dark backgrounds, and shows all
+      data without collapse (so the print captures the full state).
+   3. .data-pretty-num: tabular-nums variant for the cost/score numbers
+      so columns line up when the print renders a numeric table.
+   4. .glossary dt: the <dt> tags inside the glossary details use a
+      fixed monospace width so the abbreviation + description read as
+      two columns instead of wrapping mid-abbreviation. */
+.skeleton{
+  background:linear-gradient(90deg,rgba(51,65,85,.6) 0%,rgba(71,85,105,.85) 50%,rgba(51,65,85,.6) 100%);
+  background-size:200% 100%;
+  animation:skeleton-shimmer 1.4s ease-in-out infinite;
+  opacity:.7
+}
+@keyframes skeleton-shimmer{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+.data-pretty-num{font-variant-numeric:tabular-nums}
+.glossary dt{font-weight:600}
+.glossary dd{margin:0}
+@media (prefers-reduced-motion: reduce){
+  /* The skeleton animation is exactly the kind of motion the user opted
+     out of. The @media block above already shortens animation-duration
+     globally; this is a belt-and-suspenders re-assertion for the
+     skeleton case (which otherwise looks like a frozen gray bar). */
+  .skeleton{animation:none!important;background:rgba(51,65,85,.6)}
+}
+@media print{
+  /* Print stylesheet — turns the dashboard into a single-column, B&W,
+     no-nav, no-interaction report. Triggered by browser print or by
+     `Ctrl+P` → "Save as PDF". The page is intentionally still useful
+     in print: all 3 tiers render, the table is full-width, and
+     the data behind the charts is the source of truth. */
+  :root{--color-surface:#fff;--color-on-surface:#111;--color-on-surface-muted:#444;--color-border:#ccc}
+  body{background:#fff!important;color:#111!important;font-size:11pt}
+  .config-sticky{position:static!important;background:transparent!important;backdrop-filter:none!important;box-shadow:none!important}
+  .flash-card{outline:none!important;animation:none!important;box-shadow:none!important}
+  button,.export-btn,.freshness-refresh,details>summary::before{display:none!important}
+  details[open] summary::before,details:not([open]) summary::before{content:""}
+  details{border:1px solid #ccc;padding:.5rem;margin-bottom:.5rem;page-break-inside:avoid}
+  details[open] .skeleton,details[open] .flash-card{display:none}
+  /* The .config-selector-group has no interactive role in print — its
+     "active" highlight is meaningless on paper. */
+  .config-selector-group{gap:.25rem}
+  .config-btn{border:1px solid #888!important;background:#f4f4f4!important;color:#111!important;min-height:0!important;padding:.15rem .4rem!important}
+  .config-btn.active{font-weight:700;background:#ddd!important}
+  /* Charts: keep bars visible but drop the dark surface. */
+  .rounded-xl,.tier-tag,td,th,tr{border-color:#bbb!important}
+  .bar-track{background:#eee!important}
+  .bar-fill{opacity:1!important}
+  table{border-collapse:collapse!important;width:100%!important}
+  thead{background:#eee!important;display:table-header-group}
+  tr{page-break-inside:avoid}
+  h1,h2,h3{page-break-after:avoid}
+  section{page-break-inside:avoid}
+  /* Skeletons: never print — they're a pre-hydration artifact. */
+  .skeleton{display:none!important}
+  /* Reset the SHAPE prefix colors to B&W so monochrome printers render
+     the meaning via shape (▲●▽◆) not color (which becomes gray). */
+  .tier-tag,.model-tier-tag{color:#111!important;border:1px solid #888!important}
+  /* URL: print after links so deep-link anchors survive the print. */
+  a[href^="http"]::after{content:" (" attr(href) ")";font-size:9pt;color:#555}
+}

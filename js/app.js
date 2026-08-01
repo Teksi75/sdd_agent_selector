@@ -33,6 +33,7 @@ import { render as renderPricingChart } from './components/pricing-chart.js';
 import { render as renderCliMirrorTable } from './components/cli-mirror-table.js';
 import { render as renderFreshnessBadge } from './components/freshness-badge.js';
 import { render as renderJustificationUI } from './components/justification-ui.js';
+import { render as renderHeroStats } from './components/hero-stats.js';
 import { refresh as dataSyncRefresh, isStale, DEFAULT_DATA_URL } from './services/data-sync.js';
 // V5+ KI-2: showToast is the user feedback channel for the freshness-badge
 // "Actualizar ahora" button. Before this wiring, clicking the button ran
@@ -498,6 +499,31 @@ function mountFreshnessBadge(data, revalidate) {
 }
 
 /**
+ * Mount the P2-5 hero micro-stats line. Reads the #hero-stats-mount
+ * element and replaces its skeleton placeholder with the live counts.
+ * Errors fall back to the skeleton (the page stays usable even if
+ * the count computation throws — the rest of the page is unaffected).
+ *
+ * @param {Object} data - composed payload from data-loader
+ */
+function mountHeroStats(data) {
+  const mount = document.getElementById('hero-stats-mount');
+  if (!mount) {
+    console.warn('js/app.js: #hero-stats-mount not found in DOM — skipping hero-stats render');
+    return;
+  }
+  try {
+    const out = renderHeroStats(mount, data);
+    console.log(
+      `js/app.js: hero-stats rendered — ${out.modelCounts.active} activos, ${out.modelCounts.reference} reference, ${out.agentCounts.total} agentes`
+    );
+  } catch (err) {
+    console.error('js/app.js: hero-stats mount failed', err);
+    // Keep the skeleton in place — failure is invisible to the user.
+  }
+}
+
+/**
  * Top-level orchestrator — load data once, mount all sections.
  *
  * Phase 3 wiring: mountConfigSelector returns a `reRender()` function
@@ -511,6 +537,9 @@ function mountFreshnessBadge(data, revalidate) {
 async function bootAll() {
   try {
     const data = await loadAll();
+    // P2-5: hero micro-stats go up first so the page header is
+    // complete before the heavier tables start rendering.
+    mountHeroStats(data);
     const reRender = mountConfigSelector(data);
     const revalidate = (freshData) => {
       if (typeof reRender === 'function') {
