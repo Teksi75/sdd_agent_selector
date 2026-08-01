@@ -135,8 +135,15 @@ function cardHtml(agent, role, assignment, doc) {
   }
   if (safeA.softFallback) {
     const reason = safeA.reason || 'Soft fallback activo';
+    // V5+ critique v2 — P1-2: soft-fallback badge switched to the
+    // purple `.soft-badge` class (with a tilde shape prefix from
+    // tokens.css) so the "approx / best-effort" meaning is carried
+    // by shape as well as color. The old amber overload made
+    // soft-fallbacks read as errors.
     return `<div class="justification-card rounded-xl border border-amber-700 bg-amber-900/25 p-4" data-agent="${esc(agent)}" data-has-assignment="true" data-soft-fallback="true">
-      <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span><span class="text-[10px] text-amber-200 font-semibold uppercase">⚠ Soft fallback</span></div>
+      <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span>
+        <span class="soft-badge" data-soft-fallback="true" title="${esc(reason)}">soft</span>
+      </div>
       ${assignmentHeader(safeA, doc)}
       <div class="text-[11px] text-amber-200/85 mt-2 mb-1">${esc(reason)}</div>
       <div class="text-[11px] text-slate-400"><span class="text-slate-500">role:</span> ${esc(roleDesc)}</div>
@@ -216,11 +223,20 @@ export function render(targetEl, agentsAssignments, roleMatrix, models) {
     assignments: exportAssignments,
   });
 
+  // V5+ critique v2 — P2-4: aria-live="polite" on the cards grid
+  // so screen readers announce the new assignment set after the
+  // user picks a different strategy. `polite` (not `assertive`)
+  // because the change is informational, not a critical alert —
+  // the SR waits for the current utterance to finish. `aria-atomic`
+  // is left at the default (false) so only the changed cards are
+  // read, not the whole 18-card block. The mount itself carries
+  // `aria-busy="true"` until the first render lands; that stays
+  // unchanged (it tells the SR to wait for the initial paint).
   targetEl.innerHTML = `<div class="flex items-center justify-between gap-2 mb-3">
       <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 agentes con asignación</span>
       <div data-test="justification-export"></div>
     </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-test="justification-cards">${cards}</div>
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-test="justification-cards" aria-live="polite">${cards}</div>
     <p class="mt-3 text-xs text-slate-500">${withA}/18 agentes con asignación · colores desde <code>tokens.css</code>.</p>`;
 
   const exportMount = targetEl.querySelector('[data-test="justification-export"]');
@@ -228,16 +244,18 @@ export function render(targetEl, agentsAssignments, roleMatrix, models) {
     renderExportButton(exportMount, {
       sectionId: 'justification',
       formats: [
-        { id: 'copy-md', label: 'Copiar tabla', content: exportMd },
+        { id: 'copy-md', label: 'Copiar tabla', description: 'Markdown con score + costo por agente', content: exportMd },
         {
           id: 'download-md',
           label: 'Descargar markdown',
+          description: 'Archivo .md con la tabla completa',
           content: exportMd,
           filename: exportFilename('justification', 'md'),
         },
         {
           id: 'download-json',
           label: 'Descargar JSON',
+          description: 'Estructura completa · alternativas incluidas',
           content: exportJson,
           filename: exportFilename('justification', 'json'),
           mime: 'application/json',

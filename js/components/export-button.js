@@ -70,12 +70,22 @@ async function runFormat(format, messages) {
 /**
  * Build the HTML for a single format option row inside the dropdown.
  *
- * @param {{ id: string, label: string }} format
+ * V5+ critique v2 — P2-5: each menuitem now carries an optional
+ * `description` line below the label (rendered as a muted
+ * `.export-menu-desc` span) so the user knows *what* they're about
+ * to copy/download without having to click first. Backward-compat:
+ * when `format.description` is missing the row renders exactly as
+ * before (label only, no empty span).
+ *
+ * @param {{ id: string, label: string, description?: string }} format
  * @param {string} sectionId
  * @returns {string}
  */
 function formatRowHtml(format, sectionId) {
   const icon = format.id.startsWith('copy-') ? '⧉' : '↓';
+  const desc = format.description
+    ? `<span class="export-menu-desc">${esc(format.description)}</span>`
+    : '';
   return `
     <button
       type="button"
@@ -83,10 +93,13 @@ function formatRowHtml(format, sectionId) {
       data-action="export-format"
       data-format-id="${esc(format.id)}"
       data-section-id="${esc(sectionId)}"
-      class="w-full text-left flex items-center gap-2 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700/80 focus:bg-slate-700/80 focus:outline-none transition-colors"
+      class="w-full text-left flex items-start gap-2 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700/80 focus:bg-slate-700/80 focus:outline-none transition-colors"
     >
-      <span aria-hidden="true" class="text-slate-400 w-3 text-center">${esc(icon)}</span>
-      <span>${esc(format.label)}</span>
+      <span aria-hidden="true" class="text-slate-400 w-3 text-center mt-0.5">${esc(icon)}</span>
+      <span class="flex-1 min-w-0">
+        <span class="block">${esc(format.label)}</span>
+        ${desc}
+      </span>
     </button>`;
 }
 

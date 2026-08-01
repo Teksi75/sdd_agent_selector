@@ -96,12 +96,20 @@ function twClassFor(slug) {
  * Build the small "soft" badge for assignments that fell back to the best
  * cost-clearing model because the reasoning floor was unreachable.
  *
+ * V5+ critique v2 — P1-2: the old `text-amber-300` was overloaded with
+ * the "Sin modelo elegible" / "warning" color, so a soft-fallback (which
+ * is a *successful* assignment under a relaxed heuristic, not an error)
+ * read as a failure. Switched to the purple `.soft-badge` class in
+ * tokens.css (with a `~` shape prefix for color-blind users) so the
+ * meaning ("approx / best-effort under a ceiling") is carried by both
+ * color and shape, not color alone.
+ *
  * @param {string} reason - the getBestFor reason string (shown in `title`)
  * @returns {string} HTML
  */
 function softBadge(reason) {
   const title = reason ? ` title="${esc(reason)}"` : '';
-  return `<span class="text-[10px] uppercase tracking-wider font-semibold text-amber-300" data-soft-fallback="true"${title}>soft</span>`;
+  return `<span class="soft-badge" data-soft-fallback="true"${title}>soft</span>`;
 }
 
 /**
@@ -212,7 +220,16 @@ export function render(targetEl, agentsAssignments, agentRoles) {
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
       <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 agentes con modelo</span>
+        <div class="flex items-center gap-2">
+          <!-- V5+ critique v2 — P2-6: rename "CLI mirror" → "Equivalentes CLI".
+               The old name didn't communicate what the table does (it
+               shows the paste-ready agents.md block + per-agent model
+               assignment, not a literal "CLI mirror"). The h3 is the
+               visible label; the aria-label on the section is kept in
+               sync so screen readers announce the same name. -->
+          <h3 class="text-sm font-semibold text-slate-200" data-test="cli-mirror-title">Equivalentes CLI</h3>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 con modelo</span>
+        </div>
         <div data-test="cli-mirror-export"></div>
       </div>
       <table class="w-full text-left text-sm text-slate-200">
@@ -229,7 +246,7 @@ export function render(targetEl, agentsAssignments, agentRoles) {
       </table>
     </div>
     <p class="mt-3 text-xs text-slate-500">
-      ${withA}/18 agentes con modelo asignado · colores desde <code>tokens.css</code>.
+      Tabla lista para pegar en <code>gentle-ai/agents/</code> · colores desde <code>tokens.css</code>.
     </p>`;
 
   const exportMount = targetEl.querySelector('[data-test="cli-mirror-export"]');
@@ -237,16 +254,18 @@ export function render(targetEl, agentsAssignments, agentRoles) {
     renderExportButton(exportMount, {
       sectionId: 'cli-mirror',
       formats: [
-        { id: 'copy-md', label: 'Copiar agents.md', content: exportMd },
+        { id: 'copy-md', label: 'Copiar agents.md', description: 'Markdown pegable en gentle-ai/agents/', content: exportMd },
         {
           id: 'download-md',
           label: 'Descargar agents.md',
+          description: 'Archivo .md para commit',
           content: exportMd,
           filename: exportFilename('agents', 'md'),
         },
         {
           id: 'download-json',
           label: 'Descargar JSON',
+          description: 'Snapshot completo · diff-friendly',
           content: exportJson,
           filename: exportFilename('cli-mirror', 'json'),
           mime: 'application/json',

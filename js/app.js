@@ -36,6 +36,12 @@ import { render as renderFreshnessBadge } from './components/freshness-badge.js'
 import { render as renderJustificationUI } from './components/justification-ui.js';
 import { render as renderHeroStats } from './components/hero-stats.js';
 import { refresh as dataSyncRefresh, isStale, DEFAULT_DATA_URL } from './services/data-sync.js';
+// V5+ critique v2 — P2 eficiencia: keyboard shortcuts. The module
+// self-registers a `keydown` listener at the document level and
+// wires `?` to the help overlay, `g+i/j/k` to tier scrolling, `r`
+// to the refresh button, and `Esc` to close the overlay. See
+// js/components/keyboard-shortcuts.js for the full contract.
+import { mount as mountKeyboardShortcuts } from './components/keyboard-shortcuts.js';
 // V5+ KI-2: showToast is the user feedback channel for the freshness-badge
 // "Actualizar ahora" button. Before this wiring, clicking the button ran
 // the fetch but emitted no UI feedback at all — failures (including the
@@ -549,6 +555,10 @@ async function bootAll() {
     // P2-5: hero micro-stats go up first so the page header is
     // complete before the heavier tables start rendering.
     mountHeroStats(data);
+    // V5+ critique v2 — P2 eficiencia: register the keyboard
+    // shortcuts listener. Idempotent — calling mount() multiple
+    // times keeps the listener set size at 1.
+    mountKeyboardShortcuts();
     const reRender = mountConfigSelector(data);
     // V5+ KI-P0-1: pre-select the recommended config on first load
     // so the user lands on 18 working assignment cards instead of a
@@ -577,6 +587,23 @@ async function bootAll() {
     mountCompositeChart(data);
     mountPricingChart(data);
     mountFreshnessBadge(data, revalidate);
+
+    // V5+ critique v2 — P0-1 2da mitad: hide the onboarding hint
+    // once the user clicks any strategy button. We can't piggy-back
+    // on the onSelect callback because the silent pre-select fires
+    // onSelect too, and we don't want to hide the hint before the
+    // user has actually interacted. A direct click listener on the
+    // config mount is the cleanest separator: the pre-select doesn't
+    // dispatch a DOM click event.
+    const configMount = document.getElementById('config-mount');
+    const hint = document.getElementById('hero-onboarding-hint');
+    if (configMount && hint) {
+      configMount.addEventListener('click', (e) => {
+        if (e.target.closest('button[data-config-key]')) {
+          hint.style.display = 'none';
+        }
+      }, { once: false });
+    }
   } catch (err) {
     console.error('js/app.js: data load failed', err);
   }

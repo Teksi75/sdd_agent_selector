@@ -265,3 +265,98 @@ a:focus-visible,
   /* URL: print after links so deep-link anchors survive the print. */
   a[href^="http"]::after{content:" (" attr(href) ")";font-size:9pt;color:#555}
 }
+
+/* V5+ — critique v2 final polish (2026-08-01, P1-2/P2-1/P2-5/P2-6/P2 eficiencia).
+   1. .soft-badge (P1-2): purple-300 (vs the old amber-300 that
+      collided with the "no model" / warning color). The shape prefix
+      `~` carries the "approx" meaning for color-blind users.
+   2. .freshness-refresh (P2-1): min-height 2.25rem + text-sm makes
+      the refresh button easier to click and to find in the hero.
+      The previous size (~28px tall, text-xs) was too easy to miss.
+   3. .export-menu-desc (P2-5): the small description line under each
+      export item (e.g. "Markdown pegable en gentle-ai/agents/").
+      Same color as the surrounding muted copy so it doesn't compete
+      with the label.
+   4. .tier-h2 (P1-1): the tier h2 already lives in index.html with
+      text-sm + slate-200/300. The CSS class is just a hook for tests
+      and for the bottom border that visually separates the tiers.
+   5. .kbd-shortcuts-help (P2 eficiencia): the keyboard-shortcuts
+      help dialog. Hidden by default, shown when the user presses
+      `?`. Uses a backdrop + card pattern. Esc closes it. */
+.soft-badge{
+  color:#d8b4fe;
+  background:rgba(168,85,247,.15);
+  border:1px solid rgba(168,85,247,.35);
+  padding:1px 6px;
+  border-radius:4px;
+  font-size:10px;
+  font-weight:600;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  display:inline-flex;
+  align-items:center;
+  gap:3px
+}
+.soft-badge::before{content:"~";font-weight:700;opacity:.8}
+.freshness-refresh{
+  min-height:2.25rem;
+  padding:.4rem .75rem;
+  font-size:.8125rem;
+  font-weight:500
+}
+.export-menu-desc{
+  display:block;
+  font-size:10px;
+  color:#64748b;
+  font-weight:400;
+  margin-top:1px;
+  line-height:1.25
+}
+.tier-h2{margin-top:0}
+.kbd-shortcuts-help{
+  position:fixed;
+  inset:0;
+  z-index:100;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  background:rgba(2,6,23,.75);
+  -webkit-backdrop-filter:blur(4px);
+  backdrop-filter:blur(4px)
+}
+.kbd-shortcuts-help[data-open="true"]{display:flex}
+.kbd-shortcuts-help .card{
+  background:#0f172a;
+  border:1px solid #1e293b;
+  border-radius:.75rem;
+  padding:1.5rem;
+  max-width:28rem;
+  width:90%;
+  box-shadow:0 20px 50px -10px rgba(0,0,0,.5)
+}
+.kbd-shortcuts-help h3{
+  font-size:1rem;
+  font-weight:600;
+  color:#e2e8f0;
+  margin-bottom:.75rem
+}
+.kbd-shortcuts-help dl{display:grid;grid-template-columns:auto 1fr;gap:.5rem 1rem;font-size:.8125rem}
+.kbd-shortcuts-help dt{display:flex;gap:4px;align-items:center}
+.kbd-shortcuts-help dd{color:#94a3b8}
+.kbd-shortcuts-help kbd{
+  font-family:'JetBrains Mono',ui-monospace,monospace;
+  font-size:11px;
+  background:#1e293b;
+  color:#cbd5e1;
+  border:1px solid #334155;
+  border-radius:4px;
+  padding:1px 5px;
+  line-height:1.4;
+  display:inline-block
+}
+.kbd-shortcuts-help .close-hint{
+  margin-top:1rem;
+  font-size:11px;
+  color:#64748b;
+  text-align:right
+}

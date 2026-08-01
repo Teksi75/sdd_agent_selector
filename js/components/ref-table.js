@@ -293,16 +293,18 @@ export function render(targetEl, models) {
     renderExportButton(exportMount, {
       sectionId: 'ref-table',
       formats: [
-        { id: 'copy-md', label: 'Copiar markdown', content: exportMd },
+        { id: 'copy-md', label: 'Copiar markdown', description: 'Tabla de 24 modelos activos', content: exportMd },
         {
           id: 'download-md',
           label: 'Descargar markdown',
+          description: 'Archivo .md con el catálogo completo',
           content: exportMd,
           filename: exportFilename('ref-table', 'md'),
         },
         {
           id: 'download-json',
           label: 'Descargar JSON',
+          description: 'Snapshot completo · fuente de verdad',
           content: exportJson,
           filename: exportFilename('ref-table', 'json'),
           mime: 'application/json',

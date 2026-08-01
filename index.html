@@ -65,6 +65,17 @@
           <p class="text-base text-slate-300 max-w-3xl">
             Elegí una estrategia de asignación, revisá la justificación por agente, exportá los 18 assignments y pegá en <code class="text-sm font-mono text-slate-200 bg-slate-800/60 px-1.5 py-0.5 rounded">gentle-ai/agents/*.md</code>.
           </p>
+          <!-- V5+ critique v2 — P0-1 2da mitad: onboarding hint.
+               Tells the user what to do on first paint. Without this
+               the user has to figure out that the 5 buttons above
+               are clickable strategy toggles and that the cards
+               below update live. The hint is small, non-blocking,
+               and disappears after the user clicks any config
+               (handled by app.js when the first onSelect fires). -->
+          <p id="hero-onboarding-hint" class="text-sm text-slate-400 max-w-3xl" data-test="onboarding-hint">
+            <span aria-hidden="true" class="text-indigo-300">👆</span>
+            Arriba hay 5 estrategias prearmadas (<strong class="text-slate-200">Balanceado</strong> ya está activa). Hacé click en cualquiera y los 18 cards de abajo se actualizan con la asignación nueva. Después exportá y pegá en <code class="font-mono text-slate-300">gentle-ai/agents/</code>.
+          </p>
         </div>
         <details class="group rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2 max-w-3xl">
           <summary class="cursor-pointer text-sm text-slate-300 select-none flex items-center gap-2">
@@ -117,7 +128,13 @@
 
       <!-- ─── Tier 1 — Acción → resultado ─────────────────────────── -->
       <section id="tier-1" aria-labelledby="tier-1-label" class="space-y-6">
-        <h2 id="tier-1-label" class="text-[11px] uppercase tracking-wider font-semibold text-indigo-300/90">
+        <!-- V5+ critique v2 — P1-1: tier h2 visibility. Subir de
+             text-[11px] (≈ 8.5px efectivo) a text-sm (14px) y de
+             text-slate-400 (contraste 4.6:1) a text-slate-200
+             (contraste 11.5:1 sobre el bg slate-900). El tier 1
+             mantiene el acento indigo-300 para diferenciarlo
+             visualmente como "el primer paso". -->
+        <h2 id="tier-1-label" class="text-sm uppercase tracking-wider font-semibold text-indigo-300 border-b border-slate-800/60 pb-2">
           1 · Acción → resultado
         </h2>
         <!-- P2-3: sticky config-selector. The wrapper pins to the top of
@@ -139,7 +156,7 @@
             </div>
           </section>
         </div>
-        <section id="cli-mirror-mount" aria-label="CLI mirror: 18 agentes" aria-busy="true">
+        <section id="cli-mirror-mount" aria-label="Equivalentes CLI: 18 agentes" aria-busy="true">
           <div class="space-y-2 p-2">
             <div class="skeleton skeleton-row w-full h-7 rounded"></div>
             <div class="skeleton skeleton-row w-full h-7 rounded"></div>
@@ -159,7 +176,10 @@
 
       <!-- ─── Tier 2 — Datos de soporte ────────────────────────────── -->
       <section id="tier-2" aria-labelledby="tier-2-label" class="space-y-6">
-        <h2 id="tier-2-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
+        <!-- V5+ critique v2 — P1-1 (ver tier-1). Mismo bump de tamaño
+             y contraste. Border-bottom para que la separación visual
+             entre tiers sea clara sin agregar más espacio vertical. -->
+        <h2 id="tier-2-label" class="text-sm uppercase tracking-wider font-semibold text-slate-200 border-b border-slate-800/60 pb-2">
           2 · Datos de soporte
         </h2>
         <section id="workflow-mount" aria-label="Workflow SDD" aria-busy="true">
@@ -191,7 +211,12 @@
 
       <!-- ─── Tier 3 — Catálogo completo ───────────────────────────── -->
       <section id="tier-3" aria-labelledby="tier-3-label" class="space-y-6">
-        <h2 id="tier-3-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">
+        <!-- V5+ critique v2 — P1-1 (ver tier-1). slate-300 da
+             contraste 9.4:1 sobre el bg slate-900 — un toque más
+             sutil que el tier-1 (indigo) y el tier-2 (slate-200)
+             para que el "Catálogo completo" se sienta como la
+             sección de referencia, no de acción. -->
+        <h2 id="tier-3-label" class="text-sm uppercase tracking-wider font-semibold text-slate-300 border-b border-slate-800/60 pb-2">
           3 · Catálogo completo
         </h2>
         <section id="ref-table-mount" aria-label="Tabla de modelos activos" aria-busy="true">
@@ -208,6 +233,36 @@
     <noscript>
       <p>Esta app necesita JavaScript habilitado para funcionar.</p>
     </noscript>
+  </div>
+
+  <!-- V5+ critique v2 — P2 eficiencia: keyboard shortcuts help overlay.
+       Lives in the HTML so the first paint has the markup ready (no
+       flash when the user presses `?`). `data-open="false"` keeps it
+       hidden until the keyboard-shortcuts module flips the attribute.
+       `role="dialog"` + `aria-modal="true"` tell screen readers this
+       is a modal surface; the keyboard-shortcuts module also wires
+       `aria-hidden` to match the data-open state. The first focusable
+       element inside is the close button, so the focus trap stays
+       self-contained. -->
+  <div id="kbd-shortcuts-help" class="kbd-shortcuts-help" data-open="false" role="dialog" aria-modal="true" aria-labelledby="kbd-shortcuts-title" aria-hidden="true" tabindex="-1">
+    <div class="card">
+      <h3 id="kbd-shortcuts-title">Atajos de teclado</h3>
+      <dl>
+        <dt><kbd>?</kbd></dt>
+        <dd>Mostrar / ocultar este panel</dd>
+        <dt><kbd>g</kbd> + <kbd>i</kbd></dt>
+        <dd>Ir a Tier 1 (Acción → resultado)</dd>
+        <dt><kbd>g</kbd> + <kbd>j</kbd></dt>
+        <dd>Ir a Tier 2 (Datos de soporte)</dd>
+        <dt><kbd>g</kbd> + <kbd>k</kbd></dt>
+        <dd>Ir a Tier 3 (Catálogo completo)</dd>
+        <dt><kbd>r</kbd></dt>
+        <dd>Actualizar datos ahora</dd>
+        <dt><kbd>Esc</kbd></dt>
+        <dd>Cerrar este panel (o el dropdown de export)</dd>
+      </dl>
+      <p class="close-hint">Presioná <kbd>?</kbd> o <kbd>Esc</kbd> para cerrar</p>
+    </div>
   </div>
 
   <!-- Bundled app code inlined by the build (Phase 4). -->

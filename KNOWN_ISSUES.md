@@ -120,3 +120,51 @@ severidad según el rubric del critique. Estado de cada uno al final de PR #47:
 
 Estos los marcó el critique como SLOP heuristics pero el autor los
 defiende; no se actúa.
+
+---
+
+## Critique v2 · ✅ TODOS LOS ITEMS CERRADOS (2026-08-01)
+
+PR #48 (`feat/v2-polish-final`) cierra los 8 items pendientes del
+backlog del critique v2 en un solo commit:
+
+- ✅ **P0-1 (2da mitad)** — `<p id="hero-onboarding-hint">` agregado
+  al hero: "Arriba hay 5 estrategias prearmadas (Balanceado ya está
+  activa). Hacé click en cualquiera y los 18 cards de abajo se
+  actualizan...". Se oculta automáticamente cuando el user clickea
+  cualquier strategy button (el pre-select silencioso no la oculta).
+- ✅ **P1-1** — tier h2 de `text-[11px] text-slate-400` (8.5px,
+  contraste 4.6:1) a `text-sm` + `text-slate-200/300` o
+  `text-indigo-300` (14px, contraste 7-11.5:1). Agregado un
+  `border-b border-slate-800/60` para separación visual entre tiers.
+- ✅ **P1-2** — SOFT badge switched de `text-amber-300` (overloaded
+  con warnings) a `.soft-badge` con color `#d8b4fe` (purple-300) +
+  prefijo `~` via `::before` para color-blind safety. Aplicado en
+  cli-mirror-table.js y justification-ui.js.
+- ✅ **P2-1** — `.freshness-refresh` con `min-height:2.25rem` +
+  `font-size:.8125rem` (text-sm) + `padding:.4rem .75rem` (antes:
+  ~28px text-xs, fácil de pasar por alto).
+- ✅ **P2-4** — `aria-live="polite"` en el grid de cards de
+  justification-ui. Los screen readers anuncian el nuevo
+  assignment set después de un `selectConfig` (sin assertiveness,
+  que sería disruptivo).
+- ✅ **P2-5** — descripciones en cada item del export menu (debajo
+  del label, color muted #64748b, font-size 10px). Las 4 secciones
+  (cli-mirror, justification, composite-chart, ref-table) ahora
+  muestran qué se exporta antes de hacer click.
+- ✅ **P2-6** — rename "CLI mirror" → "Equivalentes CLI" tanto en el
+  aria-label del section como en un nuevo `<h3>` visible al lado
+  del counter "N/18 con modelo". El nombre comunica que la tabla
+  contiene el agents.md paste-ready.
+- ✅ **P2 eficiencia** — módulo `js/components/keyboard-shortcuts.js`
+  + help overlay HTML estático. Shortcuts: `?` (toggle help),
+  `g+i/j/k` (vim-style jump a tier-1/2/3), `r` (refresh), `Esc`
+  (close help). Ignora keystrokes cuando el focus está en un
+  text-entry element. `data-test="onboarding-hint"` se oculta
+  automáticamente al primer click de strategy.
+
+**Score critique v2: 28/40 → estimado 36/40** con este PR. Los 4
+puntos restantes del rubric (P3-1 a P3-4) son SLOP false positives
+marcados por el critique que el autor defiende (indigo intencional,
+em-dashes tipografía española, Inter V3-parity, gradient-text clase
+muerta legacy).
