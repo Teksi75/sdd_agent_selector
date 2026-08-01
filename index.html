@@ -73,8 +73,38 @@
             <p class="text-xs text-slate-500">El badge de "datos del DD/MM" arriba te dice cuándo se actualizó el catálogo por última vez.</p>
           </div>
         </details>
+        <!-- P2-4: glossary of the abbreviations that show up across the
+             page (arena, swePro, sweVer, term, BenchLM, etc.). Same
+             disclosure pattern as "Cómo leer esta página" so the
+             hero doesn't visually compete with the lede paragraph. -->
+        <details class="group rounded-lg border border-slate-800 bg-slate-900/40 px-4 py-2 max-w-3xl">
+          <summary class="cursor-pointer text-sm text-slate-300 select-none flex items-center gap-2">
+            <span aria-hidden="true" class="text-slate-500 group-open:rotate-90 transition-transform inline-block">▸</span>
+            Glosario de abreviaciones
+          </summary>
+          <dl class="mt-3 text-sm text-slate-400 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 pl-6" data-test="glossary">
+            <div><dt class="inline font-mono text-slate-200">arena</dt><dd class="inline"> — LMArena ranking (ELO 0-∞).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">swePro</dt><dd class="inline"> — SWE-bench Pro score (0-100, agentic coding en repos reales).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">sweVer</dt><dd class="inline"> — SWE-bench Verified (0-100, subset curado por humanos).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">term</dt><dd class="inline"> — Terminal-Bench 2.1 (0-100, agentic shell).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">BenchLM</dt><dd class="inline"> — score compuesto 0-100 que pondera swePro/sweVer/term + reliability.</dd></div>
+            <div><dt class="inline font-mono text-slate-200">tier</dt><dd class="inline"> — categoría de pricing: <span class="text-emerald-300">high</span> flagship / <span class="text-indigo-300">balanced</span> medio / <span class="text-amber-300">budget</span> económico / <span class="text-rose-300">reference</span> ancla.</dd></div>
+            <div><dt class="inline font-mono text-slate-200">lifecycle</dt><dd class="inline"> — <span class="text-emerald-300">active</span> (candidato a asignación) / <span class="text-rose-300">reference</span> (ancla de costo) / <span class="text-slate-500">legacy</span> (fuera de rotación).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">minReasoning</dt><dd class="inline"> — BenchLM mínimo que tiene que tener un modelo para ser asignado al rol (0-100).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">costRatio</dt><dd class="inline"> — fracción del costo del modelo reference que el rol está dispuesto a pagar (multiplicador).</dd></div>
+            <div><dt class="inline font-mono text-slate-200">soft fallback</dt><dd class="inline"> — el modelo asignado NO cumple el minReasoning estricto pero es la mejor opción dentro del cost ceiling.</dd></div>
+          </dl>
+        </details>
+        <!-- P2-5: micro-stats line ("24 activos · 2 reference · 18 agentes").
+             Painted by js/components/hero-stats.js after data loads.
+             P2-8: skeleton placeholder inside the mount until then. -->
+        <div id="hero-stats-mount" class="pt-1">
+          <div class="skeleton skeleton-text w-72 h-3.5 rounded"></div>
+        </div>
         <!-- Freshness badge lives in the hero (P0-2: trust signal at the top, not buried) -->
-        <div id="freshness-mount" class="pt-1"></div>
+        <div id="freshness-mount" class="pt-1">
+          <div class="skeleton skeleton-text w-56 h-6 rounded"></div>
+        </div>
       </header>
 
       <!-- ─── Tier 1 — Acción → resultado ─────────────────────────── -->
@@ -87,10 +117,36 @@
              scrolling the long justification + catalog sections. The
              backdrop blur + slight tint separate it from the page bg. -->
         <div class="config-sticky">
-          <section id="config-mount" aria-label="Selector de configuración"></section>
+          <!-- P2-8: skeleton placeholders inside the mounts so the page
+               has something visible during the ~100ms between first
+               paint and the JS render. Each render() call overwrites
+               innerHTML, so the skeletons are transient. -->
+          <section id="config-mount" aria-label="Selector de configuración" aria-busy="true">
+            <div class="flex flex-wrap gap-2 p-2">
+              <div class="skeleton skeleton-btn w-24 h-9 rounded"></div>
+              <div class="skeleton skeleton-btn w-24 h-9 rounded"></div>
+              <div class="skeleton skeleton-btn w-28 h-9 rounded"></div>
+              <div class="skeleton skeleton-btn w-32 h-9 rounded"></div>
+              <div class="skeleton skeleton-btn w-28 h-9 rounded"></div>
+            </div>
+          </section>
         </div>
-        <section id="cli-mirror-mount" aria-label="CLI mirror: 18 agentes"></section>
-        <section id="justification-mount" aria-label="Justificación por agente"></section>
+        <section id="cli-mirror-mount" aria-label="CLI mirror: 18 agentes" aria-busy="true">
+          <div class="space-y-2 p-2">
+            <div class="skeleton skeleton-row w-full h-7 rounded"></div>
+            <div class="skeleton skeleton-row w-full h-7 rounded"></div>
+            <div class="skeleton skeleton-row w-full h-7 rounded"></div>
+            <div class="skeleton skeleton-row w-11/12 h-7 rounded"></div>
+            <div class="skeleton skeleton-row w-full h-7 rounded"></div>
+          </div>
+        </section>
+        <section id="justification-mount" aria-label="Justificación por agente" aria-busy="true">
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 p-1">
+            <div class="skeleton skeleton-card w-full h-40 rounded-xl"></div>
+            <div class="skeleton skeleton-card w-full h-40 rounded-xl"></div>
+            <div class="skeleton skeleton-card w-full h-40 rounded-xl"></div>
+          </div>
+        </section>
       </section>
 
       <!-- ─── Tier 2 — Datos de soporte ────────────────────────────── -->
@@ -98,9 +154,31 @@
         <h2 id="tier-2-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-400">
           2 · Datos de soporte
         </h2>
-        <section id="workflow-mount" aria-label="Workflow SDD"></section>
-        <section id="composite-chart-mount" aria-label="Composite benchmark"></section>
-        <section id="pricing-chart-mount" aria-label="Pricing por request"></section>
+        <section id="workflow-mount" aria-label="Workflow SDD" aria-busy="true">
+          <div class="space-y-2 p-2">
+            <div class="skeleton skeleton-row w-full h-8 rounded"></div>
+            <div class="skeleton skeleton-row w-full h-8 rounded"></div>
+            <div class="skeleton skeleton-row w-10/12 h-8 rounded"></div>
+          </div>
+        </section>
+        <section id="composite-chart-mount" aria-label="Composite benchmark" aria-busy="true">
+          <div class="space-y-2.5 p-2">
+            <div class="skeleton skeleton-bar w-11/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-9/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-10/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-7/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-8/12 h-3 rounded"></div>
+          </div>
+        </section>
+        <section id="pricing-chart-mount" aria-label="Pricing por request" aria-busy="true">
+          <div class="space-y-2.5 p-2">
+            <div class="skeleton skeleton-bar w-6/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-7/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-5/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-8/12 h-3 rounded"></div>
+            <div class="skeleton skeleton-bar w-9/12 h-3 rounded"></div>
+          </div>
+        </section>
       </section>
 
       <!-- ─── Tier 3 — Catálogo completo ───────────────────────────── -->
@@ -108,7 +186,14 @@
         <h2 id="tier-3-label" class="text-[11px] uppercase tracking-wider font-semibold text-slate-500">
           3 · Catálogo completo
         </h2>
-        <section id="ref-table-mount" aria-label="Tabla de modelos activos"></section>
+        <section id="ref-table-mount" aria-label="Tabla de modelos activos" aria-busy="true">
+          <div class="space-y-1.5 p-2">
+            <div class="skeleton skeleton-row w-full h-9 rounded"></div>
+            <div class="skeleton skeleton-row w-full h-9 rounded"></div>
+            <div class="skeleton skeleton-row w-10/12 h-9 rounded"></div>
+            <div class="skeleton skeleton-row w-full h-9 rounded"></div>
+          </div>
+        </section>
       </section>
 
     </main>
