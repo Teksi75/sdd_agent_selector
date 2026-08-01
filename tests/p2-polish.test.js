@@ -9,6 +9,13 @@ import { describe, test, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+// V5+ P2-3: the export-menu HTML shape test renders the button via the
+// same `renderButton` helper that the component uses, so the assertions
+// stay aligned with the source of truth (no live-page markup, no
+// section-id uniqueness). Imported here even though the keyboard-nav
+// tests live in tests/export-button.test.js — the shape and the nav
+// are two halves of the same P2-3 deliverable.
+import { renderButton } from '../js/components/export-button.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
@@ -120,6 +127,92 @@ describe('P2-7 — @media print', () => {
   test('@media print convierte el sticky config-selector a static', () => {
     // El sticky no tiene sentido en papel — pasa a static.
     expect(TOKENS_CSS).toMatch(/@media\s+print[\s\S]*?\.config-sticky\s*\{[^}]*position:\s*static/);
+  });
+});
+
+// ============================================================================
+// P2-2 — skip-to-main-content link (a11y)
+// ============================================================================
+describe('P2-2 — skip-link en el HTML', () => {
+  test('index.html tiene un <a> con clase skip-link y data-test="skip-link"', () => {
+    // Match laxo: el orden de los atributos en el HTML puede variar
+    // (href primero, class después, o cualquier otra permutación).
+    expect(INDEX_HTML).toMatch(/<a[^>]*class="skip-link"/);
+    expect(INDEX_HTML).toMatch(/data-test="skip-link"/);
+  });
+
+  test('el skip-link apunta a #tier-1 (el primer contenido accionable)', () => {
+    // El href debe ser un anchor interno; #tier-1 es el target porque
+    // el hero es decorativo y los 2 <details> (Cómo leer, Glosario)
+    // son expandibles pero no son la acción principal. Match laxo:
+    // el orden de atributos puede variar, así que buscamos el
+    // <a ... class="skip-link" ...> y verificamos que su href sea
+    // #tier-1 (extraído del substring entre el `<a` y el `>`).
+    const m = INDEX_HTML.match(/<a[^>]*class="skip-link"[^>]*>/);
+    expect(m).not.toBeNull();
+    expect(m[0]).toMatch(/href="#tier-1"/);
+  });
+
+  test('el skip-link tiene texto descriptivo (no es un glyph vacío)', () => {
+    // El texto debe explicar adónde lleva el link. "Saltar al contenido
+    // principal" es el wording estándar en español.
+    expect(INDEX_HTML).toMatch(/Saltar al contenido principal/);
+  });
+
+  test('tokens.css define .skip-link con position:absolute y top:-100px (off-screen)', () => {
+    // El patrón: position:absolute + top negativo = fuera del viewport
+    // sin display:none (que sacaría al link del a11y tree).
+    expect(TOKENS_CSS).toMatch(/\.skip-link\s*\{[^}]*position:\s*absolute/s);
+    expect(TOKENS_CSS).toMatch(/\.skip-link\s*\{[^}]*top:\s*-\d+px/s);
+  });
+
+  test('tokens.css define .skip-link:focus con top positivo (visible on focus)', () => {
+    // WAI-ARIA: cuando el link recibe focus (Tab), debe aparecer.
+    // El valor puede ser ".5rem" (fraccionario) — el regex matchea
+    // dígitos o un punto decimal seguido de dígitos, no requiere un
+    // dígito inmediato después de los `:`.
+    expect(TOKENS_CSS).toMatch(/\.skip-link:focus\s*\{[^}]*top:\s*(?:\d|\.)/);
+  });
+});
+
+// ============================================================================
+// P2-3 — export menu keyboard nav (WAI-ARIA menu pattern)
+// ============================================================================
+// Los tests funcionales del keyboard nav viven en
+// tests/export-button.test.js. Acá cubrimos solo la presencia de los
+// atributos a11y en el HTML (aria-haspopup, aria-controls,
+// role=menu, role=menuitem, tabindex roving) y la coherencia entre
+// componentes — sin re-validar lo que ya testea export-button.
+
+describe('P2-3 — export menu HTML shape (a11y attributes)', () => {
+  test('renderButton incluye los atributos a11y en el HTML', () => {
+    // Verificamos la salida de renderButton (la fuente de verdad) en
+    // vez de buscar el HTML live, porque el live incluye IDs únicos
+    // por sección. El shape de los atributos es lo que importa.
+    const html = renderButton({
+      sectionId: 'ref-table',
+      formats: [
+        { id: 'copy-md', label: 'Copiar', content: 'a' },
+        { id: 'download-md', label: 'Descargar', content: 'b', filename: 'a.md' },
+      ],
+    });
+    expect(html).toContain('aria-haspopup="menu"');
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toMatch(/aria-controls="export-dd-ref-table"/);
+    expect(html).toContain('role="menu"');
+    expect(html).toContain('aria-label="Opciones de export para ref-table"');
+  });
+
+  test('los menu items tienen role="menuitem"', () => {
+    const html = renderButton({
+      sectionId: 'ref-table',
+      formats: [
+        { id: 'copy-md', label: 'A', content: 'a' },
+        { id: 'download-md', label: 'B', content: 'b', filename: 'a.md' },
+      ],
+    });
+    const items = (html.match(/role="menuitem"/g) || []).length;
+    expect(items).toBe(2);
   });
 });
 

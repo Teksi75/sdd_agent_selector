@@ -140,3 +140,94 @@ describe('render — mount + interactions', () => {
     expect(dd.classList.contains('hidden')).toBe(true);
   });
 });
+
+// V5+ P2-3: WAI-ARIA menu keyboard nav. The dropdown opens on toggle
+// click and exposes the format items as a `role="menu"`. Roving
+// tabindex + ArrowUp/Down + Home/End + Escape (closes + returns focus
+// to toggle) are the WAI-ARIA Authoring Practices pattern.
+describe('export-button — V5+ P2-3 keyboard nav (WAI-ARIA menu)', () => {
+  const formats = [
+    { id: 'copy-md', label: 'Copiar md', content: 'a' },
+    { id: 'download-md', label: 'Descargar md', content: 'b', filename: 'x.md' },
+    { id: 'download-json', label: 'Descargar json', content: 'c', filename: 'x.json' },
+  ];
+
+  test('mount asigna roving tabindex — primer item tabindex=0, resto -1', () => {
+    render(target, { sectionId: 'ref-table', formats });
+    const items = target.querySelectorAll('[role="menuitem"]');
+    expect(items.length).toBe(3);
+    expect(items[0].getAttribute('tabindex')).toBe('0');
+    expect(items[1].getAttribute('tabindex')).toBe('-1');
+    expect(items[2].getAttribute('tabindex')).toBe('-1');
+  });
+
+  test('mount asigna aria-activedescendant al primer item', () => {
+    render(target, { sectionId: 'ref-table', formats });
+    const dd = target.querySelector('[data-test="export-dropdown"]');
+    const active = dd.getAttribute('aria-activedescendant');
+    expect(active).toBeTruthy();
+    // El active item debe ser el primer menuitem.
+    const firstItem = target.querySelectorAll('[role="menuitem"]')[0];
+    expect(active).toBe(firstItem.id);
+  });
+
+  test('ArrowDown mueve el focus al siguiente item', async () => {
+    render(target, { sectionId: 'ref-table', formats });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    // El open() enfoca el primer item con setTimeout(..., 0) para que
+    // el dropdown esté visible antes del focus. En jsdom los timers no
+    // se procesan solos, así que los flushamos manualmente antes de
+    // dispatcheard el keydown.
+    await new Promise((r) => setTimeout(r, 0));
+    const items = target.querySelectorAll('[role="menuitem"]');
+    expect(items[0].getAttribute('tabindex')).toBe('0');
+    // Simulamos ArrowDown dispatcheado en el dropdown.
+    const dd = target.querySelector('[data-test="export-dropdown"]');
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(items[1].getAttribute('tabindex')).toBe('0');
+    expect(items[0].getAttribute('tabindex')).toBe('-1');
+  });
+
+  test('ArrowUp desde el primer item envuelve al último (wrap-around)', async () => {
+    render(target, { sectionId: 'ref-table', formats });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const items = target.querySelectorAll('[role="menuitem"]');
+    const dd = target.querySelector('[data-test="export-dropdown"]');
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true }));
+    expect(items[2].getAttribute('tabindex')).toBe('0');
+  });
+
+  test('Home salta al primer item, End al último', async () => {
+    render(target, { sectionId: 'ref-table', formats });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    await new Promise((r) => setTimeout(r, 0));
+    const items = target.querySelectorAll('[role="menuitem"]');
+    const dd = target.querySelector('[data-test="export-dropdown"]');
+    // Mover a la mitad primero
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    expect(items[2].getAttribute('tabindex')).toBe('0');
+    // Home → items[0]
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', bubbles: true }));
+    expect(items[0].getAttribute('tabindex')).toBe('0');
+    // End → items[2]
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+    expect(items[2].getAttribute('tabindex')).toBe('0');
+  });
+
+  test('Escape cierra el dropdown y devuelve focus al toggle', () => {
+    render(target, { sectionId: 'ref-table', formats });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    const dd = target.querySelector('[data-test="export-dropdown"]');
+    expect(dd.classList.contains('hidden')).toBe(false);
+    dd.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    expect(dd.classList.contains('hidden')).toBe(true);
+    // focus() en jsdom es observable via document.activeElement
+    expect(document.activeElement).toBe(toggle);
+  });
+});

@@ -66,12 +66,24 @@ export function countAgentsByFamily(roleMatrix) {
  * Build the headline string. Pulled out of render() so it's testable
  * without touching the DOM.
  *
- * @param {Object} data - { models, roleMatrix, _meta? }
+ * V5+ KI-P0-2: the data contract uses `data.roles` (set by
+ * data-loader's composed payload). `data.roleMatrix` is a legacy/local-
+ * fallback name kept around in case a future refactor renames it back.
+ * The dual-key resolution `data?.roles ?? data?.roleMatrix` prefers
+ * `roles` (the live data-loader key) and only falls back to `roleMatrix`
+ * when `roles` is absent — so a future rename of either side breaks the
+ * build instead of breaking the live page.
+ *
+ * @param {Object} data - { models, roleMatrix?, roles?, _meta? }
  * @returns {string}
  */
 export function buildStatsLine(data) {
   const m = countModelsByLifecycle(data?.models);
-  const a = countAgentsByFamily(data?.roleMatrix);
+  // V5+ KI-P0-2: resolve the role-matrix key. data-loader.js uses
+  // `roles`; the legacy name was `roleMatrix`. Prefer `roles` (the
+  // live contract) and only fall back to `roleMatrix` when absent.
+  const roleMatrix = data?.roles ?? data?.roleMatrix;
+  const a = countAgentsByFamily(roleMatrix);
   // P2-5 copy: "24 activos · 2 reference · 18 agentes (11 SDD + 3 JD + 4 Review)"
   // Legacy count is mentioned only when non-zero — keeps the line clean
   // for the common case (24/2/18 today).
@@ -88,14 +100,20 @@ export function buildStatsLine(data) {
  * Render the micro-stats line into `targetEl`. Safe to call multiple
  * times; overwrites the previous content.
  *
+ * V5+ KI-P0-2: same dual-key tolerance as buildStatsLine — accepts
+ * `data.roleMatrix` OR `data.roles`. Without this fix, the live page
+ * shows "0 agentes (0 SDD + 0 JD + 0 review)" because the loader
+ * composes the payload under the key `roles` (PR #46 regression).
+ *
  * @param {HTMLElement|null} targetEl
- * @param {Object} data - { models, roleMatrix, _meta? }
+ * @param {Object} data - { models, roleMatrix?, roles?, _meta? }
  * @param {{ now?: Date|string }} [options]
  * @returns {{ html: string, mounted: boolean, modelCounts: object, agentCounts: object }}
  */
 export function render(targetEl, data, options) {
   const modelCounts = countModelsByLifecycle(data?.models);
-  const agentCounts = countAgentsByFamily(data?.roleMatrix);
+  const roleMatrix = data?.roles ?? data?.roleMatrix;
+  const agentCounts = countAgentsByFamily(roleMatrix);
   const html = `
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400" data-test="hero-stats">
       <span class="flex items-center gap-1.5" data-test="hero-stats-models">

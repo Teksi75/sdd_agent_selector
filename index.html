@@ -45,6 +45,14 @@
        remains CDN-free at runtime. -->
 </head>
 <body class="bg-surface text-on-surface">
+  <!-- V5+ KI-P2-2: skip-to-main-content link. Visually hidden until
+       focused (keyboard Tab from the address bar) — lets screen-reader
+       and keyboard-only users jump past the hero + 2 <details>
+       disclosures straight to the Tier 1 action surface. Without this,
+       they have to Tab through 6+ elements to reach the config buttons. -->
+  <a href="#tier-1" class="skip-link" data-test="skip-link">
+    Saltar al contenido principal
+  </a>
   <div id="app">
     <main class="mx-auto max-w-6xl px-6 py-10 space-y-10">
 

@@ -171,15 +171,67 @@ export function render(targetEl, options) {
   const dropdown = root.querySelector('[data-test="export-dropdown"]');
   if (!toggle || !dropdown) return out;
 
-  const close = () => {
+  // V5+ P2-3: roving tabindex on the menu items. Only the "active" item
+  // (initially the first) has tabindex=0; the rest are tabindex=-1.
+  // This makes Tab/Shift+Tab step OUT of the menu (closing it) and
+  // keeps the menu items reachable by ArrowUp/Down inside the menu.
+  // The WAI-ARIA Authoring Practices for menu pattern requires this;
+  // without it, the dropdown traps keyboard users with Tab.
+  const items = Array.from(dropdown.querySelectorAll('[role="menuitem"]'));
+  if (items.length === 0) return out;
+  // Initial roving state: first item is the active descendant.
+  items.forEach((el, i) => {
+    el.setAttribute('tabindex', i === 0 ? '0' : '-1');
+  });
+  dropdown.setAttribute('aria-activedescendant', items[0].id || '');
+
+  // If the menu items don't have ids yet, assign them so aria-activedescendant
+  // works (it requires an id, not an HTMLElement reference).
+  items.forEach((el, i) => {
+    if (!el.id) el.id = `${dropdown.id}-item-${i}`;
+  });
+  dropdown.setAttribute('aria-activedescendant', items[0].id);
+
+  /**
+   * Move focus to the menu item at `index` with wrap-around. ArrowUp
+   * from the first item wraps to the last; ArrowDown from the last
+   * wraps to the first. WAI-ARIA Authoring Practices menu pattern
+   * recommends wrap-around (vs. clamping) because users expect
+   * "previous" and "next" to be cyclic inside a closed menu.
+   * @param {number} index
+   */
+  const focusItem = (index) => {
+    let i;
+    if (items.length === 0) return;
+    if (index < 0) i = items.length - 1;
+    else if (index >= items.length) i = 0;
+    else i = index;
+    items.forEach((el, j) => {
+      el.setAttribute('tabindex', j === i ? '0' : '-1');
+    });
+    const target = items[i];
+    dropdown.setAttribute('aria-activedescendant', target.id);
+    if (typeof target.focus === 'function') target.focus();
+  };
+
+  const close = (returnFocus) => {
     dropdown.classList.add('hidden');
     toggle.setAttribute('aria-expanded', 'false');
     out.opened = false;
+    if (returnFocus && typeof toggle.focus === 'function') {
+      // WAI-ARIA menu: closing should return focus to the trigger
+      // (so keyboard users know where they are).
+      toggle.focus();
+    }
   };
   const open = () => {
     dropdown.classList.remove('hidden');
     toggle.setAttribute('aria-expanded', 'true');
     out.opened = true;
+    // On open, focus the first item so ArrowDown immediately works.
+    // Use a microtask so the dropdown is visible before focus is moved
+    // (some browsers skip focus on hidden elements).
+    setTimeout(() => focusItem(0), 0);
   };
 
   toggle.addEventListener('click', (e) => {
@@ -187,9 +239,52 @@ export function render(targetEl, options) {
     if (dropdown.classList.contains('hidden')) {
       open();
     } else {
-      close();
+      close(true);
     }
   });
+
+  // V5+ P2-3: keyboard navigation inside the menu (WAI-ARIA menu pattern).
+  // Listens at the dropdown level (not the items) so we don't need to
+  // re-attach when items change. The "current" item is determined by
+  // document.activeElement, which is what `focusItem` updates. When the
+  // menu has just opened and focus hasn't landed yet, document.activeElement
+  // is <body> (or the toggle), so currentIdx is -1 — focusItem handles
+  // the wrap-around from -1 by clamping to the last item on ArrowUp and
+  // to 0 on ArrowDown, which is the behavior we want for "open menu,
+  // immediately press ArrowUp".
+  const onMenuKey = (e) => {
+    if (dropdown.classList.contains('hidden')) return;
+    const currentIdx = items.indexOf(document.activeElement);
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        focusItem(currentIdx + 1);
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        focusItem(currentIdx - 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        focusItem(0);
+        break;
+      case 'End':
+        e.preventDefault();
+        focusItem(items.length - 1);
+        break;
+      case 'Escape':
+        e.preventDefault();
+        close(true);
+        break;
+      case 'Tab':
+        // Tab/Shift+Tab closes the menu and lets the browser move
+        // focus to the next/prev focusable element. This is the
+        // WAI-ARIA-recommended behavior (not focus-trap).
+        close(false);
+        break;
+    }
+  };
+  dropdown.addEventListener('keydown', onMenuKey);
 
   // Delegate clicks on format options
   dropdown.addEventListener('click', async (e) => {
@@ -199,7 +294,7 @@ export function render(targetEl, options) {
     const formatId = btn.getAttribute('data-format-id');
     const format = (opts.formats || []).find((f) => f.id === formatId);
     if (!format) return;
-    close();
+    close(true);
     await runFormat(format, {
       copyMessage: opts.copyMessage,
       downloadMessage: opts.downloadMessage,
@@ -208,13 +303,17 @@ export function render(targetEl, options) {
 
   // Click outside the root closes the dropdown
   const onDocClick = (e) => {
-    if (root && !root.contains(e.target)) close();
+    if (root && !root.contains(e.target)) close(false);
   };
   document.addEventListener('click', onDocClick);
 
-  // Escape closes
+  // Escape closes (when focus is on the toggle button itself — the
+  // dropdown's own keydown handler also handles Escape when the menu
+  // has focus).
   const onKey = (e) => {
-    if (e.key === 'Escape') close();
+    if (e.key === 'Escape' && !dropdown.classList.contains('hidden')) {
+      close(true);
+    }
   };
   document.addEventListener('keydown', onKey);
 
@@ -223,6 +322,7 @@ export function render(targetEl, options) {
   targetEl.__exportCleanup = () => {
     document.removeEventListener('click', onDocClick);
     document.removeEventListener('keydown', onKey);
+    dropdown.removeEventListener('keydown', onMenuKey);
   };
 
   return out;
