@@ -784,6 +784,31 @@
       "requestsPerWeek": 5100,
       "requestsPerMonth": 10250
     },
+    "gpt56lunaMax": {
+      "name": "GPT-5.6 Luna (max)",
+      "benchlm": {
+        "score": 87,
+        "verified": false,
+        "reliability": 0.5,
+        "categories": {},
+        "rank": 1,
+        "evidence": "estimated"
+      },
+      "input": 0.2,
+      "output": 1.2,
+      "cacheRead": 0.02,
+      "cacheWrite": 0.25,
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "notes": "OpenAI reasoning flagship, max effort variant. Per Artificial Analysis (https://artificialanalysis.ai/es/models/gpt-5-6-luna): #1/164 en Intelligence Index (52) a $0.20/$1.20 por 1M tokens — 25x más barato en input que gpt-5.4 y con razonamiento mediblemente superior. El score BenchLM-equivalent (87) está calibrado arriba del top actual (Claude Fable 5 a 84) para que la estrategia max-quality lo surface como soft-fallback; revisar cuando llegue una observación directa de BenchLM. La página de AA es la única fuente hasta que el upstream del benchlm scraper se recupere. Vela por la coherencia con el `gpt56luna` base (default effort) que ya está en data — son entries hermanas, no un reemplazo.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/es/models/gpt-5-6-luna",
+          "date": "2026-08-09"
+        }
+      ]
+    },
     "gpt56sol": {
       "name": "GPT-5.6 Sol",
       "benchlm": {

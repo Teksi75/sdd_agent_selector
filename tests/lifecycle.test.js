@@ -345,9 +345,9 @@ describe('lifecycle — data/models.json catalog classification', () => {
     expect(bmOnly.length).toBe(0);
   });
 
-  test('active model count is 26 (V5: +3 GPT-5.6 family demoted, +4 new models Claude Opus 5 + Opencode Hy3 + Grok 4.5 + Qwen3.8 Max)', () => {
+  test('active model count is 27 (V5: +3 GPT-5.6 family demoted, +5 new models Claude Opus 5 + Opencode Hy3 + Grok 4.5 + Qwen3.8 Max + GPT-5.6 Luna (max))', () => {
     const activeCount = Object.values(models).filter((m) => m.lifecycle === 'active').length;
-    expect(activeCount).toBe(26);
+    expect(activeCount).toBe(27);
   });
 
   test('non-active count is 4 (2 reference + 2 legacy)', () => {

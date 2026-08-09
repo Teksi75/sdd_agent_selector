@@ -121,6 +121,7 @@ const KNOWN_V4_ONLY = new Set([
   'gpt56terra',
   'gpt56sol',
   'gpt56luna',
+  'gpt56lunaMax',
   'kimik27c',
   'kimik25',
   'kimik3',
