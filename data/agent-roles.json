@@ -9,8 +9,8 @@
     "gentle-orchestrator": {
       "minReasoning": 95,
       "costRatio": 1,
-      "referenceModelId": "gpt56terra",
-      "role": "Orquestación: planificación, delegación y meta-razonamiento en el ecosistema de 18 agentes. Referencia designada: GPT-5.6 Terra (más barato que gpt-5.5, razonamiento competitivo)."
+      "referenceModelId": "gpt56sol",
+      "role": "Orquestación: planificación, delegación y meta-razonamiento en el ecosistema de 18 agentes. Referencia designada: GPT-5.6 Sol (mayor score de razonamiento entre los modelos activos, mismo techo de costo que el reference global)."
     },
     "sdd-init": {
       "minReasoning": 60,
