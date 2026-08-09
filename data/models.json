@@ -787,11 +787,11 @@
     "gpt56lunaMax": {
       "name": "GPT-5.6 Luna (max)",
       "benchlm": {
-        "score": 87,
+        "score": 82,
         "verified": false,
         "reliability": 0.5,
         "categories": {},
-        "rank": 1,
+        "rank": null,
         "evidence": "estimated"
       },
       "input": 0.2,
@@ -801,7 +801,7 @@
       "tier": "high",
       "lifecycle": "active",
       "isNew": true,
-      "notes": "OpenAI reasoning flagship, max effort variant. Per Artificial Analysis (https://artificialanalysis.ai/es/models/gpt-5-6-luna): #1/164 en Intelligence Index (52) a $0.20/$1.20 por 1M tokens — 25x más barato en input que gpt-5.4 y con razonamiento mediblemente superior. El score BenchLM-equivalent (87) está calibrado arriba del top actual (Claude Fable 5 a 84) para que la estrategia max-quality lo surface como soft-fallback; revisar cuando llegue una observación directa de BenchLM. La página de AA es la única fuente hasta que el upstream del benchlm scraper se recupere. Vela por la coherencia con el `gpt56luna` base (default effort) que ya está en data — son entries hermanas, no un reemplazo.",
+      "notes": "OpenAI reasoning flagship, max effort variant. Per Artificial Analysis (https://artificialanalysis.ai/es/models/gpt-5-6-luna): #1/164 en su Intelligence Index (52, escala -100..100) a $0.20/$1.20 por 1M tokens — 25x más barato en input que gpt-5.4. El score BenchLM-equivalent (82) está calibrado en el rango high-tier pero **debajo de Claude Fable 5 (83.68) y Claude Opus 5 (82.5)** porque: (1) el AA Intelligence Index mide algo distinto a lo que BenchLM mide, y (2) la traducción de un score en escala AA (-100..100, 0=coin flip) a BenchLM (0..100) no es 1:1. Revisar cuando llegue una observación directa de BenchLM. `rank: null` porque no hay BenchLM rank directo para este entry. Vela por la coherencia con el `gpt56luna` base (default effort) que ya está en data — son entries hermanas, no un reemplazo.",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/es/models/gpt-5-6-luna",
