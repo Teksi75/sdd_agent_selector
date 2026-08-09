@@ -11,7 +11,7 @@
 //   - input, output, cacheRead, cacheWrite (when present)
 //   - requestsPer5h, requestsPerWeek, requestsPerMonth
 //
-// Coverage (13 models per OpenCode Go page):
+// Coverage (curated NAME_TO_KEY mapping, 16 entries / 14 base models):
 //   GLM-5.2, GLM-5.1, Kimi K2.7 Code, Kimi K2.6, MiMo V2.5, MiMo V2.5 Pro,
 //   MiniMax M3, MiniMax M2.7, MiniMax M2.5, Qwen3.7 Max, Qwen3.7 Plus,
 //   Qwen3.6 Plus, DeepSeek V4 Pro, DeepSeek V4 Flash.
@@ -28,6 +28,16 @@
 // Qwen3.7 Plus and Qwen3.6 Plus have two rows each (≤ 256K and > 256K
 // pricing). We use the ≤ 256K row as the canonical entry (the standard
 // pricing tier), and ignore the > 256K row.
+//
+// Auto-discovery (V5.3 — see PR description): when a model appears in
+// the upstream page but is not in NAME_TO_KEY and does not fuzzy-match
+// an existing entry in data/models.json, the scraper auto-stubs a new
+// entry with whatever data the page provides (name + pricing + rate
+// limits). The stub gets a `benchlm: { score: null, … }` placeholder
+// (per the data-integrity contract) and an `isNew: true` flag so the
+// UI surfaces it as a freshly-discovered model. This is the fix for
+// the "new opencode Go models don't appear until you add them
+// manually" coverage hole.
 
 import {
   parseArgs,
@@ -65,6 +75,10 @@ const NAME_TO_KEY = {
   'Qwen3.6 Plus (> 256K tokens)': 'qwen36plus.large',
   'DeepSeek V4 Pro': 'deepseekv4p',
   'DeepSeek V4 Flash': 'deepseekv4f',
+  'GPT 5.6 Luna': 'gpt56luna',
+  'Hy3': 'opencodeHy3',
+  'Grok 4.5': 'grok45',
+  'Qwen3.8 Max': 'qwen38max',
 };
 
 /**
@@ -159,6 +173,69 @@ function applyPatch(model, patch) {
 }
 
 /**
+ * Normalize a model display name for fuzzy matching. Lowercases and
+ * strips spaces / dots / hyphens / parens. "Grok 4.5" → "grok45",
+ * "Qwen3.7 Plus" → "qwen37plus", "MiMo V2.5 Pro" → "mimov25pro".
+ *
+ * @param {string} s
+ * @returns {string}
+ */
+function normName(s) {
+  return String(s || '').toLowerCase().replace(/[\s.\-()]+/g, '');
+}
+
+/**
+ * Today's date in YYYY-MM-DD (UTC). Used as the `sources[].date` for
+ * auto-stubbed models and the audit trail entry.
+ *
+ * @returns {string}
+ */
+function todayIso() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Build a minimal stub entry for a model the scraper discovered on
+ * the page but doesn't have an existing record for. The stub carries
+ * just enough data to satisfy the data-integrity contract (name,
+ * benchlm placeholder, tier, lifecycle, pricing where present,
+ * rate-limits where present, an `isNew: true` flag, and a sources
+ * entry pointing at the opencode Go page). All other fields
+ * (arena / swePro / sweVer / term / notes-detail / curated tier)
+ * are intentionally left for human curation on a subsequent pass.
+ *
+ * @param {string} displayName  - the name as it appears on the page
+ * @param {Object|null} price   - parsed price row (input/output/cacheRead/cacheWrite)
+ * @param {Object|null} quota   - parsed quota row (requestsPer5h/Week/Month)
+ * @returns {Object} a fresh model record
+ */
+function makeStub(displayName, price, quota) {
+  const today = todayIso();
+  return {
+    name: displayName,
+    benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+    tier: 'high',
+    lifecycle: 'active',
+    isNew: true,
+    ...(Number.isFinite(price?.input) ? { input: price.input } : {}),
+    ...(Number.isFinite(price?.output) ? { output: price.output } : {}),
+    ...(Number.isFinite(price?.cacheRead) ? { cacheRead: price.cacheRead } : {}),
+    ...(Number.isFinite(price?.cacheWrite) ? { cacheWrite: price.cacheWrite } : {}),
+    ...(Number.isFinite(quota?.requestsPer5h) ? { requestsPer5h: quota.requestsPer5h } : {}),
+    ...(Number.isFinite(quota?.requestsPerWeek) ? { requestsPerWeek: quota.requestsPerWeek } : {}),
+    ...(Number.isFinite(quota?.requestsPerMonth) ? { requestsPerMonth: quota.requestsPerMonth } : {}),
+    notes: `Auto-stubbed by ${SCRAPER_NAME} on ${today}. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.`,
+    sources: [
+      {
+        url: 'https://opencode.ai/docs/es/go/#usage-limits',
+        date: today,
+        scraper: SCRAPER_NAME,
+      },
+    ],
+  };
+}
+
+/**
  * Main entry — fetch + parse + update + write (or dry-run).
  */
 async function main() {
@@ -247,8 +324,28 @@ async function main() {
   const updatedModels = { ...doc.models };
   const unmatched = [];
   const updated = [];
+  const discovered = [];
 
-  // Walk through every known display name and try to apply updates.
+  // Patch helper: for EXISTING models we only apply the opencode-specific
+  // rate-limit fields. The base input/output/cacheRead/cacheWrite prices
+  // are managed by other scrapers (anthropic-pricing, openai-pricing,
+  // benchlm) and/or curated manually — we deliberately do NOT overwrite
+  // them here. The opencode Go subscription bundles a different rate
+  // card and applying it would corrupt the public-API pricing in the
+  // catalog. Cache pricing for EXISTING models is also left to the
+  // upstream provider scrapers or human curation.
+  const applyQuotaPatch = (model, quota) => {
+    if (!quota) return model;
+    return applyPatch(model, {
+      requestsPer5h: quota.requestsPer5h,
+      requestsPerWeek: quota.requestsPerWeek,
+      requestsPerMonth: quota.requestsPerMonth,
+    });
+  };
+
+  // Pass 1 — NAME_TO_KEY (preserves curated mappings + the .large
+  // context-window variants that the auto-discovery pass would
+  // otherwise collapse into the base name).
   for (const [displayName, key] of Object.entries(NAME_TO_KEY)) {
     const price = priceByName[displayName];
     const quota = quotaByName[displayName];
@@ -256,16 +353,73 @@ async function main() {
       unmatched.push(displayName);
       continue;
     }
+    if (key.endsWith('.large')) {
+      // V4-specific large-context-window variants. Apply the patch to
+      // the existing record if we have one; otherwise skip — we don't
+      // auto-stub a `.large` sibling, that's a curation decision.
+      if (updatedModels[key]) {
+        updatedModels[key] = applyQuotaPatch(updatedModels[key], quota);
+        updated.push(key);
+      }
+      continue;
+    }
     if (!updatedModels[key]) {
-      // The model isn't in our dataset yet — skip silently for "large"
-      // context-window variants (we don't track those separately).
-      if (key.endsWith('.large')) continue;
+      // The mapping points at a key that no longer exists in
+      // data/models.json. Don't auto-stub here — that's what pass 2
+      // does — just report and move on.
       unmatched.push(`${displayName} → no model key ${key}`);
       continue;
     }
-    const patch = { ...(price || {}), ...(quota || {}) };
-    updatedModels[key] = applyPatch(updatedModels[key], patch);
+    updatedModels[key] = applyQuotaPatch(updatedModels[key], quota);
     updated.push(key);
+  }
+
+  // Pass 2 — auto-discover new models on the page. The page may list
+  // models we don't have in NAME_TO_KEY and don't have in data yet;
+  // those would silently be lost under the old loop. Here we:
+  //   1. skip anything NAME_TO_KEY already handled
+  //   2. skip "(≤ NK tokens)" / "(> NK tokens)" variants (they're
+  //      duplicate rows of a base name we may have already processed)
+  //   3. fuzzy-match against existing model.name fields
+  //   4. if no match, auto-stub a fresh entry with a minimal record
+  //      so the new model appears in the catalog on the next build.
+  const normByModelName = {};
+  for (const [key, m] of Object.entries(updatedModels)) {
+    if (m.name) normByModelName[normName(m.name)] = key;
+  }
+  const allPageNames = new Set([
+    ...Object.keys(priceByName),
+    ...Object.keys(quotaByName),
+  ]);
+  for (const rawName of allPageNames) {
+    if (NAME_TO_KEY[rawName]) continue; // pass 1 handled it
+    // Match ASCII <=/> AND Unicode ≤/≥ variants ("Qwen3.7 Plus (> 256K
+    // tokens)", "GPT 5.6 Luna (≤ 272K tokens)").
+    if (/\([<>≤≥]=?\s*\d+K tokens\)/i.test(rawName)) continue; // size variant
+    const norm = normName(rawName);
+    if (!norm) continue;
+    let key = normByModelName[norm];
+    let isFresh = false;
+    if (!key) {
+      if (updatedModels[norm]) continue; // collision guard (shouldn't happen)
+      key = norm;
+      // For brand-new models, the opencode page is the ONLY source we
+      // have, so the stub carries the full price + quota data. The
+      // user can later curate the input/output against the public
+      // API pricing pages.
+      updatedModels[key] = makeStub(rawName, priceByName[rawName], quotaByName[rawName]);
+      normByModelName[norm] = key;
+      isFresh = true;
+      discovered.push({ displayName: rawName, key });
+      if (!args.quiet) {
+        console.log(`[${SCRAPER_NAME}] AUTO-STUB new model: "${rawName}" → key=${key}`);
+      }
+    } else {
+      // Existing model matched by fuzzy name. Same restricted patch
+      // policy as pass 1: only rate limits, never pricing fields.
+      updatedModels[key] = applyQuotaPatch(updatedModels[key], quotaByName[rawName]);
+    }
+    if (!updated.includes(key)) updated.push(key);
   }
 
   const changes = diffModels(before, updatedModels);
@@ -277,17 +431,19 @@ async function main() {
       ok: true,
       dryRun: true,
       updated: updated.length,
+      discovered,
       unmatched,
       changes: changes.length,
     });
   }
 
-  if (changes.length === 0) {
+  if (changes.length === 0 && discovered.length === 0) {
     console.log(`[${SCRAPER_NAME}] no changes detected — data already up to date`);
     return exitWith(0, {
       scraper: SCRAPER_NAME,
       ok: true,
       updated: 0,
+      discovered,
       unmatched,
       changes: 0,
     });
@@ -305,11 +461,20 @@ async function main() {
     });
   }
 
-  console.log(`[${SCRAPER_NAME}] wrote ${changes.length} field update(s) across ${updated.length} model(s)`);
+  if (discovered.length > 0) {
+    console.log(
+      `[${SCRAPER_NAME}] wrote ${changes.length} field update(s) across ${updated.length} model(s); ` +
+      `auto-stubbed ${discovered.length} new model(s): ` +
+      discovered.map((d) => `${d.displayName} (${d.key})`).join(', ')
+    );
+  } else {
+    console.log(`[${SCRAPER_NAME}] wrote ${changes.length} field update(s) across ${updated.length} model(s)`);
+  }
   return exitWith(0, {
     scraper: SCRAPER_NAME,
     ok: true,
     updated: updated.length,
+    discovered,
     changes: changes.length,
     unmatched,
   });

@@ -126,6 +126,8 @@ const KNOWN_V4_ONLY = new Set([
   'kimik3',
   'claudeOpus5',
   'opencodeHy3',
+  'grok45',
+  'qwen38max',
 ]);
 
 // Models whose V4 input/output prices legitimately differ from the V3
