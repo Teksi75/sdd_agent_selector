@@ -1,14 +1,17 @@
 {
   "_meta": {
-    "lastSynced": "2026-07-26",
-    "source": "scrape-glm-blog",
-    "nextSync": "2026-07-31",
+    "lastSynced": "2026-08-09",
+    "nextSync": "2026-08-14",
     "schemaVersion": 2,
     "scrapers": {
       "benchlm": {
         "lastRun": "2026-07-17"
       }
-    }
+    },
+    "sources": [
+      "scrape-glm-blog",
+      "scrape-opencode-prices"
+    ]
   },
   "models": {
     "glm52": {
@@ -69,6 +72,11 @@
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
           "date": "2026-07-26",
           "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
+          "date": "2026-08-09",
+          "scraper": "scrape-glm-blog"
         }
       ],
       "requestsPer5h": 880,
@@ -104,9 +112,9 @@
       "tier": "high",
       "lifecycle": "active",
       "cacheWrite": 3.125,
-      "requestsPer5h": 950,
-      "requestsPerWeek": 2390,
-      "requestsPerMonth": 4770
+      "requestsPer5h": 340,
+      "requestsPerWeek": 840,
+      "requestsPerMonth": 1690
     },
     "glm51": {
       "name": "GLM-5.1",
