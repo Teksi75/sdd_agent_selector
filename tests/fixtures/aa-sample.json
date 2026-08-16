@@ -1,0 +1,45 @@
+{
+  "_meta": {
+    "fetchedAt": "2026-08-16T00:00:00Z",
+    "note": "PROVISIONAL mirror of GET https://artificialanalysis.ai/api/v2/data/llms/models (authenticated with x-api-key). Reconcile with the 1.1 spike when AA_API_KEY is available; the scraper's FIELD_MAP constant is the single adjustment point for live field-name drift. `blended` values below are intentionally WRONG on purpose: the scraper must compute (3*input + output)/4 locally and never trust an upstream blended field."
+  },
+  "models": [
+    {
+      "id": "claude-sonnet-5",
+      "slug": "claude-sonnet-5",
+      "name": "Claude Sonnet 5",
+      "pricing": {
+        "input": 3,
+        "output": 15,
+        "cacheRead": 0.3,
+        "cacheWrite": 4.5
+      },
+      "term": 84.2,
+      "codingIndex": 61.3,
+      "median_output_tokens_per_second": 92.4,
+      "median_time_to_first_token_seconds": 0.31,
+      "blended": 99
+    },
+    {
+      "id": "gpt-5-5",
+      "slug": "gpt-5-5",
+      "name": "GPT-5.5",
+      "pricing": {
+        "input": 1.25,
+        "output": 10
+      },
+      "blended": 42
+    },
+    {
+      "id": "kimi-k3",
+      "slug": "kimi-k3",
+      "name": "Kimi K3",
+      "pricing": {
+        "input": 0.6,
+        "output": 2.2,
+        "cacheWrite": 0.9
+      },
+      "codingIndex": 55
+    }
+  ]
+}

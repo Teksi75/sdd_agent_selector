@@ -241,7 +241,7 @@ const COOLDOWN_JITTER_MS = 500;
  * skip (used by tests).
  *
  * @param {string} url
- * @param {{timeoutMs?: number, cooldownMs?: number}} [options]
+ * @param {{timeoutMs?: number, cooldownMs?: number, headers?: Record<string, string>}} [options]
  * @returns {Promise<string>}
  */
 export async function fetchText(url, options) {
@@ -249,7 +249,14 @@ export async function fetchText(url, options) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), opts.timeoutMs || 30000);
   try {
-    const r = await fetch(url, { signal: controller.signal, headers: { 'user-agent': 'sdd-agent-selector-sync/1.0 (+https://github.com/Teksi75/sdd_agent_selector)' } });
+    const r = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'user-agent': 'sdd-agent-selector-sync/1.0 (+https://github.com/Teksi75/sdd_agent_selector)',
+        // Optional extra headers (e.g. the AA scraper's `x-api-key`).
+        ...(opts.headers || {}),
+      },
+    });
     if (!r.ok) {
       throw new Error(`fetch ${url} → HTTP ${r.status} ${r.statusText}`);
     }
