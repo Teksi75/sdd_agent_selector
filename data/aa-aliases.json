@@ -1,0 +1,40 @@
+{
+  "_meta": {
+    "version": 1,
+    "lastUpdated": "2026-08-16",
+    "notes": "Artificial Analysis id → curated key in data/models.json. `from` is the AA response `id`, `slug` the AA response `slug` (kept stable across upstream renames), `to` the curated key. PROVISIONAL: seeded from the design example + curated key convention while the 1.1 spike is pending (no AA_API_KEY this session); reconcile with live names during the spike. Unmapped AA ids cause the scraper to exit non-zero (fail loud, never guess)."
+  },
+  "aliases": [
+    { "from": "claude-sonnet-5",   "slug": "claude-sonnet-5",   "to": "sonnet5" },
+    { "from": "claude-opus-5",     "slug": "claude-opus-5",     "to": "claudeOpus5" },
+    { "from": "claude-opus-4-8",   "slug": "claude-opus-4-8",   "to": "opus48" },
+    { "from": "claude-haiku-4-5",  "slug": "claude-haiku-4-5",  "to": "haiku45" },
+    { "from": "claude-fable-5",    "slug": "claude-fable-5",    "to": "claudeFable5" },
+    { "from": "gpt-5-4",           "slug": "gpt-5-4",           "to": "gpt54" },
+    { "from": "gpt-5-5",           "slug": "gpt-5-5",           "to": "gpt55" },
+    { "from": "gpt-5-6-terra",     "slug": "gpt-5-6-terra",     "to": "gpt56terra" },
+    { "from": "gpt-5-6-luna",      "slug": "gpt-5-6-luna",      "to": "gpt56luna" },
+    { "from": "gpt-5-6-luna-max",  "slug": "gpt-5-6-luna-max",  "to": "gpt56lunaMax" },
+    { "from": "gpt-5-6-sol",       "slug": "gpt-5-6-sol",       "to": "gpt56sol" },
+    { "from": "glm-5",             "slug": "glm-5",             "to": "glm5" },
+    { "from": "glm-5-1",           "slug": "glm-5-1",           "to": "glm51" },
+    { "from": "glm-5-2",           "slug": "glm-5-2",           "to": "glm52" },
+    { "from": "qwen3-6-plus",      "slug": "qwen3-6-plus",      "to": "qwen36plus" },
+    { "from": "qwen3-7-max",       "slug": "qwen3-7-max",       "to": "qwen37max" },
+    { "from": "qwen3-7-plus",      "slug": "qwen3-7-plus",      "to": "qwen37plus" },
+    { "from": "qwen3-8-max",       "slug": "qwen3-8-max",       "to": "qwen38max" },
+    { "from": "deepseek-v4-flash", "slug": "deepseek-v4-flash", "to": "deepseekv4f" },
+    { "from": "deepseek-v4-pro",   "slug": "deepseek-v4-pro",   "to": "deepseekv4p" },
+    { "from": "kimi-k3",           "slug": "kimi-k3",           "to": "kimik3" },
+    { "from": "kimi-k2-5",         "slug": "kimi-k2-5",         "to": "kimik25" },
+    { "from": "kimi-k2-6",         "slug": "kimi-k2-6",         "to": "kimik26" },
+    { "from": "kimi-k2-7-c",       "slug": "kimi-k2-7-c",       "to": "kimik27c" },
+    { "from": "minimax-m3",        "slug": "minimax-m3",        "to": "minimaxm3" },
+    { "from": "minimax-m2-5",      "slug": "minimax-m2-5",      "to": "minimaxm25" },
+    { "from": "minimax-m2-7",      "slug": "minimax-m2-7",      "to": "minimaxm27" },
+    { "from": "mimo-v2-5",         "slug": "mimo-v2-5",         "to": "mimo25" },
+    { "from": "mimo-v2-5-pro",     "slug": "mimo-v2-5-pro",     "to": "mimo25pro" },
+    { "from": "grok-4-5",          "slug": "grok-4-5",          "to": "grok45" },
+    { "from": "opencode-hybrid-3", "slug": "opencode-hybrid-3", "to": "opencodeHy3" }
+  ]
+}
