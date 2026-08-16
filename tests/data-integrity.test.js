@@ -213,6 +213,27 @@ describe('data-integrity: BenchLM-shape contract (PR3)', () => {
     expect(Array.isArray(placeholders)).toBe(true);
   });
 
+  test('estimated sibling variant never outranks its verified family flagship (gpt56lunaMax < gpt56sol)', () => {
+    // Regression guard for the 2026-08 distortion: the hand-calibrated
+    // BenchLM-equivalent estimate for GPT-5.6 Luna (max) (Artificial
+    // Analysis source, evidence "estimated") briefly sat above GPT-5.6
+    // Sol's verified BenchLM score, inverting the family ordering in the
+    // Composite table. An estimate must never beat a verified score of
+    // its own family's flagship, no matter how close the numbers are.
+    const sol = doc.models.gpt56sol;
+    const lunaMax = doc.models.gpt56lunaMax;
+    expect(typeof sol?.benchlm?.score).toBe('number');
+    expect(typeof lunaMax?.benchlm?.score).toBe('number');
+    expect(sol.benchlm.verified).toBe(true);
+    expect(lunaMax.benchlm.evidence).toBe('estimated');
+    expect(
+      lunaMax.benchlm.score,
+      'estimated gpt56lunaMax score must stay below verified gpt56sol score'
+    ).toBeLessThan(sol.benchlm.score);
+    // Max-effort variant should still sit above its base-effort sibling.
+    expect(lunaMax.benchlm.score).toBeGreaterThan(doc.models.gpt56luna.benchlm.score);
+  });
+
   test('26 tracked models carried by the curated catalog', () => {
     const models = doc.models;
     const keys = Object.keys(models);
