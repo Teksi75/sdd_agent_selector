@@ -96,9 +96,9 @@ function writeModels() {
   );
 }
 
-/** Serialize an AA-style payload: `{ models: [...] }`. */
+/** Serialize an AA-style payload: `{ data: [...] }` (AA v2 response shape). */
 function aaResponse(entries) {
-  return JSON.stringify({ models: entries });
+  return JSON.stringify({ data: entries });
 }
 
 const BASE_ARGS = () => ({ dryRun: false, file: modelsPath, source: 'https://aa.test/api', quiet: true, aliasPath: aliasesPath });

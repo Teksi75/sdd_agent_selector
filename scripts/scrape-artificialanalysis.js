@@ -130,7 +130,10 @@ function validateRequiredFields(entry, identity) {
     const path = Object.keys(FIELD_MAP).find((p) => FIELD_MAP[p] === curated);
     const v = getPath(entry, path);
     if (typeof v !== 'number' || !Number.isFinite(v)) {
-      return `model ${identity}: required field \`${curated}\` (path ${path}) is missing or not a finite number`;
+      const entryKeys = entry && typeof entry === 'object' ? Object.keys(entry) : [];
+      const pricingKeys = entry && entry.pricing && typeof entry.pricing === 'object' ? Object.keys(entry.pricing) : null;
+      const evalKeys = entry && entry.evaluations && typeof entry.evaluations === 'object' ? Object.keys(entry.evaluations) : null;
+      return `model ${identity}: required field \`${curated}\` (path ${path}) missing/not-finite; entry keys: ${JSON.stringify(entryKeys)}; pricing keys: ${JSON.stringify(pricingKeys)}; evaluations keys: ${JSON.stringify(evalKeys)}`;
     }
   }
   return null;
@@ -257,14 +260,16 @@ export async function runScrape(args, deps) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'parse', error: `response is not valid JSON: ${err.message}` };
   }
 
-  // 3. Validate top-level shape: { models: [...] }
-  if (!payload || !Array.isArray(payload.models)) {
-    return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: 'response missing top-level `models` array' };
+  // 3. Validate top-level shape. AA v2 returns { status, prompt_options, data: [...] }.
+  const list = payload && Array.isArray(payload.data) ? payload.data : null;
+  if (!list) {
+    const topKeys = payload && typeof payload === 'object' ? Object.keys(payload) : [];
+    return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `response missing top-level data array; actual top-level keys: ${JSON.stringify(topKeys)}` };
   }
 
   // 4. Validate each entry has a non-empty `id`.
-  for (let i = 0; i < payload.models.length; i++) {
-    const r = payload.models[i];
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i];
     if (!r || typeof r !== 'object') {
       return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}] is not an object` };
     }
@@ -285,7 +290,7 @@ export async function runScrape(args, deps) {
   //    pricing drift guard (fail-loud on miss, rename, or drift).
   const mappedPresent = new Set();
   const aaByKey = new Map();
-  for (const r of payload.models) {
+  for (const r of list) {
     try {
       detectRename(r.id, r.slug, aliases);
     } catch (err) {

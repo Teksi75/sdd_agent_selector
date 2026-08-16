@@ -3,7 +3,7 @@
     "fetchedAt": "2026-08-16T00:00:00Z",
     "note": "PROVISIONAL mirror of GET https://artificialanalysis.ai/api/v2/data/llms/models (authenticated with x-api-key). Reconcile with the 1.1 spike when AA_API_KEY is available; the scraper's FIELD_MAP constant is the single adjustment point for live field-name drift. `blended` values below are intentionally WRONG on purpose: the scraper must compute (3*input + output)/4 locally and never trust an upstream blended field."
   },
-  "models": [
+  "data": [
     {
       "id": "claude-sonnet-5",
       "slug": "claude-sonnet-5",
