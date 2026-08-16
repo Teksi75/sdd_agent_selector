@@ -16,7 +16,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ENDPOINT = 'https://artificialanalysis.ai/api/v2/data/llms/models';
-const DUMP_PATH = resolve(__dirname, '.aa-dump.json');
+const DUMP_PATH = resolve(__dirname, 'aa-dump.json');
 
 const key = process.env.AA_API_KEY;
 if (!key) {

@@ -28,5 +28,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: aa-dump
-          path: scripts/.aa-dump.json
+          path: scripts/aa-dump.json
           if-no-files-found: error

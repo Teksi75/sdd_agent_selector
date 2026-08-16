@@ -43,4 +43,4 @@ pnpm-store/
 tmp/
 
 # Spike dumps (temporary, never merged)
-scripts/.aa-dump.json
+scripts/aa-dump.json
