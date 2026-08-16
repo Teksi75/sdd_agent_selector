@@ -282,3 +282,160 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(after.models.sonnet5.benchlm.score).toBe(77); // untouched
   });
 });
+
+describe('scrape-artificialanalysis — failure paths (PR 3)', () => {
+  test('malformed JSON response → fail loud (parse phase); canonical data untouched', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => '{ definitely not valid json !!');
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('parse');
+    expect(result.error).toMatch(/not valid JSON/);
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+  });
+
+  test('missing required pricing field (no output) → fail loud (validate phase); canonical data untouched', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => aaResponse([
+      { id: 'claude-sonnet-5', slug: 'claude-sonnet-5', pricing: { input: 3 } }, // output absent
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('validate');
+    expect(result.code).toBe('AA_REQUIRED_FIELD_MISSING');
+    expect(result.error).toMatch(/output/);
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+  });
+
+  test('renamed required pricing field (pricing.output → pricing.outputs) → fail loud, never guessed', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => aaResponse([
+      { id: 'claude-sonnet-5', slug: 'claude-sonnet-5', pricing: { input: 3, outputs: 15 } },
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('validate');
+    expect(result.code).toBe('AA_REQUIRED_FIELD_MISSING');
+    // The renamed value must NOT be mapped into `output` — no guessing.
+    expect(result.error).not.toMatch(/15/);
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+  });
+
+  test('non-finite required pricing (string input) → fail loud; canonical data untouched', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => aaResponse([
+      { id: 'claude-sonnet-5', slug: 'claude-sonnet-5', pricing: { input: '3 USD', output: 15 } },
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('validate');
+    expect(result.code).toBe('AA_REQUIRED_FIELD_MISSING');
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+  });
+
+  test('unknown AA id → alias miss flagged (AA_UNKNOWN_ID names the id), never guessed; file untouched', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => aaResponse([
+      { id: 'brand-new-llm', slug: 'brand-new-llm', pricing: { input: 1, output: 4 } },
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('alias');
+    expect(result.code).toBe('AA_UNKNOWN_ID');
+    expect(result.aaId).toBe('brand-new-llm');
+    expect(result.error).toMatch(/brand-new-llm/);
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+  });
+
+  test('renamed AA id (slug stable) → AA_ID_RENAMED names old/new id, never guessed; file untouched', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => aaResponse([
+      { id: 'claude-sonnet-5-v2', slug: 'claude-sonnet-5', pricing: { input: 3, output: 15 } },
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.phase).toBe('alias');
+    expect(result.code).toBe('AA_ID_RENAMED');
+    expect(result.oldId).toBe('claude-sonnet-5');
+    expect(result.newId).toBe('claude-sonnet-5-v2');
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+  });
+
+  test('alias miss blocks the WHOLE run atomically — valid sibling entries are NOT merged either', async () => {
+    writeAliases();
+    writeModels();
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+
+    const fetchText = vi.fn(async () => aaResponse([
+      { id: 'claude-sonnet-5', slug: 'claude-sonnet-5', pricing: { input: 3, output: 15 } }, // valid
+      { id: 'mystery-model', slug: 'mystery-model', pricing: { input: 1, output: 4 } }, // unknown
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(false);
+    expect(result.code).toBe('AA_UNKNOWN_ID');
+    expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+    const after = JSON.parse(beforeBytes);
+    expect(after.models.sonnet5.input).toBe(0.5); // pre-existing vendor value preserved
+  });
+});
+
+describe('scrape-artificialanalysis — missing secret soft-fail (PR 3)', () => {
+  test('no AA_API_KEY → ::warning:: on stderr + ok:true/skipped (CLI exits 0); no fetch; file untouched', async () => {
+    writeAliases();
+    writeModels();
+    delete process.env.AA_API_KEY;
+    const beforeBytes = fsImpl.readFileSync(modelsPath, 'utf-8');
+    const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+    const fetchText = vi.fn(async () => {
+      throw new Error('fetchText must not be called when AA_API_KEY is missing');
+    });
+
+    try {
+      const result = await runScrape({ ...BASE_ARGS(), source: null }, { fetchText });
+
+      // ok:true → main() translates to exitWith(0, ...) → exit code 0,
+      // so sibling scrapers in the workflow continue (no `failed++`).
+      expect(result.ok).toBe(true);
+      expect(result.skipped).toBe('missing-secret');
+      expect(result.phase).toBeUndefined();
+      expect(result.changes).toBeUndefined();
+      expect(fetchText).not.toHaveBeenCalled();
+
+      // GitHub Actions `::warning::` annotation on stderr.
+      expect(stderrSpy).toHaveBeenCalled();
+      const warning = stderrSpy.mock.calls.map((c) => String(c[0])).join('');
+      expect(warning).toContain('::warning::');
+      expect(warning).toContain('AA_API_KEY');
+
+      // Soft-fail never mutates canonical data.
+      expect(fsImpl.readFileSync(modelsPath, 'utf-8')).toBe(beforeBytes);
+    } finally {
+      stderrSpy.mockRestore();
+    }
+  });
+});

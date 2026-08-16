@@ -24,6 +24,14 @@
 //     An upstream `blended` field is never trusted.
 //   - On write, `_meta.schemaVersion` is explicitly set to 3 (the bump
 //     is atomic with the first AA field write).
+//   - Missing `AA_API_KEY` for the LIVE endpoint is a SOFT-FAIL: a
+//     `::warning::` is written to stderr and the CLI exits 0 with
+//     `{ok:true, skipped:'missing-secret'}` so sibling scrapers in the
+//     workflow continue and no `failed` increment happens. Local
+//     `--source` fixtures never need the key and are unaffected.
+//   - Canonical-data preservation: every failure path (fetch, parse,
+//     validate, alias, read, write) returns BEFORE any merge or write,
+//     so a failed run NEVER mutates data/models.json.
 //
 // CLI:
 //   node scripts/scrape-artificialanalysis.js [--dry-run] [--file <path>]
@@ -208,6 +216,20 @@ export async function runScrape(args, deps) {
   const url = args.source || SOURCE_URL;
   const aliasPath = args.aliasPath || DEFAULT_ALIAS_PATH;
   const apiKey = process.env.AA_API_KEY;
+
+  // 0. Missing-secret soft-fail. The live endpoint REQUIRES AA_API_KEY;
+  //    without it the fetch would be unauthenticated (upstream rejects
+  //    or returns incomplete data). Warn with the GitHub Actions
+  //    `::warning::` syntax on stderr and return ok so the CLI exits 0
+  //    with `{ok:true, skipped:'missing-secret'}`: sibling scrapers in
+  //    the workflow continue and no `failed` increment happens. Local
+  //    `--source` fixtures never need the key and are unaffected.
+  if (!apiKey && !isLocalPath(url)) {
+    process.stderr.write(
+      `::warning::${SCRAPER_NAME}: AA_API_KEY is not set — skipping sync (soft-fail; sibling scrapers continue)\n`,
+    );
+    return { scraper: SCRAPER_NAME, ok: true, skipped: 'missing-secret' };
+  }
 
   // 1. Fetch. When --source points at a local fixture path, read it
   //    directly so the CLI can be exercised without a live endpoint.
