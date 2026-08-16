@@ -41,3 +41,6 @@ pnpm-store/
 .mavis/
 .secrets/
 tmp/
+
+# Spike dumps (temporary, never merged)
+scripts/.aa-dump.json

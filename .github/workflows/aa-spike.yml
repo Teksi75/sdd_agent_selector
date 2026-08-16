@@ -1,0 +1,30 @@
+# TEMPORARY spike workflow (spike 1.2) — deleted with the spike branch.
+# Runs the AA endpoint dump against the live API using the AA_API_KEY
+# secret and uploads the raw dump as an artifact for local analysis.
+name: aa-spike
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  spike:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Dump AA payload
+        env:
+          AA_API_KEY: ${{ secrets.AA_API_KEY }}
+        run: node scripts/_aa-spike.mjs
+      - name: Upload dump artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: aa-dump
+          path: scripts/.aa-dump.json
+          if-no-files-found: error
