@@ -160,7 +160,7 @@ describe('data-sync — refresh() success path', () => {
     const cached = sessionStorage.getItem('sdd-models-v5');
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    expect(parsed.schemaVersion).toBe(2);
+    expect(parsed.schemaVersion).toBe(3);
     expect(parsed.data.models.glm52.name).toBe('GLM-5.2');
   });
 
@@ -323,7 +323,7 @@ describe('data-loader — legacy cache fallback', () => {
     const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
     sessionStorage.setItem(
       LEGACY_CACHE_KEYS[0],
-      JSON.stringify({ schemaVersion: 2, timestamp: Date.now(), data: legacyData })
+      JSON.stringify({ schemaVersion: 3, timestamp: Date.now(), data: legacyData })
     );
     const [data, concurrent] = await Promise.all([loadAll(), loadAll()]);
     expect(globalThis.fetch).toHaveBeenCalled();

@@ -14,9 +14,9 @@
 //   - cache MISS / schema mismatch → fetch all 5 files, populate cache,
 //     return composed object
 //
-// The current schemaVersion is 1; bumping it invalidates every existing
-// cached entry on next page load. The constant lives at the top so a future
-// shape change is a one-line bump + new tests.
+// The current schemaVersion is 3 (AA pricing schema v3); bumping it
+// invalidates every existing cached entry on next page load. The constant
+// lives at the top so a future shape change is a one-line bump + new tests.
 
 /** @type {string} */
 // v5 invalidates cached catalog after lifecycle/reference-table and
@@ -32,9 +32,11 @@ export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v4', 'sdd-models-v3'
  *  migration number. Consumers MUST NOT branch on this value — only
  *  the data shape (and `data/models.json` `_meta.schemaVersion`) are
  *  part of the contract.
- *  History: 1 → 2 (BenchLM migration, PR1 of benchlm-replace-custom-scoring).
+ *  History: 1 → 2 (BenchLM migration, PR1 of benchlm-replace-custom-scoring);
+ *           2 → 3 (AA pricing schema v3, PR4 of aa-benchmark-integration —
+ *           adds blended/pricingSource/term/codingIndex/speed fields).
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 /** @type {string[]} - the 5 data files this loader fetches, in order. */
 const DATA_FILES = Object.freeze([

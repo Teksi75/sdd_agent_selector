@@ -49,6 +49,7 @@ import {
   summarizeDryRun,
   exitWith,
 } from './_scraper-utils.mjs';
+import { guardVendorPricePatch } from './_pricing-safety.mjs';
 
 const SOURCE_URL = 'https://opencode.ai/docs/es/go/';
 const SCRAPER_NAME = 'scrape-opencode-prices';
@@ -407,7 +408,14 @@ async function main() {
       // have, so the stub carries the full price + quota data. The
       // user can later curate the input/output against the public
       // API pricing pages.
-      updatedModels[key] = makeStub(rawName, priceByName[rawName], quotaByName[rawName]);
+      // AA pricing precedence (schema v3): the vendor guard must never
+      // write input/output/cacheRead/cacheWrite for an AA-owned model.
+      // A fresh stub has NO existing record, so aaOwnsPricing() is
+      // always false here — a structural no-op that stays safe if this
+      // flow ever changes. Existing models only receive rate-limit
+      // fields (never pricing) via applyQuotaPatch.
+      const guardedPrice = guardVendorPricePatch(updatedModels[key], priceByName[rawName]);
+      updatedModels[key] = makeStub(rawName, guardedPrice, quotaByName[rawName]);
       normByModelName[norm] = key;
       isFresh = true;
       discovered.push({ displayName: rawName, key });
