@@ -206,6 +206,22 @@ function appendAttribution(model, date) {
 }
 
 /**
+ * Diagnostic (spike 1.1): dump every entry's id/slug/name to stderr as
+ * tab-separated lines so the alias table can be rebuilt from the real
+ * AA ids. No-op in quiet mode (tests). Only called on alias failure.
+ *
+ * @param {Object[]} list
+ * @param {boolean} quiet
+ * @returns {void}
+ */
+function dumpModelList(list, quiet) {
+  if (quiet) return;
+  for (const e of list) {
+    process.stderr.write(`[${SCRAPER_NAME}] model: ${e.id}\t${e.slug}\t${e.name}\n`);
+  }
+}
+
+/**
  * Core scrape logic. Exported for tests; the CLI wrapper at the bottom
  * of this file calls `runScrape(parseArgs(process.argv))` and translates
  * the result into `exitWith`.
@@ -294,6 +310,7 @@ export async function runScrape(args, deps) {
     try {
       detectRename(r.id, r.slug, aliases);
     } catch (err) {
+      dumpModelList(list, args.quiet);
       return {
         scraper: SCRAPER_NAME,
         ok: false,
