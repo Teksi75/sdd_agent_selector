@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "lastSynced": "2026-08-09",
-    "nextSync": "2026-08-14",
+    "lastSynced": "2026-08-17",
+    "nextSync": "2026-08-22",
     "schemaVersion": 4,
     "scrapers": {
       "benchlm": {
@@ -11,7 +11,8 @@
     "sources": [
       "scrape-glm-blog",
       "scrape-opencode-prices",
-      "scrape-artificialanalysis"
+      "scrape-artificialanalysis",
+      "scrape-anthropic-pricing"
     ]
   },
   "models": {
@@ -21,7 +22,7 @@
       "arena": 1595,
       "swePro": 62.1,
       "sweVer": 77.8,
-      "term": 81,
+      "term": 77.9026217228464,
       "benchlm": {
         "score": 63.96,
         "verified": false,
@@ -44,7 +45,7 @@
       "cacheRead": 0.26,
       "tier": "high",
       "lifecycle": "active",
-      "notes": "MIT, 1M ctx, #2 Arena WebDev, #1 long-horizon open",
+      "notes": "MIT, 1M ctx, #2 Arena WebDev, #1 long-horizon open AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
@@ -79,11 +80,27 @@
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
           "date": "2026-08-09",
           "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
+          "date": "2026-08-17",
+          "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 880,
       "requestsPerWeek": 2150,
-      "requestsPerMonth": 4300
+      "requestsPerMonth": 4300,
+      "codingIndex": 68.8,
+      "outputTokensPerSecond": 133.05,
+      "timeToFirstTokenSeconds": 0.898,
+      "timeToFirstAnswerTokenSeconds": 15.93,
+      "blended": 2.15,
+      "pricingSource": "artificialanalysis"
     },
     "glm52NonReasoning": {
       "name": "GLM-5.2 (Non-reasoning)",
@@ -93,7 +110,7 @@
       "output": 4.4,
       "blended": 2.15,
       "pricingSource": "artificialanalysis",
-      "term": 51.685393258427,
+      "term": 51.685393258427005,
       "codingIndex": 46.5,
       "outputTokensPerSecond": 121.062,
       "timeToFirstTokenSeconds": 1.444,
@@ -104,11 +121,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -119,7 +141,7 @@
       "arena": 1680,
       "swePro": 60.6,
       "sweVer": 80.4,
-      "term": 69.7,
+      "term": 74.53183520599251,
       "benchlm": {
         "score": 72.84,
         "verified": true,
@@ -145,7 +167,21 @@
       "cacheWrite": 3.125,
       "requestsPer5h": 340,
       "requestsPerWeek": 840,
-      "requestsPerMonth": 1690
+      "requestsPerMonth": 1690,
+      "codingIndex": 66,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 3.75,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "glm51": {
       "name": "GLM-5.1",
@@ -153,7 +189,7 @@
       "arena": 1532,
       "swePro": 58.4,
       "sweVer": null,
-      "term": 63.5,
+      "term": 61.797752808988804,
       "benchlm": {
         "score": 67.74,
         "verified": true,
@@ -171,14 +207,28 @@
         "rank": 18,
         "evidence": "supported"
       },
-      "input": 1.4,
+      "input": 1.38,
       "output": 4.4,
       "cacheRead": 0.26,
       "tier": "high",
       "lifecycle": "legacy",
       "requestsPer5h": 880,
       "requestsPerWeek": 2150,
-      "requestsPerMonth": 4300
+      "requestsPerMonth": 4300,
+      "codingIndex": 55.8,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 2.135,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "glm51NonReasoning": {
       "name": "GLM-5.1 (Non-reasoning)",
@@ -197,11 +247,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -212,7 +267,7 @@
       "arena": 1521,
       "swePro": 59,
       "sweVer": 80.5,
-      "term": 65,
+      "term": 65.1685393258427,
       "benchlm": {
         "score": 69.75,
         "verified": true,
@@ -237,7 +292,21 @@
       "lifecycle": "active",
       "requestsPer5h": 3200,
       "requestsPerWeek": 8000,
-      "requestsPerMonth": 16000
+      "requestsPerMonth": 16000,
+      "codingIndex": 58.6,
+      "outputTokensPerSecond": 97.268,
+      "timeToFirstTokenSeconds": 1.184,
+      "timeToFirstAnswerTokenSeconds": 21.745,
+      "blended": 0.5249999999999999,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "kimik27c": {
       "name": "Kimi K2.7 Code",
@@ -245,7 +314,7 @@
       "arena": 1510,
       "swePro": 58.6,
       "sweVer": 78.2,
-      "term": 67,
+      "term": 67.4157303370786,
       "benchlm": {
         "score": 55,
         "verified": false,
@@ -268,7 +337,7 @@
       "cacheRead": 0.19,
       "tier": "balanced",
       "lifecycle": "active",
-      "notes": "Moonshot K2 family, 12 jun 2026. 30% fewer thinking tokens vs K2.6. Vals AI 3rd-party: SWE-bench Verified 78.2 (#1 open-weight), Terminal-Bench 2.1 67 (#1 open-weight). SWE-bench Pro: proxy 58.6 from K2.6 (no independent K2.7 number published). Arena: estimated 1510 (K2.7 not on Arena leaderboard as of 2026-07-09; K2.5 was 1515 at launch, now 1400 per BenchLM Jul 2026).",
+      "notes": "Moonshot K2 family, 12 jun 2026. 30% fewer thinking tokens vs K2.6. Vals AI 3rd-party: SWE-bench Verified 78.2 (#1 open-weight), Terminal-Bench 2.1 67 (#1 open-weight). SWE-bench Pro: proxy 58.6 from K2.6 (no independent K2.7 number published). Arena: estimated 1510 (K2.7 not on Arena leaderboard as of 2026-07-09; K2.5 was 1515 at launch, now 1400 per BenchLM Jul 2026). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://vals.ai/benchmarks/swebench",
@@ -281,11 +350,22 @@
         {
           "url": "https://www.kimi.com/blog/kimi-k2-6",
           "date": "2026-04-20"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 1350,
       "requestsPerWeek": 3380,
-      "requestsPerMonth": 6750
+      "requestsPerMonth": 6750,
+      "codingIndex": 60.8,
+      "outputTokensPerSecond": 37.072,
+      "timeToFirstTokenSeconds": 1.199,
+      "timeToFirstAnswerTokenSeconds": 61.325,
+      "blended": 1.7125,
+      "pricingSource": "artificialanalysis"
     },
     "kimik3": {
       "name": "Kimi K3",
@@ -293,7 +373,7 @@
       "arena": 1486,
       "swePro": null,
       "sweVer": null,
-      "term": null,
+      "term": 85.0187265917603,
       "benchlm": {
         "score": 80.96,
         "verified": true,
@@ -317,7 +397,7 @@
       "tier": "high",
       "lifecycle": "active",
       "isNew": true,
-      "notes": "Moonshot flagship, released 2026-07-17 (catalog entry added 2026-07-18). Pricing: $3 input / $15 output / $0.30 cache read per 1M tokens via OpenCode Go (2026-07-17, last page update); cache write not listed for K3. Quota: 140 req/5h, 340/wk, 680/mo — the lowest among Go models (K3 is newer/more expensive, so the 6x multiplier doesn't apply yet). Arena: 1486 (LMArena Text Overall, tied #9 with gpt-5.6-sol-xhigh as of 2026-07-17); also #1 WebDev Overall at 1679. SWE-Ver: Vals AI ranks K3 3/71 on SWE-bench Verified as of 2026-07-17 (after Claude Fable 5 and GPT-5.6 Sol); per-difficulty resolution rates 92%/95%/93%/67% for <15min/15m-1h/1-4h/>4h — exact aggregate % not extracted from leaderboard (page shows 0.0% artifacts in the per-model card; only the by-difficulty breakdown is verbatim). SWE-Pro: not published as of 2026-07-18. Terminal-Bench 2.1: Vals AI rank 2/43 as of 2026-07-17; aggregate % not extracted. K3 is not on the public SWE-bench.com leaderboard yet (community baseline pending).",
+      "notes": "Moonshot flagship, released 2026-07-17 (catalog entry added 2026-07-18). Pricing: $3 input / $15 output / $0.30 cache read per 1M tokens via OpenCode Go (2026-07-17, last page update); cache write not listed for K3. Quota: 140 req/5h, 340/wk, 680/mo — the lowest among Go models (K3 is newer/more expensive, so the 6x multiplier doesn't apply yet). Arena: 1486 (LMArena Text Overall, tied #9 with gpt-5.6-sol-xhigh as of 2026-07-17); also #1 WebDev Overall at 1679. SWE-Ver: Vals AI ranks K3 3/71 on SWE-bench Verified as of 2026-07-17 (after Claude Fable 5 and GPT-5.6 Sol); per-difficulty resolution rates 92%/95%/93%/67% for <15min/15m-1h/1-4h/>4h — exact aggregate % not extracted from leaderboard (page shows 0.0% artifacts in the per-model card; only the by-difficulty breakdown is verbatim). SWE-Pro: not published as of 2026-07-18. Terminal-Bench 2.1: Vals AI rank 2/43 as of 2026-07-17; aggregate % not extracted. K3 is not on the public SWE-bench.com leaderboard yet (community baseline pending). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://opencode.ai/docs/es/go/",
@@ -338,11 +418,22 @@
         {
           "url": "https://kimi.com/research",
           "date": "2026-07-17"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 110,
       "requestsPerWeek": 250,
-      "requestsPerMonth": 490
+      "requestsPerMonth": 490,
+      "codingIndex": 76.2,
+      "outputTokensPerSecond": 39.961,
+      "timeToFirstTokenSeconds": 2.141,
+      "timeToFirstAnswerTokenSeconds": 52.19,
+      "blended": 6,
+      "pricingSource": "artificialanalysis"
     },
     "kimik3Low": {
       "name": "Kimi K3 (low)",
@@ -363,11 +454,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -378,7 +474,7 @@
       "arena": 1400,
       "swePro": 50.7,
       "sweVer": 76.8,
-      "term": null,
+      "term": 45.6928838951311,
       "benchlm": {
         "score": 59.66,
         "verified": true,
@@ -401,7 +497,7 @@
       "cacheRead": 0.16,
       "tier": "balanced",
       "lifecycle": "active",
-      "notes": "2026-07 data refresh: arena 1515→1400 (LMSYS leaderboard rotation since launch — newer models shifted K2.5 down). SWE-Pro 50.7, SWE-Ver 76.8 per Moonshot's own HuggingFace benchmark card (Thinking mode). Previous V3/V4 data was from launch and is stale.",
+      "notes": "2026-07 data refresh: arena 1515→1400 (LMSYS leaderboard rotation since launch — newer models shifted K2.5 down). SWE-Pro 50.7, SWE-Ver 76.8 per Moonshot's own HuggingFace benchmark card (Thinking mode). Previous V3/V4 data was from launch and is stale. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://huggingface.co/moonshotai/Kimi-K2.5",
@@ -410,8 +506,19 @@
         {
           "url": "https://benchlm.ai/models/kimi-k2-5",
           "date": "2026-07-09"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "codingIndex": 46.8,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 1.2,
+      "pricingSource": "artificialanalysis"
     },
     "kimik25NonReasoning": {
       "name": "Kimi K2.5 (Non-reasoning)",
@@ -430,11 +537,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -445,7 +557,7 @@
       "arena": null,
       "swePro": 58.6,
       "sweVer": 80.2,
-      "term": 66.7,
+      "term": 65.9176029962547,
       "benchlm": {
         "score": 56.79,
         "verified": false,
@@ -470,7 +582,21 @@
       "lifecycle": "active",
       "requestsPer5h": 1150,
       "requestsPerWeek": 2880,
-      "requestsPerMonth": 5750
+      "requestsPerMonth": 5750,
+      "codingIndex": 61.8,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 1.7125,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "kimik26NonReasoning": {
       "name": "Kimi K2.6 (Non-reasoning)",
@@ -489,11 +615,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -504,7 +635,7 @@
       "arena": 1462,
       "swePro": 55.4,
       "sweVer": 80.6,
-      "term": 67.9,
+      "term": 78.65168539325839,
       "benchlm": {
         "score": 60.66,
         "verified": true,
@@ -522,14 +653,28 @@
         "rank": 46,
         "evidence": "supported"
       },
-      "input": 0.435,
-      "output": 0.87,
+      "input": 1.32,
+      "output": 3.96,
       "cacheRead": 0.003625,
       "tier": "high",
       "lifecycle": "active",
-      "requestsPer5h": 3450,
-      "requestsPerWeek": 8550,
-      "requestsPerMonth": 17150
+      "requestsPer5h": 1050,
+      "requestsPerWeek": 2600,
+      "requestsPerMonth": 5200,
+      "codingIndex": 68.8,
+      "outputTokensPerSecond": 76.127,
+      "timeToFirstTokenSeconds": 1.2,
+      "timeToFirstAnswerTokenSeconds": 27.472,
+      "blended": 1.98,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "mimo25pro": {
       "name": "MiMo V2.5 Pro",
@@ -537,7 +682,7 @@
       "arena": 1468,
       "swePro": 57.2,
       "sweVer": 78.9,
-      "term": 68.4,
+      "term": 65.1685393258427,
       "benchlm": {
         "score": 70.19,
         "verified": true,
@@ -562,7 +707,21 @@
       "lifecycle": "active",
       "requestsPer5h": 3250,
       "requestsPerWeek": 8150,
-      "requestsPerMonth": 16300
+      "requestsPerMonth": 16300,
+      "codingIndex": 60.2,
+      "outputTokensPerSecond": 53.295,
+      "timeToFirstTokenSeconds": 2.39,
+      "timeToFirstAnswerTokenSeconds": 39.917,
+      "blended": 0.54375,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "mimo25proNonReasoning": {
       "name": "MiMo-V2.5-Pro (Non-reasoning)",
@@ -581,11 +740,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -596,7 +760,7 @@
       "arena": null,
       "swePro": null,
       "sweVer": null,
-      "term": null,
+      "term": 61.0486891385768,
       "benchlm": {
         "score": 67.22,
         "verified": true,
@@ -622,7 +786,21 @@
       "cacheWrite": 0.5,
       "requestsPer5h": 4300,
       "requestsPerWeek": 10800,
-      "requestsPerMonth": 21600
+      "requestsPerMonth": 21600,
+      "codingIndex": 55.9,
+      "outputTokensPerSecond": 56.418,
+      "timeToFirstTokenSeconds": 1.494,
+      "timeToFirstAnswerTokenSeconds": 36.944,
+      "blended": 0.7000000000000001,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "qwen36plus": {
       "name": "Qwen3.6 Plus",
@@ -630,7 +808,7 @@
       "arena": 1464,
       "swePro": null,
       "sweVer": 78.8,
-      "term": null,
+      "term": 61.4232209737828,
       "benchlm": {
         "score": 65.2,
         "verified": true,
@@ -656,7 +834,21 @@
       "cacheWrite": 0.625,
       "requestsPer5h": 3300,
       "requestsPerWeek": 8200,
-      "requestsPerMonth": 16300
+      "requestsPerMonth": 16300,
+      "codingIndex": 54.5,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 1.125,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "minimaxm27": {
       "name": "MiniMax M2.7",
@@ -664,7 +856,7 @@
       "arena": 1395,
       "swePro": null,
       "sweVer": null,
-      "term": null,
+      "term": 55.4307116104869,
       "benchlm": {
         "score": 64.11,
         "verified": true,
@@ -690,7 +882,21 @@
       "cacheWrite": 0.375,
       "requestsPer5h": 3400,
       "requestsPerWeek": 8500,
-      "requestsPerMonth": 17000
+      "requestsPerMonth": 17000,
+      "codingIndex": 52.6,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 0.5249999999999999,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "mimo25": {
       "name": "MiMo V2.5",
@@ -698,7 +904,7 @@
       "arena": 1435,
       "swePro": null,
       "sweVer": null,
-      "term": null,
+      "term": 63.6704119850187,
       "benchlm": {
         "score": 58.62,
         "verified": false,
@@ -723,7 +929,21 @@
       "lifecycle": "active",
       "requestsPer5h": 30100,
       "requestsPerWeek": 75200,
-      "requestsPerMonth": 150400
+      "requestsPerMonth": 150400,
+      "codingIndex": 56.8,
+      "outputTokensPerSecond": 73.927,
+      "timeToFirstTokenSeconds": 1.964,
+      "timeToFirstAnswerTokenSeconds": 29.017,
+      "blended": 0.17500000000000002,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "minimaxm25": {
       "name": "MiniMax M2.5",
@@ -731,7 +951,6 @@
       "arena": null,
       "swePro": null,
       "sweVer": 80.2,
-      "term": null,
       "benchlm": {
         "score": 59.52,
         "verified": true,
@@ -754,7 +973,20 @@
       "cacheRead": 0.06,
       "tier": "budget",
       "lifecycle": "active",
-      "cacheWrite": 0.375
+      "cacheWrite": 0.375,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 0.5249999999999999,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)"
     },
     "deepseekv4f": {
       "name": "DeepSeek V4 Flash",
@@ -762,7 +994,7 @@
       "arena": null,
       "swePro": null,
       "sweVer": 79,
-      "term": null,
+      "term": 78.65168539325839,
       "benchlm": {
         "score": 58.88,
         "verified": false,
@@ -780,14 +1012,28 @@
         "rank": 61,
         "evidence": "estimated"
       },
-      "input": 0.14,
-      "output": 0.28,
+      "input": 0.44,
+      "output": 1.32,
       "cacheRead": 0.0028,
       "tier": "budget",
       "lifecycle": "active",
-      "requestsPer5h": 31650,
-      "requestsPerWeek": 79050,
-      "requestsPerMonth": 158150
+      "requestsPer5h": 3800,
+      "requestsPerWeek": 9450,
+      "requestsPerMonth": 18900,
+      "codingIndex": 69.1,
+      "outputTokensPerSecond": 115.123,
+      "timeToFirstTokenSeconds": 0.834,
+      "timeToFirstAnswerTokenSeconds": 18.206,
+      "blended": 0.66,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "deepseekv4fNonReasoning": {
       "name": "DeepSeek V4 Flash (Non-reasoning)",
@@ -795,7 +1041,7 @@
       "lifecycle": "active",
       "input": 0.14,
       "output": 0.28,
-      "blended": 0.175,
+      "blended": 0.17500000000000002,
       "pricingSource": "artificialanalysis",
       "outputTokensPerSecond": 0,
       "timeToFirstTokenSeconds": 0,
@@ -806,11 +1052,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -821,7 +1072,6 @@
       "arena": null,
       "swePro": null,
       "sweVer": 77.8,
-      "term": null,
       "benchlm": {
         "score": 66.06,
         "verified": true,
@@ -842,7 +1092,20 @@
       "input": 1,
       "output": 3.2,
       "tier": "budget",
-      "lifecycle": "legacy"
+      "lifecycle": "legacy",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 1.55,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)"
     },
     "glm5NonReasoning": {
       "name": "GLM-5 (Non-reasoning)",
@@ -861,11 +1124,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -876,7 +1144,7 @@
       "arena": 1567,
       "swePro": 69.2,
       "sweVer": 88.6,
-      "term": 85,
+      "term": 84.6441947565543,
       "benchlm": {
         "score": 78.34,
         "verified": true,
@@ -899,8 +1167,21 @@
       "tier": "reference",
       "lifecycle": "reference",
       "isReference": true,
-      "notes": "Anthropic flagship, 28 may 2026. No en Go.",
-      "cacheRead": 0.5
+      "notes": "Anthropic flagship, 28 may 2026. No en Go. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "cacheRead": 0.5,
+      "codingIndex": 74.3,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 10,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
     },
     "gpt55": {
       "name": "gpt-5.5",
@@ -908,7 +1189,7 @@
       "arena": 2123,
       "swePro": 58.6,
       "sweVer": 83.4,
-      "term": 84,
+      "term": 84.2696629213483,
       "benchlm": {
         "score": 73.51,
         "verified": false,
@@ -932,7 +1213,20 @@
       "tier": "reference",
       "lifecycle": "reference",
       "isReference": true,
-      "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
+      "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "codingIndex": 74.9,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
     },
     "gpt55High": {
       "name": "GPT-5.5 (high)",
@@ -942,7 +1236,7 @@
       "output": 30,
       "blended": 11.25,
       "pricingSource": "artificialanalysis",
-      "term": 79.4007490636704,
+      "term": 79.40074906367039,
       "codingIndex": 71.6,
       "outputTokensPerSecond": 0,
       "timeToFirstTokenSeconds": 0,
@@ -953,11 +1247,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -981,11 +1280,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1009,11 +1313,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1037,11 +1346,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1052,7 +1366,7 @@
       "arena": 2200,
       "swePro": 58.6,
       "sweVer": 91.5,
-      "term": 84.3,
+      "term": 88.0149812734082,
       "benchlm": {
         "score": 72.57,
         "verified": false,
@@ -1070,12 +1384,12 @@
         "rank": 11,
         "evidence": "estimated"
       },
-      "input": 2.5,
-      "output": 15,
+      "input": 2,
+      "output": 12,
       "cacheRead": 0.25,
       "tier": "balanced",
       "lifecycle": "active",
-      "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published).",
+      "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://openai.com/index/previewing-gpt-5-6-sol/",
@@ -1088,8 +1402,19 @@
         {
           "url": "https://www.aimadetools.com/blog/gpt-5-6-sol-terra-luna-complete-guide/",
           "date": "2026-07-09"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "codingIndex": 76.7,
+      "outputTokensPerSecond": 110.166,
+      "timeToFirstTokenSeconds": 127.03,
+      "timeToFirstAnswerTokenSeconds": 127.03,
+      "blended": 4.5,
+      "pricingSource": "artificialanalysis"
     },
     "gpt56terraXhigh": {
       "name": "GPT-5.6 Terra (xhigh)",
@@ -1110,11 +1435,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1138,11 +1468,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1166,11 +1501,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1183,7 +1523,7 @@
       "output": 12,
       "blended": 4.5,
       "pricingSource": "artificialanalysis",
-      "term": 62.5468164794007,
+      "term": 62.546816479400704,
       "codingIndex": 58.1,
       "outputTokensPerSecond": 99.02,
       "timeToFirstTokenSeconds": 1.323,
@@ -1194,11 +1534,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1222,11 +1567,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1237,7 +1587,7 @@
       "arena": null,
       "swePro": 62.7,
       "sweVer": null,
-      "term": 84.7,
+      "term": 80.8988764044944,
       "benchlm": {
         "score": 67.17,
         "verified": false,
@@ -1261,7 +1611,7 @@
       "pricingSource": "artificialanalysis",
       "tier": "budget",
       "lifecycle": "active",
-      "notes": "OpenAI budget tier, 26 Jun 2026. Canonical max-effort entry after consolidating the former gpt56lunaMax record. BenchLM public score is provisional (67.17). Artificial Analysis pricing: $0.20 input / $1.20 output per 1M tokens; cache pricing is not published.",
+      "notes": "OpenAI budget tier, 26 Jun 2026. Canonical max-effort entry after consolidating the former gpt56lunaMax record. BenchLM public score is provisional (67.17). Artificial Analysis pricing: $0.20 input / $1.20 output per 1M tokens; cache pricing is not published. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://benchlm.ai/models/gpt-5-6-luna",
@@ -1275,11 +1625,20 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 2050,
       "requestsPerWeek": 5100,
-      "requestsPerMonth": 10250
+      "requestsPerMonth": 10250,
+      "codingIndex": 71.4,
+      "outputTokensPerSecond": 165.737,
+      "timeToFirstTokenSeconds": 76.41,
+      "timeToFirstAnswerTokenSeconds": 76.41
     },
     "gpt56lunaXhigh": {
       "name": "GPT-5.6 Luna (xhigh)",
@@ -1300,11 +1659,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1328,11 +1692,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1356,11 +1725,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1384,11 +1758,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1412,11 +1791,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1446,13 +1830,25 @@
       "input": 5,
       "output": 30,
       "cacheRead": 0.5,
-      "notes": "OpenAI flagship tier, 26 jun 2026. BenchLM rank #3 as of 2026-07-17.",
+      "notes": "OpenAI flagship tier, 26 jun 2026. BenchLM rank #3 as of 2026-07-17. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://benchlm.ai/models/gpt-5-6-sol",
           "date": "2026-07-17"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "term": 88.0149812734082,
+      "codingIndex": 77.4,
+      "outputTokensPerSecond": 65.131,
+      "timeToFirstTokenSeconds": 67.199,
+      "timeToFirstAnswerTokenSeconds": 67.199,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis"
     },
     "gpt56solXhigh": {
       "name": "GPT-5.6 Sol (xhigh)",
@@ -1473,11 +1869,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1501,11 +1902,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1529,11 +1935,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1546,7 +1957,7 @@
       "output": 30,
       "blended": 11.25,
       "pricingSource": "artificialanalysis",
-      "term": 76.7790262172285,
+      "term": 76.77902621722849,
       "codingIndex": 69.7,
       "outputTokensPerSecond": 59.39,
       "timeToFirstTokenSeconds": 2.335,
@@ -1557,11 +1968,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1585,11 +2001,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1616,10 +2037,10 @@
       },
       "tier": "high",
       "lifecycle": "active",
-      "input": 5,
-      "output": 30,
+      "input": 2.5,
+      "output": 15,
       "cacheRead": 0.5,
-      "notes": "Output price was null on the 2026-07-06 snapshot; backfilled to 30 to match sister model gpt-5.5 ($5/$30 short-context tier). Re-verify when the openai-pricing scraper leaves cooldown (5d) and the source URL responds again (current WAF returns 403 from this network). Fixing output unblocks the data bug where gpt-5.4 was being chosen by getBestFor as the soft-fallback for many roles (sdd-explore, review-readability, etc.) because Number(null) = 0 made the cost estimate ~$0.005 instead of the real ~$0.020.",
+      "notes": "Output price was null on the 2026-07-06 snapshot; backfilled to 30 to match sister model gpt-5.5 ($5/$30 short-context tier). Re-verify when the openai-pricing scraper leaves cooldown (5d) and the source URL responds again (current WAF returns 403 from this network). Fixing output unblocks the data bug where gpt-5.4 was being chosen by getBestFor as the soft-fallback for many roles (sdd-explore, review-readability, etc.) because Number(null) = 0 made the cost estimate ~$0.005 instead of the real ~$0.020. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://platform.openai.com/docs/pricing",
@@ -1629,8 +2050,20 @@
           "url": "https://platform.openai.com/docs/pricing",
           "date": "2026-08-09",
           "scraper": "manual-backfill-from-sister-model"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "term": 78.2771535580524,
+      "codingIndex": 71.1,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "blended": 5.625,
+      "pricingSource": "artificialanalysis"
     },
     "gpt54Low": {
       "name": "GPT-5.4 (low)",
@@ -1649,11 +2082,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1675,11 +2113,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1713,8 +2156,21 @@
         {
           "url": "https://www.anthropic.com/pricing",
           "date": "2026-07-06"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "term": 84.6441947565543,
+      "codingIndex": 76.5,
+      "outputTokensPerSecond": 64.973,
+      "timeToFirstTokenSeconds": 60.379,
+      "timeToFirstAnswerTokenSeconds": 60.379,
+      "blended": 20,
+      "pricingSource": "artificialanalysis",
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "sonnet5": {
       "name": "Claude Sonnet 5",
@@ -1748,8 +2204,22 @@
         {
           "url": "https://benchlm.ai/",
           "date": "2026-07-17"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "cacheRead": 0.2,
+      "term": 80.5243445692884,
+      "codingIndex": 71.5,
+      "outputTokensPerSecond": 79.985,
+      "timeToFirstTokenSeconds": 132.838,
+      "timeToFirstAnswerTokenSeconds": 132.838,
+      "blended": 4,
+      "pricingSource": "artificialanalysis",
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "sonnet5High": {
       "name": "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
@@ -1768,11 +2238,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1794,11 +2269,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1820,11 +2300,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1846,11 +2331,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex. AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1874,11 +2364,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -1912,8 +2407,20 @@
         {
           "url": "https://www.anthropic.com/pricing",
           "date": "2026-07-06"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "mathIndex": 39,
+      "outputTokensPerSecond": 90.908,
+      "timeToFirstTokenSeconds": 0.643,
+      "timeToFirstAnswerTokenSeconds": 0.643,
+      "blended": 2,
+      "pricingSource": "artificialanalysis",
+      "notes": "AA sync 2026-08-17: omitted term, codingIndex (not returned by API; never synthesized)"
     },
     "haiku45Reasoning": {
       "name": "Claude 4.5 Haiku (Reasoning)",
@@ -1923,7 +2430,7 @@
       "output": 5,
       "blended": 2,
       "pricingSource": "artificialanalysis",
-      "term": 44.1947565543071,
+      "term": 44.194756554307105,
       "codingIndex": 43.9,
       "mathIndex": 83.7,
       "outputTokensPerSecond": 95.642,
@@ -1941,6 +2448,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
       ]
     },
@@ -1950,7 +2462,7 @@
       "arena": null,
       "swePro": null,
       "sweVer": null,
-      "term": null,
+      "term": 89.1385767790262,
       "benchlm": {
         "score": 82.5,
         "verified": false,
@@ -1968,19 +2480,30 @@
         "rank": 2,
         "evidence": "estimated"
       },
-      "input": 15,
-      "output": 75,
+      "input": 5,
+      "output": 25,
       "cacheRead": 1.5,
       "tier": "high",
       "lifecycle": "active",
       "isNew": true,
-      "notes": "Anthropic next-gen flagship, provisional data. Will supersede opus48 as cost anchor once verified. Pricing matches opus48 (Anthropic stable pricing policy).",
+      "notes": "Anthropic next-gen flagship, provisional data. Will supersede opus48 as cost anchor once verified. Pricing matches opus48 (Anthropic stable pricing policy). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://www.anthropic.com/news/claude-opus-5",
           "date": "2026-07-28"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "codingIndex": 78,
+      "outputTokensPerSecond": 50.447,
+      "timeToFirstTokenSeconds": 31.923,
+      "timeToFirstAnswerTokenSeconds": 31.923,
+      "blended": 10,
+      "pricingSource": "artificialanalysis"
     },
     "claudeOpus5High": {
       "name": "Claude Opus 5 (Adaptive Reasoning, High Effort)",
@@ -2001,11 +2524,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -2029,11 +2557,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -2057,11 +2590,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -2085,11 +2623,16 @@
         "reliability": 0,
         "categories": {}
       },
-      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
         }
       ]
@@ -2100,7 +2643,7 @@
       "arena": 1450,
       "swePro": null,
       "sweVer": null,
-      "term": null,
+      "term": 64.4194756554307,
       "benchlm": {
         "score": 71.4,
         "verified": false,
@@ -2118,22 +2661,33 @@
         "rank": 14,
         "evidence": "estimated"
       },
-      "input": 2.5,
-      "output": 12,
+      "input": 0.136,
+      "output": 0.557,
       "cacheRead": 0.2,
       "tier": "balanced",
       "lifecycle": "active",
       "isNew": true,
-      "notes": "Opencode provider, mid-tier flagship. Provisional BenchLM data (estimated). First entry in catalog.",
+      "notes": "Opencode provider, mid-tier flagship. Provisional BenchLM data (estimated). First entry in catalog. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://opencode.com/models/hy3",
           "date": "2026-07-29"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 4300,
       "requestsPerWeek": 10750,
-      "requestsPerMonth": 21500
+      "requestsPerMonth": 21500,
+      "codingIndex": 58.8,
+      "outputTokensPerSecond": 72.98,
+      "timeToFirstTokenSeconds": 1.791,
+      "timeToFirstAnswerTokenSeconds": 29.196,
+      "blended": 0.24125000000000002,
+      "pricingSource": "artificialanalysis"
     },
     "grok45": {
       "name": "Grok 4.5",
@@ -2153,14 +2707,26 @@
       "requestsPer5h": 120,
       "requestsPerWeek": 300,
       "requestsPerMonth": 600,
-      "notes": "xAI flagship, added to opencode Go 2026-08. Arena: rank 34 on lmarena.ai (2026-08-09, rank not ELO). Pricing + rate limits from opencode Go. SWE-Pro/Ver/Terminal-Bench: pending. BenchLM placeholder. ZDR deshabilita Responses API, Files, Batch API segun opencode privacy table.",
+      "notes": "xAI flagship, added to opencode Go 2026-08. Arena: rank 34 on lmarena.ai (2026-08-09, rank not ELO). Pricing + rate limits from opencode Go. SWE-Pro/Ver/Terminal-Bench: pending. BenchLM placeholder. ZDR deshabilita Responses API, Files, Batch API segun opencode privacy table. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-08-09",
           "scraper": "scrape-opencode-prices"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "term": 81.6479400749064,
+      "codingIndex": 72.4,
+      "outputTokensPerSecond": 50.116,
+      "timeToFirstTokenSeconds": 11.932,
+      "timeToFirstAnswerTokenSeconds": 11.932,
+      "blended": 3,
+      "pricingSource": "artificialanalysis"
     },
     "qwen38max": {
       "name": "Qwen3.8 Max",
@@ -2181,11 +2747,141 @@
       "requestsPer5h": 160,
       "requestsPerWeek": 400,
       "requestsPerMonth": 810,
-      "notes": "Alibaba flagship, added to opencode Go 2026-08. Arena: rank 5 on lmarena.ai (2026-08-09, rank not ELO — top-5 overall). Pricing + rate limits from opencode Go. Cheaper than Qwen3.7 Max ($2.50/$7.50 -> $2.00/$6.00, cacheRead $0.50 -> $0.25). SWE-Pro/Ver/Terminal-Bench: pending. BenchLM placeholder.",
+      "notes": "Alibaba flagship, added to opencode Go 2026-08. Arena: rank 5 on lmarena.ai (2026-08-09, rank not ELO — top-5 overall). Pricing + rate limits from opencode Go. Cheaper than Qwen3.7 Max ($2.50/$7.50 -> $2.00/$6.00, cacheRead $0.50 -> $0.25). SWE-Pro/Ver/Terminal-Bench: pending. BenchLM placeholder. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "sources": [
         {
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-08-09",
+          "scraper": "scrape-opencode-prices"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-17",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "term": 81.2734082397004,
+      "codingIndex": 71.8,
+      "outputTokensPerSecond": 47.054,
+      "timeToFirstTokenSeconds": 1.806,
+      "timeToFirstAnswerTokenSeconds": 44.31,
+      "blended": 3,
+      "pricingSource": "artificialanalysis"
+    },
+    "glm53": {
+      "name": "GLM-5.3",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 1.4,
+      "output": 4.4,
+      "cacheRead": 0.26,
+      "requestsPer5h": 220,
+      "requestsPerWeek": 540,
+      "requestsPerMonth": 1080,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-08-17. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-08-17",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4prooffpeak": {
+      "name": "DeepSeek V4 Pro (Off-Peak)",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.66,
+      "output": 1.98,
+      "cacheRead": 0.022,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-08-17. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-08-17",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4propeak": {
+      "name": "DeepSeek V4 Pro (Peak)",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 1.32,
+      "output": 3.96,
+      "cacheRead": 0.044,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-08-17. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-08-17",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4flashoffpeak": {
+      "name": "DeepSeek V4 Flash (Off-Peak)",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.22,
+      "output": 0.66,
+      "cacheRead": 0.007,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-08-17. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-08-17",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4flashpeak": {
+      "name": "DeepSeek V4 Flash (Peak)",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.44,
+      "output": 1.32,
+      "cacheRead": 0.014,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-08-17. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-08-17",
           "scraper": "scrape-opencode-prices"
         }
       ]
