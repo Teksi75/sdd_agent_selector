@@ -1,16 +1,18 @@
 {
   "_meta": {
-    "lastSynced": "2026-08-09",
-    "nextSync": "2026-08-14",
+    "lastSynced": "2026-08-15",
+    "nextSync": "2026-08-20",
     "schemaVersion": 2,
     "scrapers": {
       "benchlm": {
-        "lastRun": "2026-07-17"
+        "lastRun": "2026-08-15"
       }
     },
     "sources": [
       "scrape-glm-blog",
-      "scrape-opencode-prices"
+      "scrape-opencode-prices",
+      "scrape-anthropic-pricing",
+      "scrape-benchlm"
     ]
   },
   "models": {
@@ -21,20 +23,20 @@
       "sweVer": 77.8,
       "term": 81,
       "benchlm": {
-        "score": 63.96,
+        "score": 63.34,
         "verified": false,
-        "reliability": 0.63,
+        "reliability": 0.4,
         "categories": {
-          "agentic": 54.62,
-          "coding": 65.09,
+          "agentic": 58.32,
+          "coding": 63.84,
           "reasoning": null,
           "multimodalGrounded": null,
-          "knowledge": 87,
+          "knowledge": 82.5,
           "multilingual": null,
-          "instructionFollowing": 81,
+          "instructionFollowing": null,
           "math": 81.4
         },
-        "rank": 37,
+        "rank": 44,
         "evidence": "estimated"
       },
       "input": 1.4,
@@ -77,6 +79,11 @@
           "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
           "date": "2026-08-09",
           "scraper": "scrape-glm-blog"
+        },
+        {
+          "url": "https://huggingface.co/blog/zai-org/glm-52-blog",
+          "date": "2026-08-15",
+          "scraper": "scrape-glm-blog"
         }
       ],
       "requestsPer5h": 880,
@@ -90,20 +97,20 @@
       "sweVer": 80.4,
       "term": 69.7,
       "benchlm": {
-        "score": 72.84,
+        "score": 71.6,
         "verified": true,
-        "reliability": 0.88,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 38.63,
-          "coding": 54.95,
-          "reasoning": 85.4,
+          "agentic": 39.83,
+          "coding": 52.89,
+          "reasoning": 85.8,
           "multimodalGrounded": null,
-          "knowledge": 73.8,
+          "knowledge": 71.7,
           "multilingual": 100,
-          "instructionFollowing": 91,
-          "math": 82
+          "instructionFollowing": 92.6,
+          "math": 81.8
         },
-        "rank": 10,
+        "rank": 16,
         "evidence": "supported"
       },
       "input": 2.5,
@@ -123,20 +130,20 @@
       "sweVer": null,
       "term": 63.5,
       "benchlm": {
-        "score": 67.74,
+        "score": 66.91,
         "verified": true,
-        "reliability": 0.5,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 48.64,
-          "coding": 57.52,
+          "agentic": 47.45,
+          "coding": 61.45,
           "reasoning": null,
           "multimodalGrounded": null,
-          "knowledge": 82.3,
+          "knowledge": 77.6,
           "multilingual": null,
           "instructionFollowing": null,
-          "math": 64.6
+          "math": 64.2
         },
-        "rank": 18,
+        "rank": 26,
         "evidence": "supported"
       },
       "input": 1.4,
@@ -155,20 +162,20 @@
       "sweVer": 80.5,
       "term": 65,
       "benchlm": {
-        "score": 69.75,
+        "score": 68.74,
         "verified": true,
-        "reliability": 0.63,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 40.83,
-          "coding": 49.49,
+          "agentic": 39.76,
+          "coding": 46.73,
           "reasoning": null,
-          "multimodalGrounded": 48.2,
-          "knowledge": 68,
+          "multimodalGrounded": 47.5,
+          "knowledge": 65.9,
           "multilingual": null,
-          "instructionFollowing": 85,
+          "instructionFollowing": null,
           "math": null
         },
-        "rank": 15,
+        "rank": 19,
         "evidence": "supported"
       },
       "input": 0.3,
@@ -234,20 +241,20 @@
       "sweVer": null,
       "term": null,
       "benchlm": {
-        "score": 80.96,
+        "score": 80.5,
         "verified": true,
-        "reliability": 0.5,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 66.64,
-          "coding": 78.02,
+          "agentic": 73.87,
+          "coding": 77.92,
           "reasoning": null,
-          "multimodalGrounded": 90.3,
-          "knowledge": 89.5,
+          "multimodalGrounded": 87.9,
+          "knowledge": 84.8,
           "multilingual": null,
           "instructionFollowing": null,
           "math": null
         },
-        "rank": 4,
+        "rank": 5,
         "evidence": "supported"
       },
       "input": 3,
@@ -394,20 +401,20 @@
       "sweVer": 78.9,
       "term": 68.4,
       "benchlm": {
-        "score": 70.19,
+        "score": 69.21,
         "verified": true,
-        "reliability": 0.38,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 42.41,
-          "coding": 56.55,
+          "agentic": 43.28,
+          "coding": 61.3,
           "reasoning": null,
           "multimodalGrounded": null,
-          "knowledge": 74.8,
+          "knowledge": 70.7,
           "multilingual": null,
           "instructionFollowing": null,
           "math": null
         },
-        "rank": 14,
+        "rank": 18,
         "evidence": "supported"
       },
       "input": 0.435,
@@ -426,20 +433,20 @@
       "sweVer": null,
       "term": null,
       "benchlm": {
-        "score": 67.22,
+        "score": 66.02,
         "verified": true,
-        "reliability": 1,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 43.91,
-          "coding": 58.77,
-          "reasoning": 87.1,
-          "multimodalGrounded": 71.5,
-          "knowledge": 65.1,
+          "agentic": 39.24,
+          "coding": 54.89,
+          "reasoning": 87.5,
+          "multimodalGrounded": 70.9,
+          "knowledge": 63.6,
           "multilingual": 78.9,
-          "instructionFollowing": 91.4,
-          "math": 79.6
+          "instructionFollowing": 93,
+          "math": 79.5
         },
-        "rank": 21,
+        "rank": 30,
         "evidence": "supported"
       },
       "input": 0.4,
@@ -459,20 +466,20 @@
       "sweVer": 78.8,
       "term": null,
       "benchlm": {
-        "score": 65.2,
+        "score": 64.79,
         "verified": true,
-        "reliability": 1,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 37.21,
-          "coding": 53.83,
-          "reasoning": 83.1,
-          "multimodalGrounded": 66.5,
-          "knowledge": 59.5,
+          "agentic": 37.18,
+          "coding": 51.61,
+          "reasoning": 79,
+          "multimodalGrounded": 66.2,
+          "knowledge": 58.6,
           "multilingual": 69.7,
-          "instructionFollowing": 86.4,
-          "math": 63
+          "instructionFollowing": 86.6,
+          "math": 62.6
         },
-        "rank": 30,
+        "rank": 35,
         "evidence": "supported"
       },
       "input": 0.5,
@@ -492,12 +499,12 @@
       "sweVer": null,
       "term": null,
       "benchlm": {
-        "score": 64.11,
+        "score": 63.06,
         "verified": true,
-        "reliability": 0.25,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 34.76,
-          "coding": 47.57,
+          "agentic": 34.21,
+          "coding": 44.19,
           "reasoning": null,
           "multimodalGrounded": null,
           "knowledge": null,
@@ -505,7 +512,7 @@
           "instructionFollowing": null,
           "math": null
         },
-        "rank": 36,
+        "rank": 45,
         "evidence": "supported"
       },
       "input": 0.3,
@@ -619,20 +626,20 @@
       "sweVer": 77.8,
       "term": null,
       "benchlm": {
-        "score": 66.06,
+        "score": 65.61,
         "verified": true,
-        "reliability": 0.88,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 54.83,
-          "coding": 59.38,
-          "reasoning": 78.9,
+          "agentic": 55.24,
+          "coding": 60.68,
+          "reasoning": 75.1,
           "multimodalGrounded": null,
-          "knowledge": 80.8,
+          "knowledge": 77.9,
           "multilingual": 48.7,
-          "instructionFollowing": 86.5,
-          "math": 57.2
+          "instructionFollowing": 87.2,
+          "math": 56.9
         },
-        "rank": 28,
+        "rank": 32,
         "evidence": "supported"
       },
       "input": 1,
@@ -647,20 +654,20 @@
       "sweVer": 88.6,
       "term": 85,
       "benchlm": {
-        "score": 78.34,
+        "score": 76.58,
         "verified": true,
-        "reliability": 0.63,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 64.02,
-          "coding": 70.61,
-          "reasoning": null,
-          "multimodalGrounded": 91.5,
-          "knowledge": 92.5,
+          "agentic": 61.18,
+          "coding": 71.18,
+          "reasoning": 71.2,
+          "multimodalGrounded": 88,
+          "knowledge": 87.6,
           "multilingual": null,
           "instructionFollowing": null,
-          "math": 66.9
+          "math": 66.7
         },
-        "rank": 5,
+        "rank": 8,
         "evidence": "supported"
       },
       "input": 5,
@@ -678,20 +685,20 @@
       "sweVer": 83.4,
       "term": 84,
       "benchlm": {
-        "score": 73.51,
+        "score": 73.37,
         "verified": false,
-        "reliability": 0.88,
+        "reliability": 0.4,
         "categories": {
-          "agentic": 65.78,
-          "coding": 71.41,
-          "reasoning": 94.9,
-          "multimodalGrounded": 69.8,
-          "knowledge": 83.5,
+          "agentic": 65.21,
+          "coding": 71,
+          "reasoning": 85,
+          "multimodalGrounded": 68.3,
+          "knowledge": 79.3,
           "multilingual": null,
-          "instructionFollowing": 85.7,
-          "math": 71.3
+          "instructionFollowing": null,
+          "math": 71.1
         },
-        "rank": 9,
+        "rank": 11,
         "evidence": "estimated"
       },
       "input": 5,
@@ -709,20 +716,20 @@
       "sweVer": 91.5,
       "term": 84.3,
       "benchlm": {
-        "score": 72.57,
+        "score": 72.91,
         "verified": false,
-        "reliability": 0.75,
+        "reliability": 0.4,
         "categories": {
-          "agentic": 73.09,
-          "coding": 65.99,
-          "reasoning": null,
-          "multimodalGrounded": 74.9,
-          "knowledge": 81.5,
+          "agentic": 59.21,
+          "coding": 65.36,
+          "reasoning": 83.8,
+          "multimodalGrounded": 75.4,
+          "knowledge": 82.2,
           "multilingual": null,
-          "instructionFollowing": 83.6,
-          "math": 97.1
+          "instructionFollowing": null,
+          "math": 96.9
         },
-        "rank": 11,
+        "rank": 13,
         "evidence": "estimated"
       },
       "input": 2.5,
@@ -753,20 +760,20 @@
       "sweVer": null,
       "term": 84.7,
       "benchlm": {
-        "score": 67.17,
+        "score": 67.29,
         "verified": false,
-        "reliability": 0.5,
+        "reliability": 0.4,
         "categories": {
-          "agentic": 58.5,
-          "coding": 72.6,
-          "reasoning": null,
-          "multimodalGrounded": 65.7,
-          "knowledge": 80.9,
+          "agentic": 53.3,
+          "coding": 73.02,
+          "reasoning": 57.8,
+          "multimodalGrounded": 66.1,
+          "knowledge": 81.6,
           "multilingual": null,
           "instructionFollowing": null,
-          "math": 97.1
+          "math": 96.9
         },
-        "rank": 22,
+        "rank": 23,
         "evidence": "estimated"
       },
       "input": 1,
@@ -812,20 +819,20 @@
     "gpt56sol": {
       "name": "GPT-5.6 Sol",
       "benchlm": {
-        "score": 81.96,
+        "score": 82,
         "verified": true,
         "reliability": 0.75,
         "categories": {
-          "agentic": 75.22,
-          "coding": 78.89,
-          "reasoning": null,
-          "multimodalGrounded": 84.3,
-          "knowledge": 83.2,
+          "agentic": 68.75,
+          "coding": 78.73,
+          "reasoning": 93,
+          "multimodalGrounded": 84.8,
+          "knowledge": 83.6,
           "multilingual": null,
-          "instructionFollowing": 86.8,
-          "math": 97.1
+          "instructionFollowing": null,
+          "math": 96.9
         },
-        "rank": 3,
+        "rank": 4,
         "evidence": "supported"
       },
       "tier": "high",
@@ -844,20 +851,20 @@
     "gpt54": {
       "name": "gpt-5.4",
       "benchlm": {
-        "score": 74.24,
+        "score": 73.36,
         "verified": true,
-        "reliability": 0.63,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 57,
-          "coding": 59.61,
-          "reasoning": null,
-          "multimodalGrounded": 68.9,
-          "knowledge": 82,
+          "agentic": 57.88,
+          "coding": 58.73,
+          "reasoning": 73.2,
+          "multimodalGrounded": 67.3,
+          "knowledge": 77.3,
           "multilingual": null,
           "instructionFollowing": null,
-          "math": 65.9
+          "math": 65.7
         },
-        "rank": 8,
+        "rank": 12,
         "evidence": "supported"
       },
       "tier": "high",
@@ -881,20 +888,20 @@
     "claudeFable5": {
       "name": "Claude Fable 5",
       "benchlm": {
-        "score": 83.68,
+        "score": 82.96,
         "verified": true,
-        "reliability": 0.5,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 63.89,
-          "coding": 80.55,
+          "agentic": 75.82,
+          "coding": 80.81,
           "reasoning": null,
-          "multimodalGrounded": 65.2,
-          "knowledge": 73.3,
+          "multimodalGrounded": 63.5,
+          "knowledge": 69.6,
           "multilingual": null,
           "instructionFollowing": null,
           "math": null
         },
-        "rank": 2,
+        "rank": 3,
         "evidence": "supported"
       },
       "tier": "high",
@@ -912,20 +919,20 @@
     "sonnet5": {
       "name": "Claude Sonnet 5",
       "benchlm": {
-        "score": 65.32,
+        "score": 64.78,
         "verified": false,
-        "reliability": 0.5,
+        "reliability": 0.4,
         "categories": {
-          "agentic": 58.71,
-          "coding": 68.38,
+          "agentic": 65.13,
+          "coding": 68.52,
           "reasoning": null,
-          "multimodalGrounded": 78.9,
-          "knowledge": 91.2,
+          "multimodalGrounded": 76.1,
+          "knowledge": 85.9,
           "multilingual": null,
           "instructionFollowing": null,
           "math": null
         },
-        "rank": 29,
+        "rank": 36,
         "evidence": "estimated"
       },
       "tier": "balanced",
@@ -941,7 +948,8 @@
           "url": "https://benchlm.ai/",
           "date": "2026-07-17"
         }
-      ]
+      ],
+      "cacheRead": 0.2
     },
     "haiku45": {
       "name": "Claude Haiku 4.5",
@@ -981,21 +989,21 @@
       "sweVer": null,
       "term": null,
       "benchlm": {
-        "score": 82.5,
-        "verified": false,
-        "reliability": 0.5,
+        "score": 83.07,
+        "verified": true,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 78,
-          "coding": 80.5,
-          "reasoning": 95,
-          "multimodalGrounded": 72,
-          "knowledge": 84,
+          "agentic": 79.71,
+          "coding": 78.11,
+          "reasoning": 90.8,
+          "multimodalGrounded": 88.6,
+          "knowledge": 93.4,
           "multilingual": null,
-          "instructionFollowing": 88,
-          "math": 98
+          "instructionFollowing": null,
+          "math": null
         },
         "rank": 2,
-        "evidence": "estimated"
+        "evidence": "supported"
       },
       "input": 15,
       "output": 75,
@@ -1018,21 +1026,21 @@
       "sweVer": null,
       "term": null,
       "benchlm": {
-        "score": 71.4,
-        "verified": false,
-        "reliability": 0.55,
+        "score": 68.02,
+        "verified": true,
+        "reliability": 0.75,
         "categories": {
-          "agentic": 70,
-          "coding": 73.5,
-          "reasoning": 68,
-          "multimodalGrounded": 65,
-          "knowledge": 75,
+          "agentic": 61.27,
+          "coding": 63.46,
+          "reasoning": null,
+          "multimodalGrounded": null,
+          "knowledge": null,
           "multilingual": null,
-          "instructionFollowing": 72,
-          "math": 76
+          "instructionFollowing": null,
+          "math": null
         },
-        "rank": 14,
-        "evidence": "estimated"
+        "rank": 20,
+        "evidence": "supported"
       },
       "input": 2.5,
       "output": 12,
@@ -1054,10 +1062,21 @@
     "grok45": {
       "name": "Grok 4.5",
       "benchlm": {
-        "score": null,
-        "verified": false,
-        "reliability": 0,
-        "categories": {}
+        "score": 75.42,
+        "verified": true,
+        "reliability": 0.75,
+        "categories": {
+          "agentic": 61.62,
+          "coding": 57.3,
+          "reasoning": 50.5,
+          "multimodalGrounded": null,
+          "knowledge": 71.1,
+          "multilingual": null,
+          "instructionFollowing": null,
+          "math": null
+        },
+        "rank": 10,
+        "evidence": "supported"
       },
       "input": 2,
       "output": 6,
@@ -1080,10 +1099,21 @@
     "qwen38max": {
       "name": "Qwen3.8 Max",
       "benchlm": {
-        "score": null,
-        "verified": false,
-        "reliability": 0,
-        "categories": {}
+        "score": 79.91,
+        "verified": true,
+        "reliability": 0.75,
+        "categories": {
+          "agentic": 79.18,
+          "coding": 66.65,
+          "reasoning": 94.3,
+          "multimodalGrounded": 88.1,
+          "knowledge": 66.5,
+          "multilingual": null,
+          "instructionFollowing": 97.9,
+          "math": null
+        },
+        "rank": 6,
+        "evidence": "supported"
       },
       "input": 2,
       "output": 6,
@@ -1100,6 +1130,32 @@
         {
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-08-09",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "glm53": {
+      "name": "GLM-5.3",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 1.4,
+      "output": 4.4,
+      "cacheRead": 0.26,
+      "requestsPer5h": 220,
+      "requestsPerWeek": 540,
+      "requestsPerMonth": 1080,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-08-15. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-08-15",
           "scraper": "scrape-opencode-prices"
         }
       ]

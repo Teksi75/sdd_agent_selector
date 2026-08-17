@@ -1,19 +1,51 @@
 // scripts/scrape-benchlm.js
-// BenchLM scraper — fetches the BenchLM rankings, validates the
-// response shape, maps BenchLM ids to our curated keys via the alias
-// table, and writes `benchlm: { score, verified, reliability, categories }`
+// BenchLM scraper — fetches the BenchLM leaderboard, validates the
+// response shape, maps BenchLM display names to our curated keys via the
+// alias table, and writes `benchlm: { score, verified, reliability, categories }`
 // blocks back into data/models.json using the atomic write helper.
 //
-// Source: https://benchlm.ai/api/v1/rankings (JSON; falls back to --source
-// file for fixtures).
+// Source: https://benchlm.ai/api/data/leaderboard?mode=bench-align-v5
+// (JSON; falls back to --source file for fixtures).
 //
-// Conventions (matching the other 6 scrapers):
+// Schema (bench-align-v5.3, migrated 2026-08 — the old
+// `/api/v1/rankings` endpoint now returns a Next.js 404):
+//
+//   {
+//     lastUpdated, mode, methodologyVersion, sourceSnapshotId, approvedSnapshotId,
+//     models: [{
+//       rank,                       // integer
+//       model,                      // display name, e.g. "Claude Fable 5"
+//       creator, sourceType,        // metadata (unused)
+//       overallScore,               // 0..100
+//       categoryScores,             // { agentic, coding, reasoning, ... }
+//       inputPrice, outputPrice,    // per-1M (unused — pricing is curated / other scrapers)
+//       evidenceStatus,             // "supported" | "estimated"
+//       methodologyVersion
+//     }]
+//   }
+//
+// Field mapping (new API → models.json `benchlm` block):
+//   overallScore   → score        (clamped [0, 100])
+//   evidenceStatus → verified     ("supported" → true, else false)
+//                    evidence     (raw passthrough)
+//                    reliability  (derived: supported → 0.75, estimated → 0.4)
+//   categoryScores → categories   (direct rename, same shape)
+//   rank           → rank
+//
+//   The bench-align-v5 API dropped the old per-model `reliability` field
+//   (temporal score-consistency). We derive a coarse proxy from
+//   `evidenceStatus` — the only evidence-quality signal the new API
+//   exposes — and document it here so the 5-dot UI still renders.
+//
+// Conventions (matching the other scrapers):
 //   - Atomic write via writeModelsJson (tmp + rename, see PR2 T2.1).
 //   - Fail-loud on any unexpected shape; --dry-run reports diff without
 //     touching the file. --file redirects the target (used by tests).
-//   - Alias-miss is FATAL (unknown BenchLM id exits non-zero with the id
-//     in the message); known-id-disappear is a WARN (curated record is
-//     preserved, no data is deleted).
+//   - Alias-miss is a WARN + skip (NOT fatal): the v5 leaderboard lists 50
+//     models, many of which we do not track. Unknown display names are
+//     logged loudly so a newly-published BenchLM model is visible without
+//     blocking the whole refresh. Known-id-disappear stays a WARN (curated
+//     record is preserved, no data is deleted).
 //
 // CLI:
 //   node scripts/scrape-benchlm.js [--dry-run] [--file <path>]
@@ -39,7 +71,7 @@ const __dirname = dirname(__filename);
 const REPO_ROOT = resolve(__dirname, '..');
 
 const SCRAPER_NAME = 'scrape-benchlm';
-const SOURCE_URL = 'https://benchlm.ai/api/v1/rankings';
+const SOURCE_URL = 'https://benchlm.ai/api/data/leaderboard?mode=bench-align-v5';
 const DEFAULT_ALIAS_PATH = resolve(REPO_ROOT, 'data/benchlm-aliases.json');
 
 /**
@@ -57,8 +89,8 @@ function isLocalPath(src) {
 }
 
 /**
- * Clamp a BenchLM `score` to [0, 100]. Returns null for non-finite input
- * so the renderer shows "unavailable" instead of a zero bar.
+ * Clamp a BenchLM `overallScore` to [0, 100]. Returns null for non-finite
+ * input so the renderer shows "unavailable" instead of a zero bar.
  *
  * @param {number} n
  * @returns {number|null}
@@ -69,24 +101,23 @@ function clampScore(n) {
 }
 
 /**
- * Build the BenchLM block for a single curated model. Preserves all
- * fields returned by BenchLM (rank, evidence, etc.) while clamping the
- * score.
+ * Build the BenchLM block for a single curated model from a new-schema
+ * leaderboard record. Preserves `rank` and `evidenceStatus` while clamping
+ * the score and deriving `verified` + `reliability`.
  *
- * @param {{score: number, verified: boolean, reliability?: number, categories?: Object, rank?: number, evidence?: string}} r
+ * @param {{overallScore: number, evidenceStatus: string, categoryScores?: Object, rank?: number}} r
  * @returns {{score: number|null, verified: boolean, reliability: number, categories: Object, rank?: number, evidence?: string}}
  */
 function benchlmBlock(r) {
+  const supported = r.evidenceStatus === 'supported';
   const block = {
-    score: clampScore(r.score),
-    verified: !!r.verified,
-    reliability: typeof r.reliability === 'number' && Number.isFinite(r.reliability)
-      ? Math.max(0, Math.min(1, r.reliability))
-      : 0,
-    categories: r.categories && typeof r.categories === 'object' ? r.categories : {},
+    score: clampScore(r.overallScore),
+    verified: supported,
+    reliability: supported ? 0.75 : 0.4,
+    categories: r.categoryScores && typeof r.categoryScores === 'object' ? r.categoryScores : {},
   };
   if (r.rank != null) block.rank = r.rank;
-  if (r.evidence) block.evidence = r.evidence;
+  if (r.evidenceStatus) block.evidence = r.evidenceStatus;
   return block;
 }
 
@@ -97,7 +128,7 @@ function benchlmBlock(r) {
  *
  * @param {{dryRun: boolean, file: string, source: string|null, quiet: boolean, aliasPath?: string}} args
  * @param {{fetchText?: (url: string, opts?: any) => Promise<string>}} [deps]
- * @returns {Promise<{ok: boolean, scraper: string, phase?: string, error?: string, changes?: number, missing?: string[], dryRun?: boolean}>}
+ * @returns {Promise<{ok: boolean, scraper: string, phase?: string, error?: string, changes?: number, missing?: string[], skipped?: string[], dryRun?: boolean}>}
  */
 export async function runScrape(args, deps) {
   const fetchTextFn = (deps && deps.fetchText) || fetchText;
@@ -130,25 +161,26 @@ export async function runScrape(args, deps) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'parse', error: `response is not valid JSON: ${err.message}` };
   }
 
-  // 3. Validate top-level shape: { rankings: [...] }
-  if (!payload || !Array.isArray(payload.rankings)) {
-    return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: 'response missing top-level `rankings` array' };
+  // 3. Validate top-level shape: { models: [...] }
+  if (!payload || !Array.isArray(payload.models)) {
+    return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: 'response missing top-level `models` array' };
   }
 
-  // 4. Validate each entry has id + score + verified (score is a number)
-  for (let i = 0; i < payload.rankings.length; i++) {
-    const r = payload.rankings[i];
+  // 4. Validate each entry has model + overallScore + evidenceStatus
+  //    (overallScore is a number, evidenceStatus is a non-empty string).
+  for (let i = 0; i < payload.models.length; i++) {
+    const r = payload.models[i];
     if (!r || typeof r !== 'object') {
-      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `rankings[${i}] is not an object` };
+      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}] is not an object` };
     }
-    if (typeof r.id !== 'string' || r.id.length === 0) {
-      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `rankings[${i}].id is missing or empty` };
+    if (typeof r.model !== 'string' || r.model.length === 0) {
+      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}].model is missing or empty` };
     }
-    if (typeof r.score !== 'number' || !Number.isFinite(r.score)) {
-      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `rankings[${i}].score is missing or not a finite number (id=${r.id})` };
+    if (typeof r.overallScore !== 'number' || !Number.isFinite(r.overallScore)) {
+      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}].overallScore is missing or not a finite number (model=${r.model})` };
     }
-    if (typeof r.verified !== 'boolean') {
-      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `rankings[${i}].verified is missing or not a boolean (id=${r.id})` };
+    if (typeof r.evidenceStatus !== 'string' || r.evidenceStatus.length === 0) {
+      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}].evidenceStatus is missing or empty (model=${r.model})` };
     }
   }
 
@@ -160,21 +192,29 @@ export async function runScrape(args, deps) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'alias', error: err.message };
   }
 
-  // 6. Map BenchLM ids → curated keys (fail-loud on miss)
+  // 6. Map BenchLM display names → curated keys. Unknown display names
+  //    are WARN + skip (the v5 leaderboard lists models we do not track),
+  //    NOT fatal. A genuinely malformed alias record still fails loud.
   const mappedPresent = new Set();
   const benchlmByKey = new Map();
-  for (const r of payload.rankings) {
+  const skipped = [];
+  for (const r of payload.models) {
     let curatedKey;
     try {
-      curatedKey = mapBenchlmId(r.id, aliases);
+      curatedKey = mapBenchlmId(r.model, aliases);
     } catch (err) {
+      if (err.code === 'BENCHLM_UNKNOWN_ID') {
+        skipped.push(r.model);
+        if (!args.quiet) {
+          console.log(`[${SCRAPER_NAME}] warn: untracked BenchLM model "${r.model}" (rank ${r.rank}) — skipping (not in alias table)`);
+        }
+        continue;
+      }
       return {
         scraper: SCRAPER_NAME,
         ok: false,
         phase: 'alias',
         error: err.message,
-        code: err.code,
-        benchlmId: err.benchlmId,
       };
     }
     mappedPresent.add(curatedKey);
@@ -218,20 +258,34 @@ export async function runScrape(args, deps) {
 
   const changes = diffModels(before, updatedModels);
 
-  // 11. Dry-run path
+  // 11. Dry-run path — parse + log, no write, no timestamp stamp.
   if (args.dryRun) {
     summarizeDryRun(SCRAPER_NAME, changes);
-    return { scraper: SCRAPER_NAME, ok: true, dryRun: true, changes: changes.length, missing };
+    return { scraper: SCRAPER_NAME, ok: true, dryRun: true, changes: changes.length, missing, skipped };
   }
 
-  // 12. No-op path
+  // 12. Stamp the BenchLM run timestamp on a successful fetch+parse+map.
+  //     The composite-chart freshness badge reads _meta.scrapers.benchlm.lastRun
+  //     (> 7 days → "stale"), so a successful scrape must advance it — even a
+  //     no-op where scores happen to be unchanged.
+  doc.models = updatedModels;
+  doc._meta.scrapers = doc._meta.scrapers || {};
+  doc._meta.scrapers.benchlm = doc._meta.scrapers.benchlm || {};
+  doc._meta.scrapers.benchlm.lastRun = new Date().toISOString().slice(0, 10);
+
   if (changes.length === 0) {
-    if (!args.quiet) console.log(`[${SCRAPER_NAME}] no changes — benchlm data already up to date`);
-    return { scraper: SCRAPER_NAME, ok: true, changes: 0, missing };
+    // No model data changed, but the successful scrape still advances the
+    // freshness timestamp — persist it so the stale badge clears.
+    try {
+      writeModelsJson(args.file, doc, SCRAPER_NAME);
+    } catch (err) {
+      return { scraper: SCRAPER_NAME, ok: false, phase: 'write', error: err.message };
+    }
+    if (!args.quiet) console.log(`[${SCRAPER_NAME}] no model changes — benchlm data up to date (lastRun stamped)`);
+    return { scraper: SCRAPER_NAME, ok: true, changes: 0, missing, skipped };
   }
 
   // 13. Write atomically
-  doc.models = updatedModels;
   try {
     writeModelsJson(args.file, doc, SCRAPER_NAME);
   } catch (err) {
@@ -239,9 +293,9 @@ export async function runScrape(args, deps) {
   }
 
   if (!args.quiet) {
-    console.log(`[${SCRAPER_NAME}] wrote ${changes.length} change(s) — missing: ${missing.length}`);
+    console.log(`[${SCRAPER_NAME}] wrote ${changes.length} change(s) — missing: ${missing.length}, skipped: ${skipped.length}`);
   }
-  return { scraper: SCRAPER_NAME, ok: true, changes: changes.length, missing };
+  return { scraper: SCRAPER_NAME, ok: true, changes: changes.length, missing, skipped };
 }
 
 async function main() {

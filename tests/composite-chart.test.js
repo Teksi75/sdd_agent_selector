@@ -201,7 +201,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(nonActiveSection).toBeNull();
   });
 
-  test('Sol, Terra, Luna render with exact displayed scores 82.0, 72.6, 67.2', async () => {
+  test('Sol, Terra, Luna render with exact displayed scores 82.0, 72.9, 67.3', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     render(target, MODELS);
 
@@ -214,8 +214,8 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(lunaRow).toBeDefined();
 
     expect(Number(solRow.getAttribute('data-score'))).toBeCloseTo(82.0, 1);
-    expect(Number(terraRow.getAttribute('data-score'))).toBeCloseTo(72.6, 1);
-    expect(Number(lunaRow.getAttribute('data-score'))).toBeCloseTo(67.2, 1);
+    expect(Number(terraRow.getAttribute('data-score'))).toBeCloseTo(72.9, 1);
+    expect(Number(lunaRow.getAttribute('data-score'))).toBeCloseTo(67.3, 1);
   });
 
   test('no Reference / Legacy catalog section exists in Composite output', async () => {

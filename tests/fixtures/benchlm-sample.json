@@ -1,46 +1,51 @@
 {
-  "_meta": { "fetchedAt": "2026-07-19T00:00:00Z" },
-  "rankings": [
+  "_meta": { "fetchedAt": "2026-08-14T00:00:00Z", "mode": "bench-align-v5" },
+  "models": [
     {
-      "id": "claude-fable-5",
-      "score": 78.3,
-      "verified": true,
-      "reliability": 0.9,
-      "rank": 1,
-      "evidence": "https://benchlm.ai/evidence/claude-fable-5",
-      "categories": {
-        "coding": 82.1,
-        "reasoning": 75.4,
-        "knowledge": 77.0,
-        "math": 79.2
-      }
+      "rank": 3,
+      "model": "Claude Fable 5",
+      "creator": "Anthropic",
+      "sourceType": "Proprietary",
+      "overallScore": 82.96,
+      "categoryScores": {
+        "coding": 80.81,
+        "agentic": 75.82,
+        "knowledge": 69.6,
+        "math": null
+      },
+      "inputPrice": 10,
+      "outputPrice": 50,
+      "evidenceStatus": "supported"
     },
     {
-      "id": "kimi-k3",
-      "score": 71.6,
-      "verified": true,
-      "reliability": 0.85,
-      "rank": 4,
-      "evidence": "https://benchlm.ai/evidence/kimi-k3",
-      "categories": {
-        "coding": 70.0,
-        "reasoning": 73.2,
-        "knowledge": 68.5,
-        "math": 75.0
-      }
+      "rank": 5,
+      "model": "Kimi K3",
+      "creator": "Moonshot AI",
+      "sourceType": "Proprietary",
+      "overallScore": 80.5,
+      "categoryScores": {
+        "coding": 77.92,
+        "agentic": 73.87,
+        "knowledge": 84.8
+      },
+      "inputPrice": 3,
+      "outputPrice": 15,
+      "evidenceStatus": "supported"
     },
     {
-      "id": "mimo-v2-5",
-      "score": 68.2,
-      "verified": false,
-      "reliability": 0.7,
-      "rank": 9,
-      "categories": {
-        "coding": 69.5,
-        "reasoning": 67.0,
-        "knowledge": 70.0,
-        "math": 64.0
-      }
+      "rank": 18,
+      "model": "MiMo-V2.5-Pro",
+      "creator": "Xiaomi",
+      "sourceType": "Proprietary",
+      "overallScore": 69.21,
+      "categoryScores": {
+        "coding": 61.3,
+        "agentic": 43.28,
+        "knowledge": 70.7
+      },
+      "inputPrice": 0.435,
+      "outputPrice": 0.87,
+      "evidenceStatus": "supported"
     }
   ]
 }

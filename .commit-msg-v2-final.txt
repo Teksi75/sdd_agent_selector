@@ -1,0 +1,48 @@
+feat(ui): critique v2 final polish — 8 items cerrados (P0-1 2da, P1-1, P1-2, P2-1, P2-4, P2-5, P2-6, P2 eficiencia)
+
+Cierra los 8 items pendientes del backlog del critique v2 (Nielsen
+28/40 → 36/40 estimado) en un solo PR. Snapshot del critique:
+.impeccable/critique/2026-08-01T04-30-00Z__sdd-agent-selector-v2.md
+
+P0-1 (2da mitad) — copy de onboarding en el hero
+- Nuevo <p id="hero-onboarding-hint"> que dice "Arriba hay 5
+  estrategias prearmadas (Balanceado ya está activa). Hacé click..."
+- Se oculta automáticamente cuando el user clickea cualquier strategy
+  (el pre-select silencioso no la oculta — el listener de click
+  está en config-mount, no en onSelect)
+
+P1-1 — tier h2 visibility
+- text-[11px] text-slate-400 → text-sm + text-slate-200/300/indigo-300
+- Border-bottom agregado para separación visual entre tiers
+
+P1-2 — SOFT badge color
+- Switched de text-amber-300 (overloaded con warnings) a .soft-badge
+  con color #d8b4fe (purple-300) + prefijo ~ via ::before
+- Aplicado en cli-mirror-table.js y justification-ui.js
+
+P2-1 — refresh affordance
+- .freshness-refresh: min-height 2.25rem + text-sm + padding bumped
+  (antes era ~28px text-xs, fácil de pasar por alto)
+
+P2-4 — aria-live per-card
+- aria-live="polite" en data-test="justification-cards"
+- SR anuncia el nuevo assignment set después de selectConfig
+
+P2-5 — export menu descriptions
+- formatRowHtml acepta format.description opcional
+- Nuevo <span class="export-menu-desc"> debajo del label
+- Aplicado en los 4 lugares (cli-mirror, justification,
+  composite-chart, ref-table)
+
+P2-6 — rename "CLI mirror" → "Equivalentes CLI"
+- aria-label del section actualizado
+- Nuevo <h3 data-test="cli-mirror-title"> visible en el header
+
+P2 eficiencia — keyboard shortcuts
+- Nuevo módulo js/components/keyboard-shortcuts.js
+- Help overlay HTML estático (data-open="false" → "true")
+- Shortcuts: ? (toggle help), g+i/j/k (jump a tier 1/2/3), r
+  (refresh button click), Esc (close help)
+- Ignora keystrokes cuando el focus está en text-entry element
+
+Tests: 415/415 verde (24 tests nuevos en v2-polish-final.test.js)

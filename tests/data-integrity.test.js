@@ -129,6 +129,7 @@ const KNOWN_V4_ONLY = new Set([
   'opencodeHy3',
   'grok45',
   'qwen38max',
+  'glm53',
 ]);
 
 // Models whose V4 input/output prices legitimately differ from the V3
@@ -441,8 +442,8 @@ describe('data-integrity: Claude Sonnet 5 pricing (BenchLM 2026-07-17)', () => {
     expect(sonnet5.output).toBe(10);
   });
 
-  test('sonnet5 has no cacheRead field (absent/null per BenchLM source)', () => {
-    expect(sonnet5.cacheRead).toBeUndefined();
+  test('sonnet5 cacheRead is 0.2 (Anthropic pricing page)', () => {
+    expect(sonnet5.cacheRead).toBe(0.2);
   });
 
   test('sonnet5 costEstimate with default profile (1000+500) equals 0.007 USD', () => {
@@ -476,9 +477,9 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
     expect(luna.name).toBe('GPT-5.6 Luna');
   });
 
-  test('benchlm score is 67.17, rank 22, evidence estimated', () => {
-    expect(luna.benchlm.score).toBe(67.17);
-    expect(luna.benchlm.rank).toBe(22);
+  test('benchlm score is 67.29, rank 23, evidence estimated', () => {
+    expect(luna.benchlm.score).toBe(67.29);
+    expect(luna.benchlm.rank).toBe(23);
     expect(luna.benchlm.evidence).toBe('estimated');
   });
 
@@ -500,14 +501,14 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
 
   test('categories match BenchLM verified values', () => {
     const c = luna.benchlm.categories;
-    expect(c.agentic).toBe(58.5);
-    expect(c.coding).toBe(72.6);
-    expect(c.reasoning).toBeNull();
-    expect(c.multimodalGrounded).toBe(65.7);
-    expect(c.knowledge).toBe(80.9);
+    expect(c.agentic).toBe(53.3);
+    expect(c.coding).toBe(73.02);
+    expect(c.reasoning).toBe(57.8);
+    expect(c.multimodalGrounded).toBe(66.1);
+    expect(c.knowledge).toBe(81.6);
     expect(c.multilingual).toBeNull();
     expect(c.instructionFollowing).toBeNull();
-    expect(c.math).toBe(97.1);
+    expect(c.math).toBe(96.9);
   });
 
   test('has BenchLM source dated 2026-07-20', () => {
