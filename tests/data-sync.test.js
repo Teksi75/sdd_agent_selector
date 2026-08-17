@@ -157,10 +157,10 @@ describe('data-sync — refresh() success path', () => {
     expect(result.ok).toBe(true);
     expect(result.files).toBe(5);
     // sessionStorage was updated.
-    const cached = sessionStorage.getItem('sdd-models-v5');
+    const cached = sessionStorage.getItem('sdd-models-v6');
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    expect(parsed.schemaVersion).toBe(3);
+    expect(parsed.schemaVersion).toBe(4);
     expect(parsed.data.models.glm52.name).toBe('GLM-5.2');
   });
 
@@ -318,12 +318,12 @@ describe('data-loader — legacy cache fallback', () => {
     delete globalThis.fetch;
   });
 
-  test('valid v4 fallback returned on network failure; fetch attempted, v5 absent', async () => {
+  test('valid v4 fallback returned on network failure; fetch attempted, v6 absent', async () => {
     globalThis.fetch = vi.fn(async () => { throw new TypeError('network down'); });
     const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
     sessionStorage.setItem(
       LEGACY_CACHE_KEYS[0],
-      JSON.stringify({ schemaVersion: 3, timestamp: Date.now(), data: legacyData })
+      JSON.stringify({ schemaVersion: 4, timestamp: Date.now(), data: legacyData })
     );
     const [data, concurrent] = await Promise.all([loadAll(), loadAll()]);
     expect(globalThis.fetch).toHaveBeenCalled();
@@ -332,7 +332,7 @@ describe('data-loader — legacy cache fallback', () => {
     expect(sessionStorage.getItem(CACHE_KEY)).toBeNull();
   });
 
-  test('clearCache removes current v5 and legacy v4/v3/v2 keys', async () => {
+  test('clearCache removes current v6 and legacy v5/v4/v3/v2 keys', async () => {
     const { clearCache, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ schemaVersion: 2, data: {} }));
     sessionStorage.setItem(LEGACY_CACHE_KEYS[0], JSON.stringify({ schemaVersion: 2, data: {} }));

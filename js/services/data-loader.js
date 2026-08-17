@@ -14,18 +14,18 @@
 //   - cache MISS / schema mismatch → fetch all 5 files, populate cache,
 //     return composed object
 //
-// The current schemaVersion is 3 (AA pricing schema v3); bumping it
+// The current schemaVersion is 4 (AA effort schema v4); bumping it
 // invalidates every existing cached entry on next page load. The constant
 // lives at the top so a future shape change is a one-line bump + new tests.
 
 /** @type {string} */
-// v5 invalidates cached catalog after lifecycle/reference-table and
-// curated scraper data corrections (post-v4 ref-table ordering, legacy
-// filtering, and updated model lifecycle/tier values).
-export const CACHE_KEY = 'sdd-models-v5';
+// v6 invalidates cached catalog after the AA effort schema v4 migration,
+// lifecycle/reference-table, and curated scraper data corrections (post-v4
+// ref-table ordering, legacy filtering, and updated model lifecycle/tier values).
+export const CACHE_KEY = 'sdd-models-v6';
 
 /** @type {string[]} - frozen list of prior cache keys to fall back to. */
-export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v4', 'sdd-models-v3', 'sdd-models-v2']);
+export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v5', 'sdd-models-v4', 'sdd-models-v3', 'sdd-models-v2']);
 
 /** @type {number} - bump to invalidate ALL cached entries.
  *  Exported as a test affordance so the integrity suite can pin the
@@ -34,9 +34,11 @@ export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v4', 'sdd-models-v3'
  *  part of the contract.
  *  History: 1 → 2 (BenchLM migration, PR1 of benchlm-replace-custom-scoring);
  *           2 → 3 (AA pricing schema v3, PR4 of aa-benchmark-integration —
- *           adds blended/pricingSource/term/codingIndex/speed fields).
+ *           adds blended/pricingSource/term/codingIndex/speed fields);
+ *           3 → 4 (AA effort schema v4, PR3 of aa-benchmark-integration —
+ *           adds first-class effort variants).
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 /** @type {string[]} - the 5 data files this loader fetches, in order. */
 const DATA_FILES = Object.freeze([

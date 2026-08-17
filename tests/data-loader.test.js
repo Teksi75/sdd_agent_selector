@@ -122,11 +122,24 @@ describe('data-loader — cache MISS (fetch all 5 files)', () => {
     const cached = sessionStorage.getItem(CACHE_KEY);
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    // Matches CURRENT_SCHEMA_VERSION (3 as of the AA pricing schema v3
-    // bump). The loader writes its own constant into the cached envelope;
+    // Matches CURRENT_SCHEMA_VERSION (4 for the AA effort schema bump).
+    // The loader writes its own constant into the cached envelope;
     // this assertion exists to catch silent regressions of the cache contract.
-    expect(parsed).toHaveProperty('schemaVersion', 3);
+    expect(parsed).toHaveProperty('schemaVersion', 4);
     expect(parsed).toHaveProperty('data');
+  });
+
+  test('stores fresh schema-4 data under the new v6 cache key', async () => {
+    const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
+
+    expect(CACHE_KEY).toBe('sdd-models-v6');
+    expect(LEGACY_CACHE_KEYS).toContain('sdd-models-v5');
+
+    await loadAll();
+
+    const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
+    expect(cached.schemaVersion).toBe(4);
+    expect(sessionStorage.getItem('sdd-models-v5')).toBeNull();
   });
 
   test('makes exactly 5 fetch calls', async () => {
@@ -184,16 +197,17 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     delete globalThis.fetch;
   });
 
-  test('caches an older schemaVersion (1) → first call discards and refetches', async () => {
-    const { loadAll, CACHE_KEY } = await import('../js/services/data-loader.js');
+  test('caches a schema-3 payload → v4 loader discards it and refetches', async () => {
+    const { loadAll, CACHE_KEY, CURRENT_SCHEMA_VERSION } = await import('../js/services/data-loader.js');
 
-    // Pre-seed sessionStorage with schemaVersion: 1 (older than the loader's
-    //   CURRENT_SCHEMA_VERSION = 3 after the AA schema-v3 bump); the loader
-    //   must discard the stale cache and re-fetch.
+    expect(CURRENT_SCHEMA_VERSION).toBe(4);
+
+    // Pre-seed the new cache key with the previous schema version. The v4
+    // loader must discard the stale cache and re-fetch.
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 1,
+        schemaVersion: 3,
         timestamp: Date.now(),
         data: { shouldNotBeUsed: true },
       })
@@ -208,7 +222,7 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     // The sessionStorage was repopulated with the fresh payload, now stamped
     //   with the loader's CURRENT_SCHEMA_VERSION.
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-    expect(cached.schemaVersion).toBe(3);
+    expect(cached.schemaVersion).toBe(4);
   });
 
   test('older schemaVersion (e.g., 0) is also discarded', async () => {
@@ -228,7 +242,7 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     expect(globalThis.fetch).toHaveBeenCalled();
   });
 
-  test('a v2 cached payload is discarded under the AA schema-v3 loader (2 !== 3)', async () => {
+  test('a v2 cached payload is discarded under the AA schema-v4 loader (2 !== 4)', async () => {
     const { loadAll, CACHE_KEY } = await import('../js/services/data-loader.js');
 
     // Pre-seed a cache envelope stamped with the PREVIOUS schema version (2,
@@ -249,7 +263,7 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     expect(data.v2Only).toBeUndefined();
     expect(data.models.glm52.name).toBe('GLM-5.2');
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-    expect(cached.schemaVersion).toBe(3);
+    expect(cached.schemaVersion).toBe(4);
   });
 
   test('corrupted cache JSON is discarded gracefully', async () => {
@@ -335,7 +349,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 3,
+        schemaVersion: 4,
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },
@@ -392,7 +406,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 3,
+        schemaVersion: 4,
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },

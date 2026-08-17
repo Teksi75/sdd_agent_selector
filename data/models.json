@@ -2,7 +2,7 @@
   "_meta": {
     "lastSynced": "2026-08-09",
     "nextSync": "2026-08-14",
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "scrapers": {
       "benchlm": {
         "lastRun": "2026-07-17"
@@ -17,6 +17,7 @@
   "models": {
     "glm52": {
       "name": "GLM-5.2",
+      "effort": "max",
       "arena": 1595,
       "swePro": 62.1,
       "sweVer": 77.8,
@@ -84,8 +85,37 @@
       "requestsPerWeek": 2150,
       "requestsPerMonth": 4300
     },
+    "glm52NonReasoning": {
+      "name": "GLM-5.2 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 1.4,
+      "output": 4.4,
+      "blended": 2.15,
+      "pricingSource": "artificialanalysis",
+      "term": 51.685393258427,
+      "codingIndex": 46.5,
+      "outputTokensPerSecond": 121.062,
+      "timeToFirstTokenSeconds": 1.444,
+      "timeToFirstAnswerTokenSeconds": 1.444,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "qwen37max": {
       "name": "Qwen3.7 Max",
+      "effort": "max",
       "arena": 1680,
       "swePro": 60.6,
       "sweVer": 80.4,
@@ -119,6 +149,7 @@
     },
     "glm51": {
       "name": "GLM-5.1",
+      "effort": "max",
       "arena": 1532,
       "swePro": 58.4,
       "sweVer": null,
@@ -149,8 +180,35 @@
       "requestsPerWeek": 2150,
       "requestsPerMonth": 4300
     },
+    "glm51NonReasoning": {
+      "name": "GLM-5.1 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "legacy",
+      "input": 1.38,
+      "output": 4.4,
+      "blended": 2.135,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "minimaxm3": {
       "name": "MiniMax M3",
+      "effort": "max",
       "arena": 1521,
       "swePro": 59,
       "sweVer": 80.5,
@@ -183,6 +241,7 @@
     },
     "kimik27c": {
       "name": "Kimi K2.7 Code",
+      "effort": "max",
       "arena": 1510,
       "swePro": 58.6,
       "sweVer": 78.2,
@@ -230,6 +289,7 @@
     },
     "kimik3": {
       "name": "Kimi K3",
+      "effort": "max",
       "arena": 1486,
       "swePro": null,
       "sweVer": null,
@@ -284,8 +344,37 @@
       "requestsPerWeek": 250,
       "requestsPerMonth": 490
     },
+    "kimik3Low": {
+      "name": "Kimi K3 (low)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 3,
+      "output": 15,
+      "blended": 6,
+      "pricingSource": "artificialanalysis",
+      "term": 82.3970037453184,
+      "codingIndex": 72,
+      "outputTokensPerSecond": 39.067,
+      "timeToFirstTokenSeconds": 2.259,
+      "timeToFirstAnswerTokenSeconds": 53.453,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "kimik25": {
       "name": "Kimi K2.5",
+      "effort": "max",
       "arena": 1400,
       "swePro": 50.7,
       "sweVer": 76.8,
@@ -324,8 +413,35 @@
         }
       ]
     },
+    "kimik25NonReasoning": {
+      "name": "Kimi K2.5 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 0.6,
+      "output": 3,
+      "blended": 1.2,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "kimik26": {
       "name": "Kimi K2.6",
+      "effort": "max",
       "arena": null,
       "swePro": 58.6,
       "sweVer": 80.2,
@@ -356,8 +472,35 @@
       "requestsPerWeek": 2880,
       "requestsPerMonth": 5750
     },
+    "kimik26NonReasoning": {
+      "name": "Kimi K2.6 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 0.95,
+      "output": 4,
+      "blended": 1.7125,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "deepseekv4p": {
       "name": "DeepSeek V4 Pro",
+      "effort": "max",
       "arena": 1462,
       "swePro": 55.4,
       "sweVer": 80.6,
@@ -390,6 +533,7 @@
     },
     "mimo25pro": {
       "name": "MiMo V2.5 Pro",
+      "effort": "max",
       "arena": 1468,
       "swePro": 57.2,
       "sweVer": 78.9,
@@ -420,8 +564,35 @@
       "requestsPerWeek": 8150,
       "requestsPerMonth": 16300
     },
+    "mimo25proNonReasoning": {
+      "name": "MiMo-V2.5-Pro (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 0.435,
+      "output": 0.87,
+      "blended": 0.54375,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 52.633,
+      "timeToFirstTokenSeconds": 2.452,
+      "timeToFirstAnswerTokenSeconds": 2.452,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "qwen37plus": {
       "name": "Qwen3.7 Plus",
+      "effort": "max",
       "arena": null,
       "swePro": null,
       "sweVer": null,
@@ -455,6 +626,7 @@
     },
     "qwen36plus": {
       "name": "Qwen3.6 Plus",
+      "effort": "max",
       "arena": 1464,
       "swePro": null,
       "sweVer": 78.8,
@@ -488,6 +660,7 @@
     },
     "minimaxm27": {
       "name": "MiniMax M2.7",
+      "effort": "max",
       "arena": 1395,
       "swePro": null,
       "sweVer": null,
@@ -521,6 +694,7 @@
     },
     "mimo25": {
       "name": "MiMo V2.5",
+      "effort": "max",
       "arena": 1435,
       "swePro": null,
       "sweVer": null,
@@ -553,6 +727,7 @@
     },
     "minimaxm25": {
       "name": "MiniMax M2.5",
+      "effort": "max",
       "arena": null,
       "swePro": null,
       "sweVer": 80.2,
@@ -583,6 +758,7 @@
     },
     "deepseekv4f": {
       "name": "DeepSeek V4 Flash",
+      "effort": "max",
       "arena": null,
       "swePro": null,
       "sweVer": 79,
@@ -613,8 +789,35 @@
       "requestsPerWeek": 79050,
       "requestsPerMonth": 158150
     },
+    "deepseekv4fNonReasoning": {
+      "name": "DeepSeek V4 Flash (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 0.14,
+      "output": 0.28,
+      "blended": 0.175,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "glm5": {
       "name": "GLM-5",
+      "effort": "max",
       "arena": null,
       "swePro": null,
       "sweVer": 77.8,
@@ -641,8 +844,35 @@
       "tier": "budget",
       "lifecycle": "legacy"
     },
+    "glm5NonReasoning": {
+      "name": "GLM-5 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "legacy",
+      "input": 1,
+      "output": 3.2,
+      "blended": 1.55,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "opus48": {
       "name": "Claude Opus 4.8",
+      "effort": "max",
       "arena": 1567,
       "swePro": 69.2,
       "sweVer": 88.6,
@@ -674,6 +904,7 @@
     },
     "gpt55": {
       "name": "gpt-5.5",
+      "effort": "xhigh",
       "arena": 2123,
       "swePro": 58.6,
       "sweVer": 83.4,
@@ -703,8 +934,121 @@
       "isReference": true,
       "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena."
     },
+    "gpt55High": {
+      "name": "GPT-5.5 (high)",
+      "effort": "high",
+      "lifecycle": "reference",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 79.4007490636704,
+      "codingIndex": 71.6,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt55Medium": {
+      "name": "GPT-5.5 (medium)",
+      "effort": "medium",
+      "lifecycle": "reference",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 80.5243445692884,
+      "codingIndex": 71.5,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt55Low": {
+      "name": "GPT-5.5 (low)",
+      "effort": "low",
+      "lifecycle": "reference",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 65.5430711610487,
+      "codingIndex": 60.9,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt55NonReasoning": {
+      "name": "GPT-5.5 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "reference",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 61.0486891385768,
+      "codingIndex": 56.5,
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "gpt56terra": {
       "name": "GPT-5.6 Terra",
+      "effort": "max",
       "arena": 2200,
       "swePro": 58.6,
       "sweVer": 91.5,
@@ -747,8 +1091,149 @@
         }
       ]
     },
+    "gpt56terraXhigh": {
+      "name": "GPT-5.6 Terra (xhigh)",
+      "effort": "xhigh",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 12,
+      "blended": 4.5,
+      "pricingSource": "artificialanalysis",
+      "term": 80.1498127340824,
+      "codingIndex": 70.6,
+      "outputTokensPerSecond": 111.402,
+      "timeToFirstTokenSeconds": 8.799,
+      "timeToFirstAnswerTokenSeconds": 8.799,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56terraHigh": {
+      "name": "GPT-5.6 Terra (high)",
+      "effort": "high",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 12,
+      "blended": 4.5,
+      "pricingSource": "artificialanalysis",
+      "term": 75.6554307116105,
+      "codingIndex": 67.1,
+      "outputTokensPerSecond": 101.571,
+      "timeToFirstTokenSeconds": 2.535,
+      "timeToFirstAnswerTokenSeconds": 2.535,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56terraMedium": {
+      "name": "GPT-5.6 Terra (medium)",
+      "effort": "medium",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 12,
+      "blended": 4.5,
+      "pricingSource": "artificialanalysis",
+      "term": 72.2846441947566,
+      "codingIndex": 64.7,
+      "outputTokensPerSecond": 98.219,
+      "timeToFirstTokenSeconds": 1.658,
+      "timeToFirstAnswerTokenSeconds": 1.658,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56terraLow": {
+      "name": "GPT-5.6 Terra (low)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 12,
+      "blended": 4.5,
+      "pricingSource": "artificialanalysis",
+      "term": 62.5468164794007,
+      "codingIndex": 58.1,
+      "outputTokensPerSecond": 99.02,
+      "timeToFirstTokenSeconds": 1.323,
+      "timeToFirstAnswerTokenSeconds": 1.323,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56terraNonReasoning": {
+      "name": "GPT-5.6 Terra (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 12,
+      "blended": 4.5,
+      "pricingSource": "artificialanalysis",
+      "term": 56.1797752808989,
+      "codingIndex": 52.3,
+      "outputTokensPerSecond": 97.922,
+      "timeToFirstTokenSeconds": 0.76,
+      "timeToFirstAnswerTokenSeconds": 0.76,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "gpt56luna": {
       "name": "GPT-5.6 Luna",
+      "effort": "max",
       "arena": null,
       "swePro": 62.7,
       "sweVer": null,
@@ -770,48 +1255,175 @@
         "rank": 22,
         "evidence": "estimated"
       },
-      "input": 1,
-      "output": 6,
+      "input": 0.2,
+      "output": 1.2,
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
       "tier": "budget",
       "lifecycle": "active",
-      "notes": "OpenAI budget tier, 26 jun 2026. BenchLM public score is provisional (24 verified + 17 provisional records). Cheapest GPT-5.6 family tier ($1/$6 per 1M tokens). cacheRead not published by source.",
+      "notes": "OpenAI budget tier, 26 Jun 2026. Canonical max-effort entry after consolidating the former gpt56lunaMax record. BenchLM public score is provisional (67.17). Artificial Analysis pricing: $0.20 input / $1.20 output per 1M tokens; cache pricing is not published.",
       "sources": [
         {
           "url": "https://benchlm.ai/models/gpt-5-6-luna",
           "date": "2026-07-20"
+        },
+        {
+          "url": "https://artificialanalysis.ai/es/models/gpt-5-6-luna",
+          "date": "2026-08-09"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 2050,
       "requestsPerWeek": 5100,
       "requestsPerMonth": 10250
     },
-    "gpt56lunaMax": {
-      "name": "GPT-5.6 Luna (max)",
-      "benchlm": {
-        "score": 80,
-        "verified": false,
-        "reliability": 0.5,
-        "categories": {},
-        "rank": null,
-        "evidence": "estimated"
-      },
+    "gpt56lunaXhigh": {
+      "name": "GPT-5.6 Luna (xhigh)",
+      "effort": "xhigh",
+      "lifecycle": "active",
       "input": 0.2,
       "output": 1.2,
-      "cacheRead": 0.02,
-      "cacheWrite": 0.25,
-      "tier": "high",
-      "lifecycle": "active",
-      "isNew": true,
-      "notes": "OpenAI reasoning flagship, max effort variant. Per Artificial Analysis (https://artificialanalysis.ai/es/models/gpt-5-6-luna): #1/164 en su Intelligence Index (52, escala -100..100) a $0.20/$1.20 por 1M tokens — 25x más barato en input que gpt-5.4. El score BenchLM-equivalent (80) está calibrado en el rango high-tier pero **debajo de Claude Fable 5 (83.68), Claude Opus 5 (82.5) y GPT-5.6 Sol (81.96, verificado)** porque: (1) el AA Intelligence Index mide algo distinto a lo que BenchLM mide, y (2) la traducción de un score en escala AA (-100..100, 0=coin flip) a BenchLM (0..100) no es 1:1. Un estimado nunca debe superar el score verificado del flagship de su propia familia (invariante cubierta por tests/data-integrity.test.js). Revisar cuando llegue una observación directa de BenchLM. `rank: null` porque no hay BenchLM rank directo para este entry. Vela por la coherencia con el `gpt56luna` base (default effort) que ya está en data — son entries hermanas, no un reemplazo.",
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
+      "term": 77.9026217228464,
+      "codingIndex": 68.6,
+      "outputTokensPerSecond": 170.161,
+      "timeToFirstTokenSeconds": 21.142,
+      "timeToFirstAnswerTokenSeconds": 21.142,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
       "sources": [
         {
-          "url": "https://artificialanalysis.ai/es/models/gpt-5-6-luna",
-          "date": "2026-08-09"
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56lunaHigh": {
+      "name": "GPT-5.6 Luna (high)",
+      "effort": "high",
+      "lifecycle": "active",
+      "input": 0.2,
+      "output": 1.2,
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
+      "term": 69.6629213483146,
+      "codingIndex": 63.3,
+      "outputTokensPerSecond": 165.495,
+      "timeToFirstTokenSeconds": 8.011,
+      "timeToFirstAnswerTokenSeconds": 8.011,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56lunaMedium": {
+      "name": "GPT-5.6 Luna (medium)",
+      "effort": "medium",
+      "lifecycle": "active",
+      "input": 0.2,
+      "output": 1.2,
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
+      "term": 53.1835205992509,
+      "codingIndex": 50.7,
+      "outputTokensPerSecond": 156.913,
+      "timeToFirstTokenSeconds": 2.398,
+      "timeToFirstAnswerTokenSeconds": 2.398,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56lunaLow": {
+      "name": "GPT-5.6 Luna (low)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 0.2,
+      "output": 1.2,
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
+      "term": 43.4456928838951,
+      "codingIndex": 44.2,
+      "outputTokensPerSecond": 161.388,
+      "timeToFirstTokenSeconds": 1.597,
+      "timeToFirstAnswerTokenSeconds": 1.597,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56lunaNonReasoning": {
+      "name": "GPT-5.6 Luna (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 0.2,
+      "output": 1.2,
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
+      "term": 38.9513108614232,
+      "codingIndex": 39.3,
+      "outputTokensPerSecond": 155.137,
+      "timeToFirstTokenSeconds": 0.706,
+      "timeToFirstAnswerTokenSeconds": 0.706,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
         }
       ]
     },
     "gpt56sol": {
       "name": "GPT-5.6 Sol",
+      "effort": "max",
       "benchlm": {
         "score": 81.96,
         "verified": true,
@@ -842,8 +1454,149 @@
         }
       ]
     },
+    "gpt56solXhigh": {
+      "name": "GPT-5.6 Sol (xhigh)",
+      "effort": "xhigh",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 89.5131086142322,
+      "codingIndex": 78.3,
+      "outputTokensPerSecond": 63.073,
+      "timeToFirstTokenSeconds": 28.138,
+      "timeToFirstAnswerTokenSeconds": 28.138,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56solHigh": {
+      "name": "GPT-5.6 Sol (high)",
+      "effort": "high",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 87.2659176029963,
+      "codingIndex": 77.2,
+      "outputTokensPerSecond": 63.506,
+      "timeToFirstTokenSeconds": 9.608,
+      "timeToFirstAnswerTokenSeconds": 9.608,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56solMedium": {
+      "name": "GPT-5.6 Sol (medium)",
+      "effort": "medium",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 86.1423220973783,
+      "codingIndex": 76.3,
+      "outputTokensPerSecond": 57.495,
+      "timeToFirstTokenSeconds": 3.841,
+      "timeToFirstAnswerTokenSeconds": 3.841,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56solLow": {
+      "name": "GPT-5.6 Sol (low)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 76.7790262172285,
+      "codingIndex": 69.7,
+      "outputTokensPerSecond": 59.39,
+      "timeToFirstTokenSeconds": 2.335,
+      "timeToFirstAnswerTokenSeconds": 2.335,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt56solNonReasoning": {
+      "name": "GPT-5.6 Sol (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 30,
+      "blended": 11.25,
+      "pricingSource": "artificialanalysis",
+      "term": 74.1573033707865,
+      "codingIndex": 65.1,
+      "outputTokensPerSecond": 60.163,
+      "timeToFirstTokenSeconds": 1.206,
+      "timeToFirstAnswerTokenSeconds": 1.206,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "gpt54": {
       "name": "gpt-5.4",
+      "effort": "xhigh",
       "benchlm": {
         "score": 74.24,
         "verified": true,
@@ -879,8 +1632,61 @@
         }
       ]
     },
+    "gpt54Low": {
+      "name": "GPT-5.4 (low)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 2.5,
+      "output": 15,
+      "blended": 5.625,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "gpt54NonReasoning": {
+      "name": "GPT-5.4 (Non-reasoning)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 2.5,
+      "output": 15,
+      "blended": 5.625,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 0,
+      "timeToFirstTokenSeconds": 0,
+      "timeToFirstAnswerTokenSeconds": 0,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "claudeFable5": {
       "name": "Claude Fable 5",
+      "effort": "max",
       "benchlm": {
         "score": 83.68,
         "verified": true,
@@ -912,6 +1718,7 @@
     },
     "sonnet5": {
       "name": "Claude Sonnet 5",
+      "effort": "max",
       "benchlm": {
         "score": 65.32,
         "verified": false,
@@ -944,8 +1751,141 @@
         }
       ]
     },
+    "sonnet5High": {
+      "name": "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
+      "effort": "high",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 10,
+      "blended": 4,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 61.463,
+      "timeToFirstTokenSeconds": 5.909,
+      "timeToFirstAnswerTokenSeconds": 5.909,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "sonnet5Xhigh": {
+      "name": "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)",
+      "effort": "xhigh",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 10,
+      "blended": 4,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 68.512,
+      "timeToFirstTokenSeconds": 13.234,
+      "timeToFirstAnswerTokenSeconds": 13.234,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "sonnet5Medium": {
+      "name": "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)",
+      "effort": "medium",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 10,
+      "blended": 4,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 59.697,
+      "timeToFirstTokenSeconds": 1.694,
+      "timeToFirstAnswerTokenSeconds": 1.694,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "sonnet5Low": {
+      "name": "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 10,
+      "blended": 4,
+      "pricingSource": "artificialanalysis",
+      "outputTokensPerSecond": 60.926,
+      "timeToFirstTokenSeconds": 1.286,
+      "timeToFirstAnswerTokenSeconds": 1.286,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: term, codingIndex, mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "sonnet5NonReasoning": {
+      "name": "Claude Sonnet 5 (Non-reasoning, High Effort)",
+      "effort": "non-reasoning",
+      "lifecycle": "active",
+      "input": 2,
+      "output": 10,
+      "blended": 4,
+      "pricingSource": "artificialanalysis",
+      "term": 75.2808988764045,
+      "codingIndex": 66.4,
+      "outputTokensPerSecond": 57.74,
+      "timeToFirstTokenSeconds": 0.8,
+      "timeToFirstAnswerTokenSeconds": 0.8,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "haiku45": {
       "name": "Claude Haiku 4.5",
+      "effort": "non-reasoning",
       "benchlm": {
         "score": 56.58,
         "verified": false,
@@ -975,8 +1915,38 @@
         }
       ]
     },
+    "haiku45Reasoning": {
+      "name": "Claude 4.5 Haiku (Reasoning)",
+      "effort": "max",
+      "lifecycle": "active",
+      "input": 1,
+      "output": 5,
+      "blended": 2,
+      "pricingSource": "artificialanalysis",
+      "term": 44.1947565543071,
+      "codingIndex": 43.9,
+      "mathIndex": 83.7,
+      "outputTokensPerSecond": 95.642,
+      "timeToFirstTokenSeconds": 7.748,
+      "timeToFirstAnswerTokenSeconds": 7.748,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "claudeOpus5": {
       "name": "Claude Opus 5",
+      "effort": "max",
       "arena": null,
       "swePro": null,
       "sweVer": null,
@@ -1012,8 +1982,121 @@
         }
       ]
     },
+    "claudeOpus5High": {
+      "name": "Claude Opus 5 (Adaptive Reasoning, High Effort)",
+      "effort": "high",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 25,
+      "blended": 10,
+      "pricingSource": "artificialanalysis",
+      "term": 87.6404494382023,
+      "codingIndex": 76.5,
+      "outputTokensPerSecond": 47.795,
+      "timeToFirstTokenSeconds": 10.025,
+      "timeToFirstAnswerTokenSeconds": 10.025,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "claudeOpus5Xhigh": {
+      "name": "Claude Opus 5 (Adaptive Reasoning, Xhigh Effort)",
+      "effort": "xhigh",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 25,
+      "blended": 10,
+      "pricingSource": "artificialanalysis",
+      "term": 88.0149812734082,
+      "codingIndex": 77,
+      "outputTokensPerSecond": 47.823,
+      "timeToFirstTokenSeconds": 22.894,
+      "timeToFirstAnswerTokenSeconds": 22.894,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "claudeOpus5Medium": {
+      "name": "Claude Opus 5 (Adaptive Reasoning, Medium Effort)",
+      "effort": "medium",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 25,
+      "blended": 10,
+      "pricingSource": "artificialanalysis",
+      "term": 86.1423220973783,
+      "codingIndex": 74.3,
+      "outputTokensPerSecond": 48.147,
+      "timeToFirstTokenSeconds": 3.692,
+      "timeToFirstAnswerTokenSeconds": 3.692,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
+    "claudeOpus5Low": {
+      "name": "Claude Opus 5 (Adaptive Reasoning, Low Effort)",
+      "effort": "low",
+      "lifecycle": "active",
+      "input": 5,
+      "output": 25,
+      "blended": 10,
+      "pricingSource": "artificialanalysis",
+      "term": 76.4044943820225,
+      "codingIndex": 66.9,
+      "outputTokensPerSecond": 47.277,
+      "timeToFirstTokenSeconds": 2.4,
+      "timeToFirstAnswerTokenSeconds": 2.4,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ]
+    },
     "opencodeHy3": {
       "name": "Opencode Hy3",
+      "effort": "max",
       "arena": 1450,
       "swePro": null,
       "sweVer": null,
@@ -1054,6 +2137,7 @@
     },
     "grok45": {
       "name": "Grok 4.5",
+      "effort": "high",
       "benchlm": {
         "score": null,
         "verified": false,
@@ -1080,6 +2164,7 @@
     },
     "qwen38max": {
       "name": "Qwen3.8 Max",
+      "effort": "max",
       "benchlm": {
         "score": null,
         "verified": false,

@@ -21,6 +21,15 @@
 // Module-level state. Trivial — only used so tests can confirm re-render.
 let _lastTarget = null;
 
+const EFFORT_LABELS = Object.freeze({
+  max: 'Máximo',
+  xhigh: 'Extremo alto',
+  high: 'Alto',
+  medium: 'Medio',
+  low: 'Bajo',
+  'non-reasoning': 'Sin razonamiento',
+});
+
 export function resetForTests() {
   _lastTarget = null;
 }
@@ -37,6 +46,13 @@ export function resetForTests() {
 function softBadge(reason) {
   const title = reason ? ` title="${esc(reason)}"` : '';
   return `<span class="text-[10px] uppercase tracking-wider font-semibold text-amber-300" data-soft-fallback="true"${title}>soft</span>`;
+}
+
+/** Render the optional effort tag for an assigned model variant. */
+function effortBadge(effort) {
+  if (effort === null || effort === undefined || effort === '') return '';
+  const label = EFFORT_LABELS[effort] || String(effort);
+  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${esc(effort)}">${esc(label)}</span>`;
 }
 
 /**
@@ -102,9 +118,11 @@ function modelCell(assignment, models) {
   const bg = tokenBg(document, tier);
   const styleAttr = bg ? ` style="background-color:${esc(bg)}"` : '';
   const soft = assignment.softFallback ? softBadge(assignment.reason) : '';
+  const effort = effortBadge(m.effort);
   return `<span class="inline-flex items-center gap-2">
     <span>${esc(m.name || assignment.key)}</span>
     <span class="tier-tag" data-tier="${esc(tier)}" data-slug="${esc(slug)}"${styleAttr}>${esc(label)}</span>
+    ${effort}
     ${soft}
   </span>`;
 }

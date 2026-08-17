@@ -312,14 +312,21 @@ describe('lifecycle — data/models.json catalog classification', () => {
     }
   });
 
-  test('reference models: opus48, gpt55 (V5 — gpt56 family demoted to active)', () => {
-    for (const key of ['opus48', 'gpt55']) {
+  test('reference models: opus48, gpt55, and all GPT-5.5 effort variants', () => {
+    for (const key of [
+      'opus48',
+      'gpt55',
+      'gpt55High',
+      'gpt55Medium',
+      'gpt55Low',
+      'gpt55NonReasoning',
+    ]) {
       expect(models[key].lifecycle, `${key} should be reference`).toBe('reference');
     }
   });
 
-  test('legacy models: glm5, glm51 (superseded GLM variants older than GLM-5.2)', () => {
-    for (const key of ['glm5', 'glm51']) {
+  test('legacy models: GLM-5 and GLM-5.1 families', () => {
+    for (const key of ['glm5', 'glm5NonReasoning', 'glm51', 'glm51NonReasoning']) {
       expect(models[key].lifecycle, `${key} should be legacy`).toBe('legacy');
     }
   });
@@ -330,10 +337,22 @@ describe('lifecycle — data/models.json catalog classification', () => {
 
   test('non-reference, non-legacy models are active', () => {
     const expectedActive = [
-      'glm52', 'qwen37max', 'minimaxm3', 'kimik27c', 'kimik3', 'kimik25',
-      'kimik26', 'deepseekv4p', 'mimo25pro', 'qwen37plus', 'qwen36plus',
-      'minimaxm27', 'mimo25', 'minimaxm25', 'deepseekv4f', 'gpt54',
-      'claudeFable5', 'sonnet5', 'haiku45',
+      'glm52', 'glm52NonReasoning', 'qwen37max', 'minimaxm3', 'kimik27c',
+      'kimik3', 'kimik3Low', 'kimik25', 'kimik25NonReasoning', 'kimik26',
+      'kimik26NonReasoning', 'deepseekv4p', 'mimo25pro',
+      'mimo25proNonReasoning', 'qwen37plus', 'qwen36plus', 'minimaxm27',
+      'mimo25', 'minimaxm25', 'deepseekv4f', 'deepseekv4fNonReasoning',
+      'gpt56terra', 'gpt56terraXhigh', 'gpt56terraHigh',
+      'gpt56terraMedium', 'gpt56terraLow', 'gpt56terraNonReasoning',
+      'gpt56luna', 'gpt56lunaXhigh', 'gpt56lunaHigh', 'gpt56lunaMedium',
+      'gpt56lunaLow', 'gpt56lunaNonReasoning', 'gpt56sol', 'gpt56solXhigh',
+      'gpt56solHigh', 'gpt56solMedium', 'gpt56solLow',
+      'gpt56solNonReasoning', 'gpt54', 'gpt54Low', 'gpt54NonReasoning',
+      'claudeFable5', 'sonnet5', 'sonnet5High', 'sonnet5Xhigh',
+      'sonnet5Medium', 'sonnet5Low', 'sonnet5NonReasoning', 'haiku45',
+      'haiku45Reasoning', 'claudeOpus5', 'claudeOpus5High',
+      'claudeOpus5Xhigh', 'claudeOpus5Medium', 'claudeOpus5Low',
+      'opencodeHy3', 'grok45', 'qwen38max',
     ];
     for (const key of expectedActive) {
       expect(models[key].lifecycle, `${key} should be active`).toBe('active');
@@ -345,13 +364,13 @@ describe('lifecycle — data/models.json catalog classification', () => {
     expect(bmOnly.length).toBe(0);
   });
 
-  test('active model count is 27 (V5: +3 GPT-5.6 family demoted, +5 new models Claude Opus 5 + Opencode Hy3 + Grok 4.5 + Qwen3.8 Max + GPT-5.6 Luna (max))', () => {
+  test('active model count is 59 after adding the effort variants', () => {
     const activeCount = Object.values(models).filter((m) => m.lifecycle === 'active').length;
-    expect(activeCount).toBe(27);
+    expect(activeCount).toBe(59);
   });
 
-  test('non-active count is 4 (2 reference + 2 legacy)', () => {
+  test('non-active count is 10 (6 reference + 4 legacy)', () => {
     const nonActive = Object.values(models).filter((m) => m.lifecycle !== 'active');
-    expect(nonActive.length).toBe(4);
+    expect(nonActive.length).toBe(10);
   });
 });

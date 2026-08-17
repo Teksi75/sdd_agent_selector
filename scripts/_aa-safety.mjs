@@ -1,119 +1,143 @@
 // scripts/_aa-safety.mjs
-// Pure helpers for the Artificial Analysis scraper. No I/O beyond the
-// alias-file load; the scraper handles fetch + parse + write.
+// Pure helpers for the Artificial Analysis scraper — alias v2 + slug safety
+// (Effort PR 1). No I/O beyond the alias-file load; the scraper handles
+// fetch + parse + write.
 //
-// Four exports:
+// Exports (v2 contract):
 //
 //   - loadAaAliases(filePath)
-//       Read + parse data/aa-aliases.json. Throws on missing file,
-//       malformed JSON, or missing `aliases` key. Returns the array of
-//       `{from, slug, to}` records.
+//       Read + parse data/aa-aliases.json. Throws on missing file, malformed
+//       JSON, or missing `aliases` array. For v2 files (`_meta.version === 2`)
+//       every entry MUST be `{slug, to, effort}` with a valid effort enum
+//       value — a missing/invalid `effort` is a hard error (effort is NEVER
+//       inferred from slug shape). Legacy v1-shaped files (`{from,slug,to}`)
+//       load leniently so the pre-PR-2 scraper keeps working.
+//       Returns the array of alias entries.
 //
-//   - mapAaId(identity, aliases)
-//       Map an AA identity — the response entry's `id` OR its `slug` —
-//       to the curated key used in data/models.json. Throws `Error`
-//       with `.code === 'AA_UNKNOWN_ID'` and the offending identity in
-//       the message when it is not in the alias table. This is the
-//       safety net that prevents the scraper from silently dropping a
-//       model AA just published.
+//   - mapAaSlug(slug, aliases)
+//       Map a curated AA slug → `{to, effort}`. Unknown non-curated slugs
+//       return null — they are IGNORED, not fatal (AA lists ~539 models we
+//       do not curate). A missing/empty slug is expected-but-absent and
+//       throws `Error` with `.code === 'AA_UNKNOWN_SLUG'` (fail closed).
 //
 //   - detectRename(id, slug, aliases)
-//       Flag an upstream identity change: when a response entry's
-//       `slug` still matches a known alias but its `id` no longer
-//       matches that alias `from`, the upstream renamed the id while
-//       keeping the human-readable slug stable. Throws `Error` with
-//       `.code === 'AA_ID_RENAMED'` naming the old and new id — flag,
-//       never guess. Returns null when no rename is detected.
+//       Slug-based drift guard (v2): the slug IS the identity, so a known
+//       slug never fails — a changed UUID is not fatal (known slugs update)
+//       and an unknown non-curated slug is ignored. A missing slug is
+//       expected-but-absent and fails closed with `AA_UNKNOWN_SLUG`. Legacy
+//       v1 alias entries (with `from`) keep the old id-drift check
+//       (`AA_ID_RENAMED`) as a PR-1 compatibility shim.
 //
 //   - detectMissing(knownIds, mappedPresent)
-//       Given the set of curated keys we track (`knownIds`) and the set
-//       of curated keys AA DID mention (after alias mapping,
-//       `mappedPresent`), return the curated keys that were tracked but
-//       absent. The caller logs a WARN per missing id and PRESERVES the
-//       curated record — known-id-disappear is not fatal (mirrors
-//       _benchlm-safety.detectMissing exactly).
+//       Curated keys we track but AA did NOT mention. The caller WARNs per
+//       missing key and PRESERVES the curated record — known-key-disappear
+//       is not fatal (mirrors _benchlm-safety.detectMissing).
 
 import { readFileSync, existsSync } from 'node:fs';
+
+/** Valid effort values (spec enum). Explicit per alias; never inferred. */
+export const AA_EFFORTS = ['max', 'xhigh', 'high', 'medium', 'low', 'non-reasoning'];
 
 /**
  * Read + parse the AA alias table. The file is expected to live at
  * `data/aa-aliases.json` and to contain `{ _meta, aliases: [...] }`.
  *
  * @param {string} filePath
- * @returns {Array<{from: string, slug: string, to: string}>}
+ * @returns {Array<{slug: string, to: string, effort: string}>}
  */
 export function loadAaAliases(filePath) {
   if (!existsSync(filePath)) {
     throw new Error(`aa-aliases.json not found at ${filePath}`);
   }
-  const raw = readFileSync(filePath, 'utf-8');
   let parsed;
   try {
-    parsed = JSON.parse(raw);
+    parsed = JSON.parse(readFileSync(filePath, 'utf-8'));
   } catch (err) {
     throw new Error(`aa-aliases.json is not valid JSON (${err.message})`);
   }
   if (!parsed || !Array.isArray(parsed.aliases)) {
     throw new Error('aa-aliases.json missing top-level `aliases` array');
   }
-  return parsed.aliases;
+  const aliases = parsed.aliases;
+  if (parsed._meta && parsed._meta.version === 2) {
+    for (let i = 0; i < aliases.length; i++) {
+      const a = aliases[i];
+      if (!a || typeof a.slug !== 'string' || a.slug.length === 0) {
+        throw new Error(`aa-aliases.json aliases[${i}]: missing non-empty \`slug\``);
+      }
+      if (typeof a.to !== 'string' || a.to.length === 0) {
+        throw new Error(`aa-aliases.json aliases[${i}] (slug "${a.slug}"): missing non-empty \`to\``);
+      }
+      if (!AA_EFFORTS.includes(a.effort)) {
+        throw new Error(
+          `aa-aliases.json aliases[${i}] (slug "${a.slug}"): missing/invalid \`effort\` ` +
+            `(${JSON.stringify(a.effort)}); expected one of ${AA_EFFORTS.join('|')}`,
+        );
+      }
+    }
+  }
+  return aliases;
 }
 
 /**
- * Map a single AA identity — either the response `id` or the response
- * `slug` — to the curated key in data/models.json. Throws `Error` with
- * `.code === 'AA_UNKNOWN_ID'` when the identity is not present in the
- * alias table.
+ * Map a curated AA slug → `{to, effort}`. Unknown non-curated slugs return
+ * null (IGNORED — the other ~539 models). A missing/empty slug is
+ * expected-but-absent → throws `Error` with `.code === 'AA_UNKNOWN_SLUG'`.
  *
- * @param {string} identity
- * @param {Array<{from: string, slug: string, to: string}>} aliases
- * @returns {string} the curated key
+ * @param {string|undefined} slug
+ * @param {Array<{slug: string, to: string, effort: string}>} aliases
+ * @returns {{to: string, effort: string}|null}
  */
-export function mapAaId(identity, aliases) {
-  const hit = aliases.find((a) => a && (a.from === identity || a.slug === identity));
-  if (!hit) {
-    const err = new Error(`unknown Artificial Analysis id: ${identity} (not in aa-aliases.json)`);
-    err.code = 'AA_UNKNOWN_ID';
-    err.aaId = identity;
+export function mapAaSlug(slug, aliases) {
+  if (!slug) {
+    const err = new Error('Artificial Analysis entry missing slug (expected-but-absent) — cannot map identity');
+    err.code = 'AA_UNKNOWN_SLUG';
     throw err;
   }
-  return hit.to;
+  const hit = (aliases || []).find((a) => a && a.slug === slug);
+  if (!hit) return null;
+  return { to: hit.to, effort: hit.effort };
 }
 
 /**
- * Flag an AA id rename. A response entry whose `slug` matches a known
- * alias `slug` but whose `id` differs from that alias `from` means the
- * upstream renamed the id while keeping the slug stable. Throws `Error`
- * with `.code === 'AA_ID_RENAMED'` naming the old and new id so the
- * operator can update the alias table — flag, never guess.
+ * Slug-based drift guard. v2 aliases (no `from`): a known slug is the
+ * identity — a changed UUID is NOT fatal (known slugs update); an unknown
+ * non-curated slug is ignored; a missing slug fails closed with
+ * `AA_UNKNOWN_SLUG`. Legacy v1 aliases (with `from`) keep the old id-drift
+ * check (`AA_ID_RENAMED` naming old/new id) as a PR-1 compatibility shim.
  *
- * Returns null when no rename is detected (slug unknown, slug missing,
- * or id still matches the alias).
- *
- * @param {string} id
+ * @param {string|undefined} id
  * @param {string|undefined} slug
- * @param {Array<{from: string, slug: string, to: string}>} aliases
+ * @param {Array} aliases
  * @returns {null}
  */
 export function detectRename(id, slug, aliases) {
-  if (!slug) return null;
-  const hit = aliases.find((a) => a && a.slug === slug && a.from !== id);
-  if (!hit) return null;
-  const err = new Error(`Artificial Analysis id renamed: ${hit.from} → ${id} (slug "${slug}" unchanged)`);
-  err.code = 'AA_ID_RENAMED';
-  err.oldId = hit.from;
-  err.newId = id;
-  throw err;
+  if (!slug) {
+    const err = new Error(
+      `Artificial Analysis entry missing slug (id: ${id ?? '?'}) — expected-but-absent; cannot map identity`,
+    );
+    err.code = 'AA_UNKNOWN_SLUG';
+    throw err;
+  }
+  const hit = (aliases || []).find((a) => a && a.slug === slug);
+  if (!hit) return null; // unknown non-curated slug — IGNORED
+  if (hit.from === undefined) return null; // v2: slug IS the identity
+  if (hit.from !== id) {
+    const err = new Error(`Artificial Analysis id renamed: ${hit.from} → ${id} (slug "${slug}" unchanged)`);
+    err.code = 'AA_ID_RENAMED';
+    err.oldId = hit.from;
+    err.newId = id;
+    throw err;
+  }
+  return null;
 }
 
 /**
- * Return the curated keys that we track but AA did NOT mention.
- *
- * `knownIds` is the full set of curated keys in data/models.json (or a
- * subset you care about). `mappedPresent` is a `Set<string>` of curated
- * keys AA DID mention, after alias mapping. The result is an array
- * (sorted for stable output) of curated keys that are in `knownIds` but
- * not in `mappedPresent`. The caller warns and preserves — never delete.
+ * Return the curated keys we track but AA did NOT mention. `knownIds` is
+ * the set of curated keys in data/models.json (or a subset you care about);
+ * `mappedPresent` is a `Set<string>` of curated keys AA DID mention after
+ * alias mapping. Result is a sorted array of tracked-but-absent keys. The
+ * caller warns and preserves — never delete.
  *
  * @param {string[]} knownIds
  * @param {Set<string>} mappedPresent

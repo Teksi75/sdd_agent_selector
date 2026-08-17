@@ -1,45 +1,188 @@
 {
   "_meta": {
     "fetchedAt": "2026-08-16T00:00:00Z",
-    "note": "PROVISIONAL mirror of GET https://artificialanalysis.ai/api/v2/data/llms/models (authenticated with x-api-key). Reconcile with the 1.1 spike when AA_API_KEY is available; the scraper's FIELD_MAP constant is the single adjustment point for live field-name drift. `blended` values below are intentionally WRONG on purpose: the scraper must compute (3*input + output)/4 locally and never trust an upstream blended field."
+    "note": "REAL AA v2 payload slices (trimmed to the mapped fields) from the authenticated GET https://artificialanalysis.ai/api/v2/data/llms/models. Shape: UUID `id` (unstable, ignored), stable `slug` (identity), `pricing.price_1m_input_tokens`/`price_1m_output_tokens` (required), `evaluations.terminalbench_v2_1` (0-1 ratio → term = value*100), `evaluations.artificial_analysis_coding_index`, optional `evaluations.artificial_analysis_math_index`, root `median_*` speed fields. `price_1m_blended_3_to_1` is intentionally present but MUST be IGNORED — blended is computed locally as (3*input+output)/4. AA has NO cacheRead/cacheWrite keys."
   },
   "data": [
     {
-      "id": "claude-sonnet-5",
-      "slug": "claude-sonnet-5",
-      "name": "Claude Sonnet 5",
-      "pricing": {
-        "input": 3,
-        "output": 15,
-        "cacheRead": 0.3,
-        "cacheWrite": 4.5
+      "id": "426d24c8-49ae-482a-b4a8-20f1c53f21c1",
+      "name": "GPT-5.6 Luna (max)",
+      "slug": "gpt-5-6-luna",
+      "evaluations": {
+        "terminalbench_v2_1": 0.808988764044944,
+        "artificial_analysis_coding_index": 71.4,
+        "artificial_analysis_math_index": null
       },
-      "term": 84.2,
-      "codingIndex": 61.3,
-      "median_output_tokens_per_second": 92.4,
-      "median_time_to_first_token_seconds": 0.31,
-      "blended": 99
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.45,
+        "price_1m_input_tokens": 0.2,
+        "price_1m_output_tokens": 1.2
+      },
+      "median_output_tokens_per_second": 165.737,
+      "median_time_to_first_token_seconds": 76.41,
+      "median_time_to_first_answer_token": 76.41
     },
     {
-      "id": "gpt-5-5",
+      "id": "87110ff0-1f79-41b4-9976-eda250597317",
+      "name": "GPT-5.6 Luna (xhigh)",
+      "slug": "gpt-5-6-luna-xhigh",
+      "evaluations": {
+        "terminalbench_v2_1": 0.779026217228464,
+        "artificial_analysis_coding_index": 68.6,
+        "artificial_analysis_math_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.45,
+        "price_1m_input_tokens": 0.2,
+        "price_1m_output_tokens": 1.2
+      },
+      "median_output_tokens_per_second": 170.161,
+      "median_time_to_first_token_seconds": 21.142,
+      "median_time_to_first_answer_token": 21.142
+    },
+    {
+      "id": "aa55297e-8fbf-4372-b4ab-9b068dc6396c",
+      "name": "GPT-5.6 Luna (high)",
+      "slug": "gpt-5-6-luna-high",
+      "evaluations": {
+        "terminalbench_v2_1": 0.696629213483146,
+        "artificial_analysis_coding_index": 63.3,
+        "artificial_analysis_math_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.45,
+        "price_1m_input_tokens": 0.2,
+        "price_1m_output_tokens": 1.2
+      },
+      "median_output_tokens_per_second": 165.495,
+      "median_time_to_first_token_seconds": 8.011,
+      "median_time_to_first_answer_token": 8.011
+    },
+    {
+      "id": "58b812bf-8498-46db-b834-f43ccc614b61",
+      "name": "GPT-5.6 Luna (medium)",
+      "slug": "gpt-5-6-luna-medium",
+      "evaluations": {
+        "terminalbench_v2_1": 0.531835205992509,
+        "artificial_analysis_coding_index": 50.7,
+        "artificial_analysis_math_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.45,
+        "price_1m_input_tokens": 0.2,
+        "price_1m_output_tokens": 1.2
+      },
+      "median_output_tokens_per_second": 156.913,
+      "median_time_to_first_token_seconds": 2.398,
+      "median_time_to_first_answer_token": 2.398
+    },
+    {
+      "id": "050c61cd-cddc-463a-a30a-a82aaa37be59",
+      "name": "GPT-5.6 Luna (low)",
+      "slug": "gpt-5-6-luna-low",
+      "evaluations": {
+        "terminalbench_v2_1": 0.434456928838951,
+        "artificial_analysis_coding_index": 44.2,
+        "artificial_analysis_math_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.45,
+        "price_1m_input_tokens": 0.2,
+        "price_1m_output_tokens": 1.2
+      },
+      "median_output_tokens_per_second": 161.388,
+      "median_time_to_first_token_seconds": 1.597,
+      "median_time_to_first_answer_token": 1.597
+    },
+    {
+      "id": "dc64f856-3ded-497d-9527-d41d31267ed5",
+      "name": "GPT-5.6 Luna (Non-reasoning)",
+      "slug": "gpt-5-6-luna-non-reasoning",
+      "evaluations": {
+        "terminalbench_v2_1": 0.389513108614232,
+        "artificial_analysis_coding_index": 39.3,
+        "artificial_analysis_math_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.45,
+        "price_1m_input_tokens": 0.2,
+        "price_1m_output_tokens": 1.2
+      },
+      "median_output_tokens_per_second": 155.137,
+      "median_time_to_first_token_seconds": 0.706,
+      "median_time_to_first_answer_token": 0.706
+    },
+    {
+      "id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
+      "name": "GPT-5.5 (xhigh)",
       "slug": "gpt-5-5",
-      "name": "GPT-5.5",
-      "pricing": {
-        "input": 1.25,
-        "output": 10
+      "evaluations": {
+        "terminalbench_v2_1": 0.842696629213483,
+        "artificial_analysis_coding_index": 74.9,
+        "artificial_analysis_math_index": null
       },
-      "blended": 42
+      "pricing": {
+        "price_1m_blended_3_to_1": 11.25,
+        "price_1m_input_tokens": 5,
+        "price_1m_output_tokens": 30
+      },
+      "median_output_tokens_per_second": 0,
+      "median_time_to_first_token_seconds": 0,
+      "median_time_to_first_answer_token": 0
     },
     {
-      "id": "kimi-k3",
-      "slug": "kimi-k3",
-      "name": "Kimi K3",
-      "pricing": {
-        "input": 0.6,
-        "output": 2.2,
-        "cacheWrite": 0.9
+      "id": "23c86e4a-c769-43c0-a056-79e3cd15834f",
+      "name": "Claude Sonnet 5 (Adaptive Reasoning, Max Effort)",
+      "slug": "claude-sonnet-5",
+      "evaluations": {
+        "terminalbench_v2_1": 0.805243445692884,
+        "artificial_analysis_coding_index": 71.5,
+        "artificial_analysis_math_index": null
       },
-      "codingIndex": 55
+      "pricing": {
+        "price_1m_blended_3_to_1": 4,
+        "price_1m_input_tokens": 2,
+        "price_1m_output_tokens": 10
+      },
+      "median_output_tokens_per_second": 79.985,
+      "median_time_to_first_token_seconds": 132.838,
+      "median_time_to_first_answer_token": 132.838
+    },
+    {
+      "id": "f7d2fc3e-1f7b-405f-818c-07952a4af78f",
+      "name": "Kimi K3 (max)",
+      "slug": "kimi-k3",
+      "evaluations": {
+        "terminalbench_v2_1": 0.850187265917603,
+        "artificial_analysis_coding_index": 76.2,
+        "artificial_analysis_math_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 6,
+        "price_1m_input_tokens": 3,
+        "price_1m_output_tokens": 15
+      },
+      "median_output_tokens_per_second": 39.961,
+      "median_time_to_first_token_seconds": 2.141,
+      "median_time_to_first_answer_token": 52.19
+    },
+    {
+      "id": "f0083258-8646-45b8-8082-7aaf6c2ea82a",
+      "name": "gpt-oss-120b (high)",
+      "slug": "gpt-oss-120b",
+      "evaluations": {
+        "terminalbench_v2_1": 0.262172284644195,
+        "artificial_analysis_coding_index": 30.4,
+        "artificial_analysis_math_index": 93.4
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 0.262,
+        "price_1m_input_tokens": 0.15,
+        "price_1m_output_tokens": 0.6
+      },
+      "median_output_tokens_per_second": 178.041,
+      "median_time_to_first_token_seconds": 0.498,
+      "median_time_to_first_answer_token": 11.731
     }
   ]
 }
