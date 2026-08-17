@@ -176,4 +176,61 @@ describe('model-card — render() contract (PR3 benchlm row)', () => {
     expect(html).not.toMatch(/<img src=x onerror/);
     expect(html).toMatch(/&lt;img/);
   });
+
+  test.each([
+    ['max', 'Máximo'],
+    ['xhigh', 'Extremo alto'],
+    ['high', 'Alto'],
+    ['medium', 'Medio'],
+    ['low', 'Bajo'],
+    ['non-reasoning', 'Sin razonamiento'],
+  ])('renders the %s effort label when effort is present', async (effort, label) => {
+    ({ render } = await import('../js/components/model-card.js'));
+    render(target, {
+      key: `gpt55-${effort}`,
+      name: `GPT-5.5 ${label}`,
+      tier: 'high',
+      effort,
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
+    });
+
+    const badge = target.querySelector(`[data-effort="${effort}"]`);
+    expect(badge?.textContent).toBe(label);
+  });
+
+  test('keeps independent effort variants as separate cards', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const variants = [
+      { key: 'gpt55', name: 'GPT-5.5', effort: 'xhigh' },
+      { key: 'gpt55High', name: 'GPT-5.5 High', effort: 'high' },
+      { key: 'gpt55Medium', name: 'GPT-5.5 Medium', effort: 'medium' },
+    ];
+
+    target.innerHTML = variants.map((model) => buildCard({
+      ...model,
+      tier: 'high',
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
+    })).join('');
+
+    expect(target.querySelectorAll('.model-card')).toHaveLength(3);
+    expect(target.querySelector('[data-model-key="gpt55"] [data-effort="xhigh"]')?.textContent)
+      .toBe('Extremo alto');
+    expect(target.querySelector('[data-model-key="gpt55High"] [data-effort="high"]')?.textContent)
+      .toBe('Alto');
+    expect(target.querySelector('[data-model-key="gpt55Medium"] [data-effort="medium"]')?.textContent)
+      .toBe('Medio');
+  });
+
+  test('omits the effort badge when a model has no effort', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      key: 'legacy-model',
+      name: 'Legacy model',
+      tier: 'balanced',
+      benchlm: { score: 70, verified: false, reliability: 0.7, categories: {} },
+    });
+
+    expect(html).not.toMatch(/data-effort=/);
+    expect(html).not.toMatch(/Máximo|Extremo alto|Alto|Medio|Bajo|Sin razonamiento/);
+  });
 });

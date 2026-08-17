@@ -27,6 +27,14 @@ import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
 const REFERENCE_DISPLAY_ORDER = ['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna'];
+const EFFORT_LABELS = Object.freeze({
+  max: 'Máximo',
+  xhigh: 'Extremo alto',
+  high: 'Alto',
+  medium: 'Medio',
+  low: 'Bajo',
+  'non-reasoning': 'Sin razonamiento',
+});
 
 /**
  * Format a numeric value for display. Numbers render as-is; null /
@@ -61,6 +69,13 @@ function badge(kind, label) {
     cls = 'src-badge';
   }
   return `<span class="${cls}"${dataAttr}>${label}</span>`;
+}
+
+/** Build the optional first-class effort badge for a model row. */
+function effortBadgeHtml(effort) {
+  if (effort === null || effort === undefined || effort === '') return '—';
+  const label = EFFORT_LABELS[effort] || String(effort);
+  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${escapeAttr(effort)}">${escapeHtml(label)}</span>`;
 }
 
 /**
@@ -176,6 +191,7 @@ function rowHtml(key, m, isNonActive) {
         <tr class="${rowClass}" data-model-key="${escapeAttr(key)}" data-lifecycle="${escapeAttr(lc)}" data-verified="${m.benchlm && m.benchlm.verified === true ? 'true' : 'false'}" ${cs == null ? 'data-unavailable="true"' : ''}>
           <td class="py-2.5 px-3 font-medium">${escapeHtml(m.name || key)}${newBadge}</td>
           <td class="py-2.5 px-3 text-center font-mono text-xs">${tierCell}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-xs">${effortBadgeHtml(m.effort)}</td>
           <td class="py-2.5 px-3 text-center">${lifecycleCell}</td>
           <td class="py-2.5 px-3 text-center font-mono text-xs" data-score="${cs == null ? '0' : cs.toFixed(2)}">${score}</td>
           <td class="py-2.5 px-3 text-center">${benchlmProvenanceHtml(m)}</td>
@@ -240,6 +256,7 @@ export function render(targetEl, models) {
     return [
       m.name || key,
       m.tier || '—',
+      m.effort == null ? '—' : (EFFORT_LABELS[m.effort] || String(m.effort)),
       lifecycleOf(m),
       Number.isFinite(sc) ? sc.toFixed(1) : '—',
       Number.isFinite(m.input) ? `$${m.input.toFixed(2)}` : '—',
@@ -247,7 +264,7 @@ export function render(targetEl, models) {
     ];
   });
   const exportMd = `# SDD Models (${activeCount} active + ${nonActiveCount} non-active)\n\n` + markdownTable(
-    ['Modelo', 'Tier', 'Lifecycle', 'Score', 'Input $', 'Output $'],
+    ['Modelo', 'Tier', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
     exportRows
   ) + '\n';
   const exportJson = toJSON({ active: activeCount, nonActive: nonActiveCount, models: allRows.map(([k, m]) => [k, m]) });
@@ -263,6 +280,7 @@ export function render(targetEl, models) {
           <tr>
             <th scope="col" class="py-2.5 px-3 font-semibold">Modelo</th>
             <th scope="col" class="py-2.5 px-3 font-semibold text-center">Tier</th>
+            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Esfuerzo</th>
             <th scope="col" class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
             <th scope="col" class="py-2.5 px-3 font-semibold text-center">Score</th>
             <th scope="col" class="py-2.5 px-3 font-semibold text-center">BenchLM</th>

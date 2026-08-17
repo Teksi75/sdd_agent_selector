@@ -39,6 +39,15 @@ const CANONICAL_ORDER = Object.freeze([
   'review-risk', 'review-readability', 'review-reliability', 'review-resilience',
 ]);
 
+const EFFORT_LABELS = Object.freeze({
+  max: 'Máximo',
+  xhigh: 'Extremo alto',
+  high: 'Alto',
+  medium: 'Medio',
+  low: 'Bajo',
+  'non-reasoning': 'Sin razonamiento',
+});
+
 /** Minimal HTML escaper. */
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => {
@@ -112,6 +121,13 @@ function softBadge(reason) {
   return `<span class="soft-badge" data-soft-fallback="true"${title}>soft</span>`;
 }
 
+/** Render the optional effort tag for an assigned model variant. */
+function effortBadge(effort) {
+  if (effort === null || effort === undefined || effort === '') return '';
+  const label = EFFORT_LABELS[effort] || String(effort);
+  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${esc(effort)}">${esc(label)}</span>`;
+}
+
 /**
  * Build the model-name + tier-tag cell HTML for the `assigned` column.
  *
@@ -133,9 +149,11 @@ function assignedCell(assignment, doc) {
   const styleAttr = bg ? ` style="background-color:${esc(bg)}"` : '';
   const cls = bg ? 'tier-tag' : `tier-tag ${twClassFor(slug)}`;
   const soft = assignment.softFallback ? softBadge(assignment.reason) : '';
+  const effort = effortBadge(m.effort);
   return `<span class="inline-flex items-center gap-2">
     <span class="font-medium">${esc(m.name || assignment.key)}</span>
     <span class="${cls}" data-tier="${esc(slug)}"${styleAttr}>${esc(label)}</span>
+    ${effort}
     ${soft}
   </span>`;
 }
