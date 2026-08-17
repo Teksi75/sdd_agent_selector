@@ -1,7 +1,7 @@
 // scripts/scrape-artificialanalysis.js
 // Artificial Analysis scraper — fetches AA model pricing + optional
 // evaluation/speed observations, validates the response shape, maps AA
-// ids/slugs to curated keys via the alias table, and merges ONLY
+// slugs to curated keys via the alias table, and merges ONLY
 // AA-owned fields into data/models.json using the atomic write helper.
 //
 // Source: https://artificialanalysis.ai/api/v2/data/llms/models (JSON;
@@ -12,9 +12,8 @@
 //   - Atomic write via writeModelsJson (tmp + rename).
 //   - Fail-loud on any unexpected shape; --dry-run reports the diff
 //     without touching the file. --file redirects the target (tests).
-//   - Alias-miss is FATAL (unknown AA id exits non-zero with the id in
-//     the message); known-id-disappear is a WARN (curated record is
-//     preserved, no data is deleted).
+//   - Unknown non-curated slugs are ignored; missing slugs are fatal and
+//     known curated slugs that disappear are WARNed and preserved.
 //   - AA owns ONLY the fields in FIELD_MAP plus `blended` and
 //     `pricingSource`. Everything else (benchlm, arena, swePro, sweVer,
 //     tier, notes, rate limits) is preserved untouched. Optional fields
@@ -22,7 +21,7 @@
 //     are documented in `notes`, never synthesized as 0/null.
 //   - The 3:1 blended price is computed locally: (3*input + output)/4.
 //     An upstream `blended` field is never trusted.
-//   - On write, `_meta.schemaVersion` is explicitly set to 3 (the bump
+//   - On write, `_meta.schemaVersion` is explicitly set to 4 (the bump
 //     is atomic with the first AA field write).
 //   - Missing `AA_API_KEY` for the LIVE endpoint is a SOFT-FAIL: a
 //     `::warning::` is written to stderr and the CLI exits 0 with
@@ -50,7 +49,7 @@ import {
   summarizeDryRun,
   exitWith,
 } from './_scraper-utils.mjs';
-import { loadAaAliases, mapAaId, detectRename, detectMissing } from './_aa-safety.mjs';
+import { loadAaAliases, mapAaSlug, detectMissing } from './_aa-safety.mjs';
 import { resolve, dirname, isAbsolute } from 'node:path';
 import { existsSync, readFileSync as fsReadFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -63,7 +62,7 @@ const SCRAPER_NAME = 'scrape-artificialanalysis';
 const SOURCE_URL = 'https://artificialanalysis.ai/api/v2/data/llms/models';
 const ATTRIBUTION_URL = 'https://artificialanalysis.ai/';
 const DEFAULT_ALIAS_PATH = resolve(REPO_ROOT, 'data/aa-aliases.json');
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 /**
  * Response path (dot-separated) → curated field name. THE single
@@ -72,14 +71,14 @@ const SCHEMA_VERSION = 3;
  * the real names). `pricing.*` paths read the nested AA pricing object.
  */
 const FIELD_MAP = {
-  'pricing.input': 'input',
-  'pricing.output': 'output',
-  'pricing.cacheRead': 'cacheRead',
-  'pricing.cacheWrite': 'cacheWrite',
-  term: 'term',
-  codingIndex: 'codingIndex',
-  median_output_tokens_per_second: 'median_output_tokens_per_second',
-  median_time_to_first_token_seconds: 'median_time_to_first_token_seconds',
+  'pricing.price_1m_input_tokens': 'input',
+  'pricing.price_1m_output_tokens': 'output',
+  'evaluations.terminalbench_v2_1': 'term',
+  'evaluations.artificial_analysis_coding_index': 'codingIndex',
+  'evaluations.artificial_analysis_math_index': 'mathIndex',
+  median_output_tokens_per_second: 'outputTokensPerSecond',
+  median_time_to_first_token_seconds: 'timeToFirstTokenSeconds',
+  median_time_to_first_answer_token: 'timeToFirstAnswerTokenSeconds',
 };
 
 /** Curated fields AA MUST return as finite numbers for every mapped entry. */
@@ -100,7 +99,8 @@ function isLocalPath(src) {
 
 /**
  * Read a nested value from an object via a dot-separated path
- * (`"pricing.input"` → `obj.pricing.input`). Returns undefined when any
+ * (`"pricing.price_1m_input_tokens"` → `obj.pricing.price_1m_input_tokens`).
+ * Returns undefined when any
  * segment is missing.
  *
  * @param {Object} obj
@@ -118,11 +118,12 @@ function getPath(obj, path) {
 
 /**
  * Validate that every REQUIRED_FIELDS value is present and finite for a
- * response entry. Returns an error message or null. Drift on required
- * pricing blocks the whole run — canonical data stays unchanged.
+ * response entry. Returns an error message or null. The caller aggregates
+ * these errors so an individual partial row can be skipped while a fully
+ * drifted mapped response remains fail-closed.
  *
  * @param {Object} entry
- * @param {string} identity - AA id, for the error message
+ * @param {string} identity - AA slug, for the error message
  * @returns {string|null}
  */
 function validateRequiredFields(entry, identity) {
@@ -144,8 +145,9 @@ function validateRequiredFields(entry, identity) {
  * copied verbatim (validated upstream by validateRequiredFields);
  * optional fields are written ONLY when the API returned a finite
  * number, otherwise they are collected into `absent` for documentation.
- * The 3:1 blended price is computed locally — an upstream `blended`
- * value is never read.
+ * The terminal benchmark ratio is scaled from 0–1 to 0–100. The 3:1
+ * blended price is computed locally — an upstream `blended` value is
+ * never read.
  *
  * @param {Object} entry
  * @returns {{patch: Object, absent: string[]}}
@@ -154,7 +156,8 @@ function buildAaPatch(entry) {
   const patch = {};
   const absent = [];
   for (const [path, curated] of Object.entries(FIELD_MAP)) {
-    const v = getPath(entry, path);
+    const raw = getPath(entry, path);
+    const v = curated === 'term' && typeof raw === 'number' ? raw * 100 : raw;
     if (REQUIRED_FIELDS.includes(curated)) {
       patch[curated] = v;
     } else if (typeof v === 'number' && Number.isFinite(v)) {
@@ -169,7 +172,7 @@ function buildAaPatch(entry) {
 }
 
 /**
- * Document absent optional fields in the model `notes` (per schema v3:
+ * Document absent optional fields in the model `notes` (per schema v4:
  * absence is documented, never synthesized as 0/null). Idempotent per
  * day — the same omission note is never appended twice.
  *
@@ -203,22 +206,6 @@ function appendAttribution(model, date) {
       )
     : [];
   return { ...model, sources: [...sources, source] };
-}
-
-/**
- * Diagnostic (spike 1.1): dump every entry's id/slug/name to stderr as
- * tab-separated lines so the alias table can be rebuilt from the real
- * AA ids. No-op in quiet mode (tests). Only called on alias failure.
- *
- * @param {Object[]} list
- * @param {boolean} quiet
- * @returns {void}
- */
-function dumpModelList(list, quiet) {
-  if (quiet) return;
-  for (const e of list) {
-    process.stderr.write(`[${SCRAPER_NAME}] model: ${e.id}\t${e.slug}\t${e.name}\n`);
-  }
 }
 
 /**
@@ -283,14 +270,12 @@ export async function runScrape(args, deps) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `response missing top-level data array; actual top-level keys: ${JSON.stringify(topKeys)}` };
   }
 
-  // 4. Validate each entry has a non-empty `id`.
+  // 4. Validate each entry is an object. Stable `slug` is the identity;
+  //    UUID `id` is intentionally ignored because AA can change it.
   for (let i = 0; i < list.length; i++) {
     const r = list[i];
     if (!r || typeof r !== 'object') {
       return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}] is not an object` };
-    }
-    if (typeof r.id !== 'string' || r.id.length === 0) {
-      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: `models[${i}].id is missing or empty` };
     }
   }
 
@@ -302,28 +287,19 @@ export async function runScrape(args, deps) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'alias', error: err.message };
   }
 
-  // 6. Detect renames, map AA ids → curated keys, and run the required
-  //    pricing drift guard (fail-loud on miss, rename, or drift).
+  // 6. Map stable AA slugs → curated keys and run the required pricing
+  //    drift guard. Unknown non-curated slugs are ignored. A partially
+  //    malformed response can still update valid curated siblings, but a
+  //    response with no valid mapped rows is structural drift.
   const mappedPresent = new Set();
   const aaByKey = new Map();
+  const skipped = [];
+  let mappedCount = 0;
+  let validCount = 0;
   for (const r of list) {
+    let mapped;
     try {
-      detectRename(r.id, r.slug, aliases);
-    } catch (err) {
-      dumpModelList(list, args.quiet);
-      return {
-        scraper: SCRAPER_NAME,
-        ok: false,
-        phase: 'alias',
-        error: err.message,
-        code: err.code,
-        oldId: err.oldId,
-        newId: err.newId,
-      };
-    }
-    let curatedKey;
-    try {
-      curatedKey = mapAaId(r.id, aliases);
+      mapped = mapAaSlug(r.slug, aliases);
     } catch (err) {
       return {
         scraper: SCRAPER_NAME,
@@ -331,15 +307,34 @@ export async function runScrape(args, deps) {
         phase: 'alias',
         error: err.message,
         code: err.code,
-        aaId: err.aaId,
+        aaSlug: r.slug,
       };
     }
-    const requiredErr = validateRequiredFields(r, r.id);
-    if (requiredErr) {
-      return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error: requiredErr, code: 'AA_REQUIRED_FIELD_MISSING' };
-    }
+
+    if (!mapped) continue;
+
+    const curatedKey = mapped.to;
+    mappedCount += 1;
     mappedPresent.add(curatedKey);
-    aaByKey.set(curatedKey, r);
+    const requiredErr = validateRequiredFields(r, r.slug);
+    if (requiredErr) {
+      skipped.push({ curatedKey, error: requiredErr });
+      continue;
+    }
+    const { patch, absent } = buildAaPatch(r);
+    aaByKey.set(curatedKey, { entry: r, effort: mapped.effort, patch, absent });
+    validCount += 1;
+  }
+
+  if (mappedCount > 1 && validCount === 0) {
+    const error = skipped[0]?.error || 'no mapped entries contained valid required pricing fields';
+    return { scraper: SCRAPER_NAME, ok: false, phase: 'validate', error, code: 'AA_REQUIRED_FIELD_MISSING' };
+  }
+
+  if (!args.quiet) {
+    for (const { curatedKey, error } of skipped) {
+      console.log(`[${SCRAPER_NAME}] warn: curated key "${curatedKey}" skipped — ${error}`);
+    }
   }
 
   // 7. Read existing data/models.json (or the --file override)
@@ -350,21 +345,29 @@ export async function runScrape(args, deps) {
     return { scraper: SCRAPER_NAME, ok: false, phase: 'read', error: err.message };
   }
 
-  // 8. Detect missing known ids (curated ids AA did NOT mention).
+  // 8. Detect missing known keys (curated keys AA did NOT mention).
   const missing = detectMissing(Object.keys(doc.models), mappedPresent);
 
   // 9. Build the updated models object — field-scoped AA-only merge.
   const today = new Date().toISOString().slice(0, 10);
   const before = JSON.parse(JSON.stringify(doc.models));
   const updatedModels = { ...doc.models };
-  for (const [curatedKey, entry] of aaByKey) {
+  for (const [curatedKey, { entry, effort, patch, absent }] of aaByKey) {
     const existing = updatedModels[curatedKey];
     if (!existing) {
-      if (!args.quiet) console.log(`[${SCRAPER_NAME}] note: curated key "${curatedKey}" is not tracked — skipping`);
+      let created = {
+        name: entry.name,
+        effort,
+        ...patch,
+        benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+      };
+      created = appendAttribution(created, today);
+      created = documentAbsent(created, absent, today);
+      updatedModels[curatedKey] = created;
       continue;
     }
-    const { patch, absent } = buildAaPatch(entry);
-    let merged = { ...existing, ...patch };
+    let merged = { ...existing, ...patch, effort };
+    for (const field of absent) delete merged[field];
     merged = appendAttribution(merged, today);
     merged = documentAbsent(merged, absent, today);
     updatedModels[curatedKey] = merged;
@@ -372,8 +375,8 @@ export async function runScrape(args, deps) {
 
   // 10. Log missing-known warnings
   if (!args.quiet) {
-    for (const id of missing) {
-      console.log(`[${SCRAPER_NAME}] warn: curated id "${id}" was not returned by Artificial Analysis — preserving record`);
+    for (const key of missing) {
+      console.log(`[${SCRAPER_NAME}] warn: curated key "${key}" was not returned by Artificial Analysis — preserving record`);
     }
   }
 
