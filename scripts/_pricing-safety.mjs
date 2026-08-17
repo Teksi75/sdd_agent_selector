@@ -26,10 +26,66 @@
 //       record. Falls back to `meta.lastSynced` when per-model
 //       `lastSynced` is absent so the cron doesn't blank out curated
 //       data every run.
+//
+//   - aaOwnsPricing(model)
+//       True when the model record carries the AA authority marker
+//       (`pricingSource === 'artificialanalysis'`), i.e. Artificial
+//       Analysis supplies the pricing and vendor HTML scrapers must NOT
+//       overwrite it. Explicit marker, never scraper ordering.
+//
+//   - guardVendorPricePatch(model, patch)
+//       Vendor-fallback guard: when `aaOwnsPricing(model)` is true,
+//       returns a copy of `patch` WITHOUT the pricing fields (input,
+//       output, cacheRead, cacheWrite); non-pricing fields (name,
+//       quota, isReference, ...) pass through. When the model is NOT
+//       AA-owned, returns `patch` unchanged (same reference) so the
+//       vendor scraper remains the fallback authority for AA-uncovered
+//       models. New records (model absent) can never be AA-owned, so
+//       the guard is a no-op there.
 
 export const STALENESS_COOLDOWN_DAYS = 5;
 export const OVERSIZED_MULTIPLIER = 1000;
 const FLAGSHIP_KEYS = new Set(['gpt55', 'gpt55Pro']);
+
+/** AA authority marker value written by scrape-artificialanalysis. */
+export const AA_PRICING_SOURCE = 'artificialanalysis';
+
+/** Pricing fields owned by AA when the marker is present. */
+const VENDOR_PRICING_FIELDS = Object.freeze(['input', 'output', 'cacheRead', 'cacheWrite']);
+
+/**
+ * True when the model record is AA-authoritative for pricing, i.e. its
+ * `pricingSource` is the AA marker. Vendor scrapers must skip pricing
+ * fields for such models (see guardVendorPricePatch).
+ *
+ * @param {Object|undefined|null} model
+ * @returns {boolean}
+ */
+export function aaOwnsPricing(model) {
+  return Boolean(model && typeof model === 'object' && model.pricingSource === AA_PRICING_SOURCE);
+}
+
+/**
+ * Vendor-fallback guard. Strips the pricing fields (input, output,
+ * cacheRead, cacheWrite) from `patch` when the target model is
+ * AA-owned, so a vendor scraper can never clobber AA values. For
+ * AA-uncovered models (or brand-new records) returns `patch` unchanged
+ * — vendor pricing remains the fallback authority.
+ *
+ * @param {Object|undefined|null} model - the target record (pre-merge)
+ * @param {Object|undefined|null} patch - the vendor patch to apply
+ * @returns {Object}
+ */
+export function guardVendorPricePatch(model, patch) {
+  if (!aaOwnsPricing(model)) return patch;
+  if (!patch || typeof patch !== 'object') return {};
+  const out = {};
+  for (const [k, v] of Object.entries(patch)) {
+    if (VENDOR_PRICING_FIELDS.includes(k)) continue;
+    out[k] = v;
+  }
+  return out;
+}
 
 function isFinitePositive(n) {
   return Number.isFinite(n) && n > 0;

@@ -34,6 +34,8 @@ import {
   buildDefinedPricePatch,
   sanitizeOpenAiPricePatch,
   shouldUpdate,
+  aaOwnsPricing,
+  guardVendorPricePatch,
 } from './_pricing-safety.mjs';
 
 const SOURCE_URL = 'https://platform.openai.com/docs/pricing';
@@ -261,9 +263,20 @@ async function main() {
     // an input>output inversion, or a >1000x outlier all WARN + SKIP
     // instead of corrupting curated data.
     const safePatch = sanitizeOpenAiPricePatch(row, existing, key);
+    // AA pricing precedence (schema v3): when the record is AA-owned
+    // (pricingSource === 'artificialanalysis'), this vendor scraper must
+    // never overwrite input/output/cacheRead — skip pricing fields only
+    // and leave AA values authoritative. No-op while no model is AA-owned.
+    const aaOwned = aaOwnsPricing(existing);
+    const guardedPatch = guardVendorPricePatch(existing, safePatch);
+    if (aaOwned && !args.quiet) {
+      console.log(
+        `[${SCRAPER_NAME}] ${key}: pricing is AA-owned (pricingSource=artificialanalysis) — skipping vendor pricing fields`
+      );
+    }
     const defined = buildDefinedPricePatch({
       name: row.name.split(' (')[0], // strip "(<272K context length)" suffix
-      ...safePatch,
+      ...guardedPatch,
     });
     if (existing) {
       updatedModels[key] = { ...existing, ...defined };

@@ -5,8 +5,8 @@
 // every tracked V4 model:
 //   - every tracked V4 model has a `benchlm` block with valid {score,
 //     verified, reliability, categories}
-//   - schemaVersion === 2 (matches CURRENT_SCHEMA_VERSION in js/services/
-//     data-loader.js after PR1 merge)
+//   - schemaVersion === 3 (matches CURRENT_SCHEMA_VERSION in js/services/
+//     data-loader.js after the PR4 AA schema bump)
 //   - legacy V3 model fields (name, tier, input, output) still match as
 //     drift-detection sanity; the flat `arena`/`swePro`/`sweVer`/`term`
 //     fields remain in data/models.json for reference but the integrity
@@ -144,11 +144,11 @@ const KNOWN_UPSTREAM_PRICE_UPDATES = new Set([
 describe('data-integrity: BenchLM-shape contract (PR3)', () => {
   const doc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
 
-  test('_meta block declares schemaVersion 2 (matches CURRENT_SCHEMA_VERSION after PR1)', () => {
+  test('_meta block declares schemaVersion 3 (matches CURRENT_SCHEMA_VERSION after the AA schema bump)', () => {
     // Loader's readCache discards mismatched versions, so this must match
     // CURRENT_SCHEMA_VERSION exported from js/services/data-loader.js.
     expect(doc._meta).toBeDefined();
-    expect(doc._meta.schemaVersion).toBe(2);
+    expect(doc._meta.schemaVersion).toBe(3);
     expect(doc._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -313,20 +313,20 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
       expect(v4Model.tier).toBe('reference');
     }
   });
-  test('_meta block declares schemaVersion 2 (BenchLM migration)', () => {
+  test('_meta block declares schemaVersion 3 (AA pricing schema bump)', () => {
     expect(v4raw._meta).toBeDefined();
-    expect(v4raw._meta.schemaVersion).toBe(2);
+    expect(v4raw._meta.schemaVersion).toBe(3);
     expect(v4raw._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
-// --- Schema v2 migration gate (PR1 — benchlm-replace-custom-scoring) ----------
+// --- Schema v3 migration gate (PR4 — aa-benchmark-integration) --------------
 //
-// PR1 bumps BOTH `_meta.schemaVersion` in data/models.json AND
-// `CURRENT_SCHEMA_VERSION` in js/services/data-loader.js. The loader's
-// readCache already discards cached payloads whose `schemaVersion` does
-// not match the live constant, so bumping it forces a clean refetch on
-// the next page load (no manual cache clear needed).
+// PR4 bumps BOTH `_meta.schemaVersion` in data/models.json (2 → 3) AND
+// `CURRENT_SCHEMA_VERSION` in js/services/data-loader.js (2 → 3). The
+// loader's readCache already discards cached payloads whose
+// `schemaVersion` does not match the live constant, so bumping it forces a
+// clean refetch on the next page load (no manual cache clear needed).
 //
 // Why export the constant: it's currently a private `const`, but the
 // integrity test is the natural place to pin the migration number. We
@@ -335,9 +335,107 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
 // API — it's a test affordance.
 import { CURRENT_SCHEMA_VERSION } from '../js/services/data-loader.js';
 
-describe('data-integrity: schema v2 migration gate', () => {
-  test('CURRENT_SCHEMA_VERSION in data-loader is 2', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(2);
+describe('data-integrity: schema v3 migration gate', () => {
+  test('CURRENT_SCHEMA_VERSION in data-loader is 3', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(3);
+  });
+});
+
+// --- Schema v3 assertions (PR4 — aa-benchmark-integration) ------------------
+//
+// Schema v3 carries the AA pricing surface: optional `term` (Terminal-Bench
+// v2.1), `codingIndex`, `median_output_tokens_per_second`,
+// `median_time_to_first_token_seconds`, locally-computed `blended`
+// ((3*input + output)/4), and the `pricingSource: "artificialanalysis"`
+// authority marker. `_meta.sources` gains the `scrape-artificialanalysis`
+// provenance tag.
+//
+// Current state: no AA sync has run yet (no AA_API_KEY in CI → the scraper
+// soft-fails), so NO model may carry hand-populated `pricingSource` /
+// `blended` values — the vendor scrapers' AA guard must be a no-op today.
+// The AA-owned contract assertions below are therefore vacuous now and
+// become ACTIVE after the first real AA sync.
+
+describe('data-integrity: schema v3 (AA pricing schema)', () => {
+  const raw = JSON.parse(
+    readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
+  );
+
+  test('_meta.sources carries the scrape-artificialanalysis provenance tag', () => {
+    expect(Array.isArray(raw._meta.sources)).toBe(true);
+    expect(raw._meta.sources).toContain('scrape-artificialanalysis');
+  });
+
+  test('no model carries AA-owned pricing yet (guard no-op state; no hand-populated values)', () => {
+    for (const [key, model] of Object.entries(raw.models)) {
+      expect(
+        model.pricingSource,
+        `model ${key} must not carry a hand-populated pricingSource`
+      ).toBeUndefined();
+      expect(
+        model.blended,
+        `model ${key} must not carry a hand-populated blended value`
+      ).toBeUndefined();
+    }
+  });
+
+  test('no API key material leaks into the published data', () => {
+    const serialized = JSON.stringify(raw);
+    expect(serialized).not.toContain('AA_API_KEY');
+    expect(serialized).not.toMatch(/x-api-key/i);
+  });
+
+  test('benchmark fields are untouched by the schema bump (shape unchanged per model)', () => {
+    for (const [key, model] of Object.entries(raw.models)) {
+      expect(model.benchlm, `model ${key} benchlm`).toBeDefined();
+      for (const field of ['arena', 'swePro', 'sweVer', 'term']) {
+        if (field in model) {
+          const v = model[field];
+          expect(
+            v === null || Number.isFinite(v),
+            `model ${key}.${field} must be finite-or-null after the v3 bump`
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  test('AA-owned models (when present) compute blended locally and keep provenance', () => {
+    const aaModels = Object.entries(raw.models).filter(
+      ([, m]) => m.pricingSource === 'artificialanalysis'
+    );
+    for (const [key, m] of aaModels) {
+      expect(Number.isFinite(m.input), `${key} input must be finite`).toBe(true);
+      expect(Number.isFinite(m.output), `${key} output must be finite`).toBe(true);
+      expect(m.blended, `${key} blended must equal (3*input + output)/4`).toBeCloseTo(
+        (3 * m.input + m.output) / 4,
+        10
+      );
+      const aaSource = (m.sources || []).find(
+        (s) => s && s.url === 'https://artificialanalysis.ai/' && s.scraper === 'scrape-artificialanalysis'
+      );
+      expect(aaSource, `${key} must carry AA attribution`).toBeDefined();
+    }
+    // Currently zero AA-owned models (no API key → scraper soft-fails).
+    expect(aaModels.length).toBe(0);
+  });
+
+  test('AA-owned models never synthesize omitted optional fields as 0/null', () => {
+    const aaModels = Object.entries(raw.models).filter(
+      ([, m]) => m.pricingSource === 'artificialanalysis'
+    );
+    for (const [key, m] of aaModels) {
+      for (const field of ['cacheRead', 'cacheWrite', 'term', 'codingIndex']) {
+        if (field in m) {
+          expect(
+            Number.isFinite(m[field]),
+            `${key}.${field} must be finite when present (never 0/null)`
+          ).toBe(true);
+        }
+      }
+    }
+    // Vacuous while no AA sync has run.
+    expect(aaModels.length).toBe(0);
   });
 });
 

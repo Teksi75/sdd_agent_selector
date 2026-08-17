@@ -199,3 +199,72 @@ describe('pricing-safety — shouldUpdate (RED)', () => {
     expect(shouldUpdate({ lastSynced: 'not-a-date' }, undefined, today)).toBe(true);
   });
 });
+
+describe('pricing-safety — aaOwnsPricing + vendor-fallback guard (RED)', () => {
+  // PR4 (aa-benchmark-integration): AA becomes the pricing authority for
+  // covered models. `aaOwnsPricing(model)` detects the AA ownership marker
+  // (pricingSource === 'artificialanalysis') and `guardVendorPricePatch`
+  // strips pricing fields from a vendor patch so vendor HTML scrapers can
+  // never clobber AA values. Vendor scrapers remain the fallback for
+  // AA-uncovered models.
+
+  test('aaOwnsPricing(model) is true for an AA-owned record (pricingSource=artificialanalysis)', async () => {
+    const { aaOwnsPricing } = await import(HELPERS_PATH);
+    expect(
+      aaOwnsPricing({ name: 'gpt-5.6', pricingSource: 'artificialanalysis', input: 1.2 })
+    ).toBe(true);
+  });
+
+  test('aaOwnsPricing(model) is false when pricingSource is absent', async () => {
+    const { aaOwnsPricing } = await import(HELPERS_PATH);
+    expect(aaOwnsPricing({ name: 'gpt-5.6', input: 1.2 })).toBe(false);
+  });
+
+  test('aaOwnsPricing(model) is false for any other pricingSource value (vendor-owned)', async () => {
+    const { aaOwnsPricing } = await import(HELPERS_PATH);
+    expect(aaOwnsPricing({ name: 'gpt-5.6', pricingSource: 'openai' })).toBe(false);
+    expect(aaOwnsPricing({ name: 'gpt-5.6', pricingSource: '' })).toBe(false);
+  });
+
+  test('aaOwnsPricing(model) is false for missing/malformed records (defensive)', async () => {
+    const { aaOwnsPricing } = await import(HELPERS_PATH);
+    expect(aaOwnsPricing(undefined)).toBe(false);
+    expect(aaOwnsPricing(null)).toBe(false);
+    expect(aaOwnsPricing('artificialanalysis')).toBe(false);
+  });
+
+  test('guardVendorPricePatch strips input/output/cacheRead/cacheWrite for AA-owned models, keeps non-pricing fields', async () => {
+    const { guardVendorPricePatch } = await import(HELPERS_PATH);
+    const model = { name: 'Claude Sonnet 5', pricingSource: 'artificialanalysis' };
+    const patch = { name: 'Claude Sonnet 5', input: 5, output: 30, cacheRead: 1, cacheWrite: 2, tier: 'balanced' };
+    const guarded = guardVendorPricePatch(model, patch);
+    expect(guarded).toEqual({ name: 'Claude Sonnet 5', tier: 'balanced' });
+    expect(guarded).not.toHaveProperty('input');
+    expect(guarded).not.toHaveProperty('output');
+    expect(guarded).not.toHaveProperty('cacheRead');
+    expect(guarded).not.toHaveProperty('cacheWrite');
+  });
+
+  test('guardVendorPricePatch strips only the pricing fields present in the patch', async () => {
+    const { guardVendorPricePatch } = await import(HELPERS_PATH);
+    const model = { pricingSource: 'artificialanalysis' };
+    expect(guardVendorPricePatch(model, { input: 1.4 })).toEqual({});
+    expect(guardVendorPricePatch(model, { output: 4.4, name: 'GLM-5.2' })).toEqual({ name: 'GLM-5.2' });
+  });
+
+  test('guardVendorPricePatch returns the patch unchanged for AA-uncovered models (vendor fallback allowed)', async () => {
+    const { guardVendorPricePatch } = await import(HELPERS_PATH);
+    const patch = { input: 5, output: 30, cacheRead: 1 };
+    // Same reference: no ownership → the vendor patch is authoritative.
+    expect(guardVendorPricePatch({ name: 'gpt-5.4' }, patch)).toBe(patch);
+    // New/brand-new models have no record at all → no ownership → no-op.
+    expect(guardVendorPricePatch(undefined, patch)).toBe(patch);
+  });
+
+  test('guardVendorPricePatch handles a null/undefined patch defensively', async () => {
+    const { guardVendorPricePatch } = await import(HELPERS_PATH);
+    const model = { pricingSource: 'artificialanalysis' };
+    expect(guardVendorPricePatch(model, null)).toEqual({});
+    expect(guardVendorPricePatch(model, undefined)).toEqual({});
+  });
+});

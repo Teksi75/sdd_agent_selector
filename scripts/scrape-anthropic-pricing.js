@@ -28,7 +28,11 @@ import {
   summarizeDryRun,
   exitWith,
 } from './_scraper-utils.mjs';
-import { buildDefinedPricePatch } from './_pricing-safety.mjs';
+import {
+  buildDefinedPricePatch,
+  aaOwnsPricing,
+  guardVendorPricePatch,
+} from './_pricing-safety.mjs';
 
 const SOURCE_URL = 'https://www.anthropic.com/pricing';
 const SCRAPER_NAME = 'scrape-anthropic-pricing';
@@ -189,17 +193,30 @@ async function main() {
         patch.isReference = true;
       }
     }
+    // AA pricing precedence (schema v3): when the record is AA-owned
+    // (pricingSource === 'artificialanalysis'), this vendor scraper must
+    // never overwrite input/output/cacheRead/cacheWrite — skip pricing
+    // fields only and leave AA values authoritative. Must run BEFORE the
+    // existing-preserve merge below (which would otherwise re-fill the
+    // vendor prices). No-op while no model is AA-owned.
+    const aaOwned = aaOwnsPricing(existing);
+    const guarded = guardVendorPricePatch(existing, patch);
+    if (aaOwned && !args.quiet) {
+      console.log(
+        `[${SCRAPER_NAME}] ${info.key}: pricing is AA-owned (pricingSource=artificialanalysis) — skipping vendor pricing fields`
+      );
+    }
     if (existing) {
-      if (!Number.isFinite(patch.input) && Number.isFinite(existing.input)) {
-        patch.input = existing.input;
+      if (!Number.isFinite(guarded.input) && Number.isFinite(existing.input)) {
+        guarded.input = existing.input;
       }
-      if (!Number.isFinite(patch.output) && Number.isFinite(existing.output)) {
-        patch.output = existing.output;
+      if (!Number.isFinite(guarded.output) && Number.isFinite(existing.output)) {
+        guarded.output = existing.output;
       }
-      updatedModels[info.key] = { ...existing, ...patch };
+      updatedModels[info.key] = { ...existing, ...guarded };
     } else {
-      patch.sources = [{ url, date: today }];
-      updatedModels[info.key] = patch;
+      guarded.sources = [{ url, date: today }];
+      updatedModels[info.key] = guarded;
     }
     updated.push(info.key);
   }
