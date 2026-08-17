@@ -39,6 +39,22 @@ function tierSlug(tier) {
   return 'balanced';
 }
 
+const EFFORT_LABELS = Object.freeze({
+  max: 'Máximo',
+  xhigh: 'Extremo alto',
+  high: 'Alto',
+  medium: 'Medio',
+  low: 'Bajo',
+  'non-reasoning': 'Sin razonamiento',
+});
+
+/** Render the optional first-class effort badge. */
+function effortBadgeHtml(effort) {
+  if (effort === null || effort === undefined || effort === '') return '';
+  const label = EFFORT_LABELS[effort] || String(effort);
+  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${esc(effort)}">${esc(label)}</span>`;
+}
+
 /** Tier badge label. V5: label matches the data-tier (high/budget/
     reference/balanced) for consistency with the data model. */
 function tierLabel(tier) {
@@ -125,12 +141,16 @@ export function buildCard(model) {
   const newBadge = model.isNew === true
     ? ' <span class="src-badge src-new">NEW</span>'
     : '';
+  const effortBadge = effortBadgeHtml(model.effort);
   const benchlmRow = benchlmRowHtml(model.benchlm);
   return `
     <div class="model-card" data-model-key="${esc(model.key || '')}" data-tier="${esc(tier)}">
       <div class="flex items-center justify-between gap-2 mb-1.5">
         <span class="text-sm font-semibold text-slate-100 truncate">${esc(model.name || model.key || '—')}${newBadge}</span>
-        <span class="model-tier-tag" data-tier="${esc(tier)}">${esc(label)}</span>
+        <span class="inline-flex items-center gap-1.5">
+          ${effortBadge}
+          <span class="model-tier-tag" data-tier="${esc(tier)}">${esc(label)}</span>
+        </span>
       </div>
       ${benchlmRow}
       <div class="flex gap-3 mt-1.5 text-[11px] text-slate-400 font-mono">

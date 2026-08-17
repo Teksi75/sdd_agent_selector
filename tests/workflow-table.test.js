@@ -117,4 +117,34 @@ describe('workflow-table — 9-row contract (spec.md)', () => {
     const badge = proposeRow.querySelector('[data-soft-fallback="true"]');
     expect(badge.getAttribute('title')).toMatch(/minReasoning=95/);
   });
+
+  test('renders effort labels for assigned variants without collapsing rows', async () => {
+    ({ render, resetForTests } = await import('../js/components/workflow-table.js'));
+    resetForTests();
+
+    const phases = [
+      { id: 'max', name: 'Max', desc: '' },
+      { id: 'high', name: 'High', desc: '' },
+      { id: 'legacy', name: 'Legacy', desc: '' },
+    ];
+    const models = {
+      gpt55: { name: 'GPT-5.5', tier: 'high', effort: 'xhigh' },
+      gpt55High: { name: 'GPT-5.5 High', tier: 'high', effort: 'high' },
+      legacy: { name: 'Legacy model', tier: 'balanced' },
+    };
+    const assignments = {
+      max: { key: 'gpt55' },
+      high: { key: 'gpt55High' },
+      legacy: { key: 'legacy' },
+    };
+
+    const summary = render(target, assignments, models, phases);
+    expect(summary.rows).toBe(3);
+    expect(target.querySelectorAll('tbody tr')).toHaveLength(3);
+    expect(target.querySelector('tr[data-phase-id="max"] [data-effort="xhigh"]')?.textContent)
+      .toBe('Extremo alto');
+    expect(target.querySelector('tr[data-phase-id="high"] [data-effort="high"]')?.textContent)
+      .toBe('Alto');
+    expect(target.querySelector('tr[data-phase-id="legacy"] [data-effort]')).toBeNull();
+  });
 });

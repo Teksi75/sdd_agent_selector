@@ -102,13 +102,14 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
 
   test('(a) row shows benchlm score column; NO legacy 4-benchmark columns', () => {
     render(target, FIXTURE);
-    // Columns: Modelo, Tier, Lifecycle, Score, BenchLM, Input $, Output $, Sources = 8.
+    // Columns: Modelo, Tier, Esfuerzo, Lifecycle, Score, BenchLM, Input $, Output $, Sources = 9.
     const ths = target.querySelectorAll('thead th');
-    expect(ths.length).toBe(8);
+    expect(ths.length).toBe(9);
     // Specific columns present.
     const labels = Array.from(ths).map((th) => th.textContent.trim());
     expect(labels).toContain('Modelo');
     expect(labels).toContain('Tier');
+    expect(labels).toContain('Esfuerzo');
     expect(labels).toContain('Lifecycle');
     expect(labels).toContain('Score');
     expect(labels).toContain('BenchLM');
@@ -206,6 +207,50 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     render(target, evil);
     expect(target.innerHTML).not.toMatch(/<img src=x onerror/);
     expect(target.innerHTML).toMatch(/&lt;img/);
+  });
+
+  test('renders independent effort variants and leaves the badge absent when effort is missing', () => {
+    const models = {
+      gpt55: {
+        name: 'GPT-5.5',
+        tier: 'high',
+        lifecycle: 'active',
+        effort: 'xhigh',
+        benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} },
+      },
+      gpt55High: {
+        name: 'GPT-5.5 High',
+        tier: 'high',
+        lifecycle: 'active',
+        effort: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+      },
+      gpt55Medium: {
+        name: 'GPT-5.5 Medium',
+        tier: 'high',
+        lifecycle: 'active',
+        effort: 'medium',
+        benchlm: { score: 75, verified: true, reliability: 0.7, categories: {} },
+      },
+      legacy: {
+        name: 'Legacy model',
+        tier: 'balanced',
+        lifecycle: 'active',
+        benchlm: { score: 60, verified: false, reliability: 0.6, categories: {} },
+      },
+    };
+
+    const summary = render(target, models);
+    expect(summary.rows).toBe(4);
+    expect(target.querySelectorAll('tr[data-model-key]')).toHaveLength(4);
+
+    expect(target.querySelector('tr[data-model-key="gpt55"] [data-effort="xhigh"]')?.textContent)
+      .toBe('Extremo alto');
+    expect(target.querySelector('tr[data-model-key="gpt55High"] [data-effort="high"]')?.textContent)
+      .toBe('Alto');
+    expect(target.querySelector('tr[data-model-key="gpt55Medium"] [data-effort="medium"]')?.textContent)
+      .toBe('Medio');
+    expect(target.querySelector('tr[data-model-key="legacy"] [data-effort]')).toBeNull();
   });
 });
 

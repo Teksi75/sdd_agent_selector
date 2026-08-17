@@ -140,4 +140,36 @@ describe('cli-mirror-table — render() contract (spec.md)', () => {
     const summary = { withAssignment: 18, withoutAssignment: 0 };
     expect(summary.withoutAssignment).toBe(0);
   });
+
+  test('renders effort labels for assigned variants and omits missing effort', async () => {
+    ({ render } = await import('../js/components/cli-mirror-table.js'));
+
+    const agentRoles = {
+      'gentle-orchestrator': { role: 'orchestrator' },
+      'sdd-init': { role: 'initializer' },
+      'sdd-explore': { role: 'explorer' },
+    };
+    const assignments = {
+      'gentle-orchestrator': {
+        key: 'gpt55',
+        model: { name: 'GPT-5.5', tier: 'high', effort: 'xhigh' },
+      },
+      'sdd-init': {
+        key: 'gpt55High',
+        model: { name: 'GPT-5.5 High', tier: 'high', effort: 'high' },
+      },
+      'sdd-explore': {
+        key: 'legacy',
+        model: { name: 'Legacy model', tier: 'balanced' },
+      },
+    };
+
+    render(target, assignments, agentRoles);
+    expect(target.querySelectorAll('tbody tr')).toHaveLength(3);
+    expect(target.querySelector('tr[data-agent="gentle-orchestrator"] [data-effort="xhigh"]')?.textContent)
+      .toBe('Extremo alto');
+    expect(target.querySelector('tr[data-agent="sdd-init"] [data-effort="high"]')?.textContent)
+      .toBe('Alto');
+    expect(target.querySelector('tr[data-agent="sdd-explore"] [data-effort]')).toBeNull();
+  });
 });
