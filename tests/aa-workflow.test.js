@@ -38,4 +38,15 @@ describe('sync-benchmarks.yml — AA scraper registration (PR 5)', () => {
   test('attribution to artificialanalysis.ai is present in the scraper', () => {
     expect(scraperSrc).toMatch(/https:\/\/artificialanalysis\.ai\//);
   });
+
+  test('installs pnpm dependencies before resolving or running scrapers', () => {
+    const installIdx = yaml.indexOf('pnpm install --frozen-lockfile');
+    const setupIdx = yaml.indexOf('name: Setup Node 20');
+    const resolveIdx = yaml.indexOf('name: Resolve scraper list');
+    const loopIdx = yaml.indexOf('name: Run scrapers sequentially');
+
+    expect(installIdx).toBeGreaterThan(setupIdx);
+    expect(installIdx).toBeLessThan(resolveIdx);
+    expect(installIdx).toBeLessThan(loopIdx);
+  });
 });
