@@ -368,8 +368,8 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
 import { CURRENT_SCHEMA_VERSION } from '../js/services/data-loader.js';
 
 describe('data-integrity: loader cache migration gate', () => {
-  test('CURRENT_SCHEMA_VERSION in data-loader remains 3 until PR4', () => {
-    expect(CURRENT_SCHEMA_VERSION).toBe(3);
+  test('CURRENT_SCHEMA_VERSION in data-loader is 4 for PR4', () => {
+    expect(CURRENT_SCHEMA_VERSION).toBe(4);
   });
 });
 
