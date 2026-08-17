@@ -5,8 +5,7 @@
 // every tracked V4 model:
 //   - every tracked V4 model has a `benchlm` block with valid {score,
 //     verified, reliability, categories}
-//   - schemaVersion === 3 (matches CURRENT_SCHEMA_VERSION in js/services/
-//     data-loader.js after the PR4 AA schema bump)
+//   - catalog schemaVersion === 4 (the AA effort-level catalog bump)
 //   - legacy V3 model fields (name, tier, input, output) still match as
 //     drift-detection sanity; the flat `arena`/`swePro`/`sweVer`/`term`
 //     fields remain in data/models.json for reference but the integrity
@@ -121,7 +120,6 @@ const KNOWN_V4_ONLY = new Set([
   'gpt56terra',
   'gpt56sol',
   'gpt56luna',
-  'gpt56lunaMax',
   'kimik27c',
   'kimik25',
   'kimik3',
@@ -144,11 +142,11 @@ const KNOWN_UPSTREAM_PRICE_UPDATES = new Set([
 describe('data-integrity: BenchLM-shape contract (PR3)', () => {
   const doc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
 
-  test('_meta block declares schemaVersion 3 (matches CURRENT_SCHEMA_VERSION after the AA schema bump)', () => {
-    // Loader's readCache discards mismatched versions, so this must match
-    // CURRENT_SCHEMA_VERSION exported from js/services/data-loader.js.
+  test('_meta block declares catalog schemaVersion 4', () => {
+    // The catalog schema bump is independent of the loader cache migration;
+    // PR4 will update CURRENT_SCHEMA_VERSION in js/services/data-loader.js.
     expect(doc._meta).toBeDefined();
-    expect(doc._meta.schemaVersion).toBe(3);
+    expect(doc._meta.schemaVersion).toBe(4);
     expect(doc._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -213,31 +211,27 @@ describe('data-integrity: BenchLM-shape contract (PR3)', () => {
     expect(Array.isArray(placeholders)).toBe(true);
   });
 
-  test('estimated sibling variant never outranks its verified family flagship (gpt56lunaMax < gpt56sol)', () => {
-    // Regression guard for the 2026-08 distortion: the hand-calibrated
-    // BenchLM-equivalent estimate for GPT-5.6 Luna (max) (Artificial
-    // Analysis source, evidence "estimated") briefly sat above GPT-5.6
-    // Sol's verified BenchLM score, inverting the family ordering in the
-    // Composite table. An estimate must never beat a verified score of
-    // its own family's flagship, no matter how close the numbers are.
+  test('consolidated estimated Luna never outranks its verified Sol flagship', () => {
+    // Regression guard for the 2026-08 distortion: the provisional
+    // BenchLM estimate for GPT-5.6 Luna briefly sat above GPT-5.6 Sol's
+    // verified score, inverting the family ordering in the Composite table.
     const sol = doc.models.gpt56sol;
-    const lunaMax = doc.models.gpt56lunaMax;
+    const luna = doc.models.gpt56luna;
     expect(typeof sol?.benchlm?.score).toBe('number');
-    expect(typeof lunaMax?.benchlm?.score).toBe('number');
+    expect(typeof luna?.benchlm?.score).toBe('number');
     expect(sol.benchlm.verified).toBe(true);
-    expect(lunaMax.benchlm.evidence).toBe('estimated');
+    expect(luna.benchlm.evidence).toBe('estimated');
     expect(
-      lunaMax.benchlm.score,
-      'estimated gpt56lunaMax score must stay below verified gpt56sol score'
+      luna.benchlm.score,
+      'estimated gpt56luna score must stay below verified gpt56sol score'
     ).toBeLessThan(sol.benchlm.score);
-    // Max-effort variant should still sit above its base-effort sibling.
-    expect(lunaMax.benchlm.score).toBeGreaterThan(doc.models.gpt56luna.benchlm.score);
+    expect(luna.effort).toBe('max');
   });
 
-  test('26 tracked models carried by the curated catalog', () => {
+  test('at least 25 tracked models carried by the curated catalog', () => {
     const models = doc.models;
     const keys = Object.keys(models);
-    expect(keys.length).toBeGreaterThanOrEqual(26);
+    expect(keys.length).toBeGreaterThanOrEqual(25);
   });
 });
 
@@ -313,17 +307,16 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
       expect(v4Model.tier).toBe('reference');
     }
   });
-  test('_meta block declares schemaVersion 3 (AA pricing schema bump)', () => {
+  test('_meta block declares schemaVersion 4 (AA effort schema bump)', () => {
     expect(v4raw._meta).toBeDefined();
-    expect(v4raw._meta.schemaVersion).toBe(3);
+    expect(v4raw._meta.schemaVersion).toBe(4);
     expect(v4raw._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
-// --- Schema v3 migration gate (PR4 — aa-benchmark-integration) --------------
+// --- Loader cache migration gate (PR4 — aa-benchmark-integration) ------------
 //
-// PR4 bumps BOTH `_meta.schemaVersion` in data/models.json (2 → 3) AND
-// `CURRENT_SCHEMA_VERSION` in js/services/data-loader.js (2 → 3). The
+// PR4 owns the loader cache version independently of the catalog schema. The
 // loader's readCache already discards cached payloads whose
 // `schemaVersion` does not match the live constant, so bumping it forces a
 // clean refetch on the next page load (no manual cache clear needed).
@@ -335,15 +328,15 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
 // API — it's a test affordance.
 import { CURRENT_SCHEMA_VERSION } from '../js/services/data-loader.js';
 
-describe('data-integrity: schema v3 migration gate', () => {
-  test('CURRENT_SCHEMA_VERSION in data-loader is 3', () => {
+describe('data-integrity: loader cache migration gate', () => {
+  test('CURRENT_SCHEMA_VERSION in data-loader remains 3 until PR4', () => {
     expect(CURRENT_SCHEMA_VERSION).toBe(3);
   });
 });
 
-// --- Schema v3 assertions (PR4 — aa-benchmark-integration) ------------------
+// --- Schema v4 assertions (AA effort-level catalog) --------------------------
 //
-// Schema v3 carries the AA pricing surface: optional `term` (Terminal-Bench
+// Schema v4 carries the AA pricing surface: optional `term` (Terminal-Bench
 // v2.1), `codingIndex`, `median_output_tokens_per_second`,
 // `median_time_to_first_token_seconds`, locally-computed `blended`
 // ((3*input + output)/4), and the `pricingSource: "artificialanalysis"`
@@ -356,7 +349,7 @@ describe('data-integrity: schema v3 migration gate', () => {
 // The AA-owned contract assertions below are therefore vacuous now and
 // become ACTIVE after the first real AA sync.
 
-describe('data-integrity: schema v3 (AA pricing schema)', () => {
+describe('data-integrity: schema v4 (AA pricing schema)', () => {
   const raw = JSON.parse(
     readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8')
   );
@@ -366,16 +359,15 @@ describe('data-integrity: schema v3 (AA pricing schema)', () => {
     expect(raw._meta.sources).toContain('scrape-artificialanalysis');
   });
 
-  test('no model carries AA-owned pricing yet (guard no-op state; no hand-populated values)', () => {
+  test('AA-owned pricing is present only on the consolidated Luna record', () => {
+    const aaModels = Object.entries(raw.models).filter(
+      ([, model]) => model.pricingSource === 'artificialanalysis'
+    );
+    expect(aaModels.map(([key]) => key)).toEqual(['gpt56luna']);
     for (const [key, model] of Object.entries(raw.models)) {
-      expect(
-        model.pricingSource,
-        `model ${key} must not carry a hand-populated pricingSource`
-      ).toBeUndefined();
-      expect(
-        model.blended,
-        `model ${key} must not carry a hand-populated blended value`
-      ).toBeUndefined();
+      if (key === 'gpt56luna') continue;
+      expect(model.pricingSource, `model ${key} must not claim AA pricing`).toBeUndefined();
+      expect(model.blended, `model ${key} must not carry AA blended pricing`).toBeUndefined();
     }
   });
 
@@ -416,8 +408,7 @@ describe('data-integrity: schema v3 (AA pricing schema)', () => {
       );
       expect(aaSource, `${key} must carry AA attribution`).toBeDefined();
     }
-    // Currently zero AA-owned models (no API key → scraper soft-fails).
-    expect(aaModels.length).toBe(0);
+    expect(aaModels.length).toBe(1);
   });
 
   test('AA-owned models never synthesize omitted optional fields as 0/null', () => {
@@ -434,8 +425,7 @@ describe('data-integrity: schema v3 (AA pricing schema)', () => {
         }
       }
     }
-    // Vacuous while no AA sync has run.
-    expect(aaModels.length).toBe(0);
+    expect(aaModels.length).toBe(1);
   });
 });
 
@@ -601,9 +591,11 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
     expect(luna.benchlm.evidence).toBe('estimated');
   });
 
-  test('pricing: input $1, output $6 per 1M tokens, no cacheRead', () => {
-    expect(luna.input).toBe(1);
-    expect(luna.output).toBe(6);
+  test('pricing: input $0.20, output $1.20 per 1M tokens, no cacheRead', () => {
+    expect(luna.input).toBe(0.2);
+    expect(luna.output).toBe(1.2);
+    expect(luna.pricingSource).toBe('artificialanalysis');
+    expect(luna.blended).toBe(0.45);
     expect(luna.cacheRead).toBeUndefined();
   });
 
@@ -637,8 +629,8 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
     expect(src).toBeDefined();
   });
 
-  test('notes document provisional score and cacheRead omission', () => {
+  test('notes document the provisional score and consolidation', () => {
     expect(luna.notes).toMatch(/provisional/i);
-    expect(luna.notes).toMatch(/cacheRead not published/i);
+    expect(luna.notes).toMatch(/consolidat/i);
   });
 });

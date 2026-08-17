@@ -17,8 +17,6 @@
 //                                        are ignored, missing slug fails closed;
 //                                        legacy v1 `from` check kept as a PR-1
 //                                        compatibility shim
-//   - mapAaId(identity, aliases)       : LEGACY shim (removed in PR 2) —
-//                                        delegates by slug, returns the `to` key
 //   - detectMissing(knownIds, present) : curated keys AA did NOT mention;
 //                                        caller WARNs + preserves (no delete)
 //
@@ -34,7 +32,6 @@ import { fileURLToPath } from 'node:url';
 import {
   loadAaAliases,
   mapAaSlug,
-  mapAaId,
   detectRename,
   detectMissing,
 } from '../scripts/_aa-safety.mjs';
@@ -237,22 +234,6 @@ describe('detectRename (slug-based, v2)', () => {
       expect(err.code).toBe('AA_ID_RENAMED');
       expect(err.oldId).toBe('aa-id-001');
       expect(err.newId).toBe('aa-id-007');
-    }
-  });
-});
-
-describe('mapAaId (legacy compat shim — removed in PR 2)', () => {
-  test('delegates by slug on v2 aliases and returns the `to` key', () => {
-    expect(mapAaId('gpt-5-5', V2_ALIASES)).toBe('gpt55');
-  });
-
-  test('unknown identity → throws AA_UNKNOWN_ID naming it (fail loud, never guess)', () => {
-    try {
-      mapAaId('brand-new-id-from-aa', V2_ALIASES);
-      throw new Error('should not reach');
-    } catch (err) {
-      expect(err.message).toContain('brand-new-id-from-aa');
-      expect(err.code).toBe('AA_UNKNOWN_ID');
     }
   });
 });

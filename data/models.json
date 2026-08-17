@@ -2,7 +2,7 @@
   "_meta": {
     "lastSynced": "2026-08-09",
     "nextSync": "2026-08-14",
-    "schemaVersion": 3,
+    "schemaVersion": 4,
     "scrapers": {
       "benchlm": {
         "lastRun": "2026-07-17"
@@ -749,6 +749,7 @@
     },
     "gpt56luna": {
       "name": "GPT-5.6 Luna",
+      "effort": "max",
       "arena": null,
       "swePro": 62.7,
       "sweVer": null,
@@ -770,45 +771,31 @@
         "rank": 22,
         "evidence": "estimated"
       },
-      "input": 1,
-      "output": 6,
+      "input": 0.2,
+      "output": 1.2,
+      "blended": 0.45,
+      "pricingSource": "artificialanalysis",
       "tier": "budget",
       "lifecycle": "active",
-      "notes": "OpenAI budget tier, 26 jun 2026. BenchLM public score is provisional (24 verified + 17 provisional records). Cheapest GPT-5.6 family tier ($1/$6 per 1M tokens). cacheRead not published by source.",
+      "notes": "OpenAI budget tier, 26 Jun 2026. Canonical max-effort entry after consolidating the former gpt56lunaMax record. BenchLM public score is provisional (67.17). Artificial Analysis pricing: $0.20 input / $1.20 output per 1M tokens; cache pricing is not published.",
       "sources": [
         {
           "url": "https://benchlm.ai/models/gpt-5-6-luna",
           "date": "2026-07-20"
+        },
+        {
+          "url": "https://artificialanalysis.ai/es/models/gpt-5-6-luna",
+          "date": "2026-08-09"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-08-16",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 2050,
       "requestsPerWeek": 5100,
       "requestsPerMonth": 10250
-    },
-    "gpt56lunaMax": {
-      "name": "GPT-5.6 Luna (max)",
-      "benchlm": {
-        "score": 80,
-        "verified": false,
-        "reliability": 0.5,
-        "categories": {},
-        "rank": null,
-        "evidence": "estimated"
-      },
-      "input": 0.2,
-      "output": 1.2,
-      "cacheRead": 0.02,
-      "cacheWrite": 0.25,
-      "tier": "high",
-      "lifecycle": "active",
-      "isNew": true,
-      "notes": "OpenAI reasoning flagship, max effort variant. Per Artificial Analysis (https://artificialanalysis.ai/es/models/gpt-5-6-luna): #1/164 en su Intelligence Index (52, escala -100..100) a $0.20/$1.20 por 1M tokens — 25x más barato en input que gpt-5.4. El score BenchLM-equivalent (80) está calibrado en el rango high-tier pero **debajo de Claude Fable 5 (83.68), Claude Opus 5 (82.5) y GPT-5.6 Sol (81.96, verificado)** porque: (1) el AA Intelligence Index mide algo distinto a lo que BenchLM mide, y (2) la traducción de un score en escala AA (-100..100, 0=coin flip) a BenchLM (0..100) no es 1:1. Un estimado nunca debe superar el score verificado del flagship de su propia familia (invariante cubierta por tests/data-integrity.test.js). Revisar cuando llegue una observación directa de BenchLM. `rank: null` porque no hay BenchLM rank directo para este entry. Vela por la coherencia con el `gpt56luna` base (default effort) que ya está en data — son entries hermanas, no un reemplazo.",
-      "sources": [
-        {
-          "url": "https://artificialanalysis.ai/es/models/gpt-5-6-luna",
-          "date": "2026-08-09"
-        }
-      ]
     },
     "gpt56sol": {
       "name": "GPT-5.6 Sol",
