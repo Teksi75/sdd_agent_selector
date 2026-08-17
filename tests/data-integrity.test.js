@@ -127,6 +127,45 @@ const KNOWN_V4_ONLY = new Set([
   'opencodeHy3',
   'grok45',
   'qwen38max',
+  'glm52NonReasoning',
+  'glm51NonReasoning',
+  'kimik3Low',
+  'kimik25NonReasoning',
+  'kimik26NonReasoning',
+  'mimo25proNonReasoning',
+  'deepseekv4fNonReasoning',
+  'glm5NonReasoning',
+  'gpt55High',
+  'gpt55Medium',
+  'gpt55Low',
+  'gpt55NonReasoning',
+  'gpt56terraXhigh',
+  'gpt56terraHigh',
+  'gpt56terraMedium',
+  'gpt56terraLow',
+  'gpt56terraNonReasoning',
+  'gpt56lunaXhigh',
+  'gpt56lunaHigh',
+  'gpt56lunaMedium',
+  'gpt56lunaLow',
+  'gpt56lunaNonReasoning',
+  'gpt56solXhigh',
+  'gpt56solHigh',
+  'gpt56solMedium',
+  'gpt56solLow',
+  'gpt56solNonReasoning',
+  'gpt54Low',
+  'gpt54NonReasoning',
+  'sonnet5High',
+  'sonnet5Xhigh',
+  'sonnet5Medium',
+  'sonnet5Low',
+  'sonnet5NonReasoning',
+  'haiku45Reasoning',
+  'claudeOpus5High',
+  'claudeOpus5Xhigh',
+  'claudeOpus5Medium',
+  'claudeOpus5Low',
 ]);
 
 // Models whose V4 input/output prices legitimately differ from the V3
@@ -343,11 +382,10 @@ describe('data-integrity: loader cache migration gate', () => {
 // authority marker. `_meta.sources` gains the `scrape-artificialanalysis`
 // provenance tag.
 //
-// Current state: no AA sync has run yet (no AA_API_KEY in CI → the scraper
-// soft-fails), so NO model may carry hand-populated `pricingSource` /
-// `blended` values — the vendor scrapers' AA guard must be a no-op today.
-// The AA-owned contract assertions below are therefore vacuous now and
-// become ACTIVE after the first real AA sync.
+// The catalog contains the canonical Luna record plus the 39 effort variants
+// materialized from the captured AA v2 payload. The AA-owned contract below
+// protects every one of those records while leaving vendor-owned records
+// untouched.
 
 describe('data-integrity: schema v4 (AA pricing schema)', () => {
   const raw = JSON.parse(
@@ -359,13 +397,14 @@ describe('data-integrity: schema v4 (AA pricing schema)', () => {
     expect(raw._meta.sources).toContain('scrape-artificialanalysis');
   });
 
-  test('AA-owned pricing is present only on the consolidated Luna record', () => {
+  test('AA-owned pricing is present on Luna and all 39 effort variants', () => {
     const aaModels = Object.entries(raw.models).filter(
       ([, model]) => model.pricingSource === 'artificialanalysis'
     );
-    expect(aaModels.map(([key]) => key)).toEqual(['gpt56luna']);
+    expect(aaModels).toHaveLength(40);
+    expect(aaModels.map(([key]) => key)).toContain('gpt56luna');
     for (const [key, model] of Object.entries(raw.models)) {
-      if (key === 'gpt56luna') continue;
+      if (model.pricingSource === 'artificialanalysis') continue;
       expect(model.pricingSource, `model ${key} must not claim AA pricing`).toBeUndefined();
       expect(model.blended, `model ${key} must not carry AA blended pricing`).toBeUndefined();
     }
@@ -408,7 +447,7 @@ describe('data-integrity: schema v4 (AA pricing schema)', () => {
       );
       expect(aaSource, `${key} must carry AA attribution`).toBeDefined();
     }
-    expect(aaModels.length).toBe(1);
+    expect(aaModels.length).toBe(40);
   });
 
   test('AA-owned models never synthesize omitted optional fields as 0/null', () => {
@@ -425,7 +464,7 @@ describe('data-integrity: schema v4 (AA pricing schema)', () => {
         }
       }
     }
-    expect(aaModels.length).toBe(1);
+    expect(aaModels.length).toBe(40);
   });
 });
 
