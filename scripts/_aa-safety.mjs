@@ -28,10 +28,6 @@
 //       v1 alias entries (with `from`) keep the old id-drift check
 //       (`AA_ID_RENAMED`) as a PR-1 compatibility shim.
 //
-//   - mapAaId(identity, aliases)      [LEGACY shim — removed in PR 2]
-//       Delegates to slug lookup and returns the `to` key so the pre-PR-2
-//       scraper keeps working. Unknown identities throw `AA_UNKNOWN_ID`.
-//
 //   - detectMissing(knownIds, mappedPresent)
 //       Curated keys we track but AA did NOT mention. The caller WARNs per
 //       missing key and PRESERVES the curated record — known-key-disappear
@@ -134,29 +130,6 @@ export function detectRename(id, slug, aliases) {
     throw err;
   }
   return null;
-}
-
-/**
- * LEGACY compatibility shim (removed in PR 2): delegates to slug lookup and
- * returns the `to` key so the pre-PR-2 scraper keeps working. Unknown
- * identities throw `Error` with `.code === 'AA_UNKNOWN_ID'` naming the
- * offending identity — fail loud, never guess.
- *
- * @param {string} identity
- * @param {Array} aliases
- * @returns {string} the curated key
- */
-export function mapAaId(identity, aliases) {
-  const hit = (aliases || []).find(
-    (a) => a && (a.slug === identity || (a.from !== undefined && a.from === identity)),
-  );
-  if (!hit) {
-    const err = new Error(`unknown Artificial Analysis id: ${identity} (not in aa-aliases.json)`);
-    err.code = 'AA_UNKNOWN_ID';
-    err.aaId = identity;
-    throw err;
-  }
-  return hit.to;
 }
 
 /**

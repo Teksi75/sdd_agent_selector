@@ -31,8 +31,8 @@
 //   - schemaVersion = 4 on write. Consolidation is PR 3 — NOT this unit.
 //   - Missing known curated keys → WARN + preserve (never delete).
 //
-// Pre-PR2 (current scraper): pricing.input/output paths, mapAaId flow,
-// schema 3. Every v2 test below is RED until scripts/scrape-artificialanalysis.js
+// Pre-PR2 (current scraper): pricing.input/output paths and schema 3. Every
+// v2 test below is RED until scripts/scrape-artificialanalysis.js
 // is migrated (2.2).
 
 import { describe, expect, test, beforeEach, afterEach, vi } from 'vitest';
