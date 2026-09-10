@@ -227,6 +227,8 @@ describe('AA effort catalog: complete alias matrix (PR3F)', () => {
     const CURATED_NON_AA_EFFORT = new Map([
       ['musespark13contributor', 'xhigh'],
       ['musespark12contributor', 'xhigh'],
+      ['gpt6astra', 'max'],
+      ['gpt6astraLow', 'low'],
     ]);
     for (const key of extraKeys) {
       const curated = CURATED_NON_AA_EFFORT.get(key);

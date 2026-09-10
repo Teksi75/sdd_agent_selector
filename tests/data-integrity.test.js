@@ -188,6 +188,8 @@ const KNOWN_V4_ONLY = new Set([
   'deepseekv4flashvisionexppeak',
   'deepseekv4flashvisionexpoffpeak',
   'hy4preview',
+  'gpt6astra',
+  'gpt6astraLow',
   'grok46',
 ]);
 

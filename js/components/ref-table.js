@@ -23,6 +23,7 @@
 // the user can see the model exists but BenchLM hasn't ingested it.
 
 import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
+import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
@@ -132,7 +133,7 @@ function sourceBadges(m) {
  * @param {Object<string, Object>} models
  * @returns {{ active: Array<[string, Object]>, nonActive: Array<[string, Object]> }}
  */
-function rowsFor(models) {
+export function rowsFor(models) {
   const entries = Object.entries(models || {}).filter(([, m]) => m);
   const active = [];
   const nonActive = [];
@@ -234,24 +235,68 @@ export function render(targetEl, models) {
     return { rows: 0, topKey: null, referenceModel };
   }
 
-  const activeBody = active
-    .map(([key, m]) => rowHtml(key, m, false))
-    .join('');
-  const nonActiveBody = nonActive
-    .map(([key, m]) => rowHtml(key, m, true))
-    .join('');
-
   const activeCount = active.length;
   const nonActiveCount = nonActive.length;
+  const groupedActive = splitByAaSignal(active, ([, m]) => m);
+  const groupedNonActive = splitByAaSignal(nonActive, ([, m]) => m);
+  const withAaRows = [...groupedActive.withAa, ...groupedNonActive.withAa];
+  const withoutAaRows = [...groupedActive.withoutAa, ...groupedNonActive.withoutAa];
+  const groupedRows = [...withAaRows, ...withoutAaRows];
 
-  const nonActiveSection = nonActiveCount > 0 ? `
-        <tbody class="divide-y divide-slate-800/30 border-t-2 border-slate-700/50" data-test="non-active-rows">
-          ${nonActiveBody}
-        </tbody>` : '';
+  function tableSectionHtml({ title, rows, activeRows, nonActiveRows, testId }) {
+    if (rows.length === 0) {
+      return `
+      <details class="border-t border-slate-800/60 first:border-t-0" open data-test="${testId}">
+        <summary class="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800/40">
+          ${title} <span class="ml-2 text-[11px] font-normal text-slate-500">0 modelos</span>
+        </summary>
+        <p class="px-4 pb-4 text-xs text-slate-500">No hay modelos en esta sección.</p>
+      </details>`;
+    }
+    const activeBody = activeRows
+      .map(([key, m]) => rowHtml(key, m, false))
+      .join('');
+    const nonActiveBody = nonActiveRows
+      .map(([key, m]) => rowHtml(key, m, true))
+      .join('');
+    const activeTestId = testId === 'ref-table-without-aa' ? 'active-rows' : `${testId}-active-rows`;
+    const nonActiveTestId = testId === 'ref-table-without-aa' ? 'non-active-rows' : `${testId}-non-active-rows`;
+    const nonActiveSection = nonActiveRows.length > 0 ? `
+          <tbody class="divide-y divide-slate-800/30 border-t-2 border-slate-700/50" data-test="${nonActiveTestId}">
+            ${nonActiveBody}
+          </tbody>` : '';
+    return `
+      <details class="border-t border-slate-800/60 first:border-t-0" open data-test="${testId}">
+        <summary class="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800/40">
+          ${title} <span class="ml-2 text-[11px] font-normal text-slate-500">${rows.length} modelos</span>
+        </summary>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-200">
+            <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
+              <tr>
+                <th scope="col" class="py-2.5 px-3 font-semibold">Modelo</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-center">Tier</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-center">Esfuerzo</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-center">Score</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-center">BenchLM</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-right">Input $</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-right">Output $</th>
+                <th scope="col" class="py-2.5 px-3 font-semibold text-center">Sources</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800/60" data-test="${activeTestId}">
+              ${activeBody || `<tr><td colspan="9" class="py-3 px-3 text-center text-xs text-slate-500">Sin modelos activos en esta sección.</td></tr>`}
+            </tbody>
+            ${nonActiveSection}
+          </table>
+        </div>
+      </details>`;
+  }
 
   // Build the export formats. Markdown is the paste-ready form
   // (table for the full catalog); JSON is the full model record set.
-  const exportRows = [...active, ...nonActive].map(([key, m]) => {
+  const exportRows = groupedRows.map(([key, m]) => {
     const sc = compositeScore(m);
     return [
       m.name || key,
@@ -267,38 +312,21 @@ export function render(targetEl, models) {
     ['Modelo', 'Tier', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
     exportRows
   ) + '\n';
-  const exportJson = toJSON({ active: activeCount, nonActive: nonActiveCount, models: allRows.map(([k, m]) => [k, m]) });
+  const exportJson = toJSON({ active: activeCount, nonActive: nonActiveCount, withAa: withAaRows.length, withoutAa: withoutAaRows.length, models: groupedRows.map(([k, m]) => [k, m]) });
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
       <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${activeCount} activos${nonActiveCount > 0 ? ` + ${nonActiveCount} reference` : ''}</span>
+        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${activeCount} activos${nonActiveCount > 0 ? ` + ${nonActiveCount} reference` : ''} · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
         <div data-test="ref-table-export"></div>
       </div>
-      <table class="w-full text-left text-sm text-slate-200">
-        <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
-          <tr>
-            <th scope="col" class="py-2.5 px-3 font-semibold">Modelo</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Tier</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Esfuerzo</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Score</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-center">BenchLM</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-right">Input $</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-right">Output $</th>
-            <th scope="col" class="py-2.5 px-3 font-semibold text-center">Sources</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-800/60" data-test="active-rows">
-          ${activeBody}
-        </tbody>
-        ${nonActiveSection}
-      </table>
+      ${tableSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, activeRows: groupedActive.withAa, nonActiveRows: groupedNonActive.withAa, testId: 'ref-table-with-aa' })}
+      ${tableSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, activeRows: groupedActive.withoutAa, nonActiveRows: groupedNonActive.withoutAa, testId: 'ref-table-without-aa' })}
     </div>
     <p class="mt-3 text-xs text-slate-500">
       Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference)` : ''} ·
-      sorted by BenchLM score (desc) ·
-      non-active rows appear below the separator for comparison baseline ·
+      grouped by Artificial Analysis signal ·
+      sorted by BenchLM score (desc) inside each lifecycle bucket ·
       rows without BenchLM data show "—" (awaiting first scrape).
     </p>
   `;
@@ -335,7 +363,7 @@ export function render(targetEl, models) {
 
   return {
     rows: allRows.length,
-    topKey: allRows[0]?.[0] ?? null,
+    topKey: groupedRows[0]?.[0] ?? null,
     referenceModel,
   };
 }

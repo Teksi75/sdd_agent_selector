@@ -2015,6 +2015,56 @@
         }
       ]
     },
+    "gpt6astra": {
+      "name": "GPT-6 Astra",
+      "tier": "high",
+      "effort": "max",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 10,
+      "output": 50,
+      "cacheRead": 1,
+      "cacheWrite": 12.5,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "Manual curation from OpenAI model docs on 2026-09-10: pricing per 1M tokens input $10.00, cached input $1.00, cache writes $12.50, output $50.00; context 1.05M; knowledge cutoff Apr 30 2026.",
+      "sources": [
+        {
+          "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+          "date": "2026-09-10",
+          "scraper": "manual-curation"
+        }
+      ]
+    },
+    "gpt6astraLow": {
+      "name": "GPT-6 Astra (low)",
+      "tier": "high",
+      "effort": "low",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 10,
+      "output": 50,
+      "cacheRead": 1,
+      "cacheWrite": 12.5,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "Manual curation from OpenAI model docs on 2026-09-10: pricing per 1M tokens input $10.00, cached input $1.00, cache writes $12.50, output $50.00; context 1.05M; knowledge cutoff Apr 30 2026.",
+      "sources": [
+        {
+          "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+          "date": "2026-09-10",
+          "scraper": "manual-curation"
+        }
+      ]
+    },
     "gpt54": {
       "name": "gpt-5.4",
       "effort": "xhigh",

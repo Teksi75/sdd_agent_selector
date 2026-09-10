@@ -31,6 +31,7 @@
 //     metadata absent), the badge is omitted.
 
 import { compositeScore, isActive } from '../services/model-scorer.js';
+import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
 
@@ -116,7 +117,7 @@ function tierOf(m) {
  * @param {Object<string, Object>} models
  * @returns {{ scored: Array, unavailable: Array }}
  */
-function rowsFor(models) {
+export function rowsFor(models) {
   const entries = Object.entries(models || {}).filter(([, m]) => m);
 
   const scored = [];
@@ -315,22 +316,48 @@ export function render(targetEl, models, _meta) {
 
   const maxScore = scored.length > 0 ? scored[0][2] : null;
   const doc = targetEl.ownerDocument ?? document;
-  const scoredBody = scored
-    .map(([key, m, score]) => {
-      const { value: bgValue, tw: twClass } = barColor(doc, tierOf(m));
-      const width = widthPct(score, maxScore);
-      return barRowHtml(key, m, score, width, twClass, bgValue);
-    })
-    .join('');
-  const unavailableBody = unavailable
-    .map(([key, m]) => unavailableRowHtml(key, m))
-    .join('');
+  const groupedScored = splitByAaSignal(scored, ([, m]) => m);
+  const groupedUnavailable = splitByAaSignal(unavailable, ([, m]) => m);
+  const withAaRows = [...groupedScored.withAa, ...groupedUnavailable.withAa];
+  const withoutAaRows = [...groupedScored.withoutAa, ...groupedUnavailable.withoutAa];
+  const groupedRows = [...withAaRows, ...withoutAaRows];
+
+  function chartSectionHtml({ title, rows, scoredRows, unavailableRows, testId }) {
+    if (rows.length === 0) {
+      return `
+        <details class="rounded-lg border border-slate-800/70 bg-slate-950/20" open data-test="${testId}">
+          <summary class="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/40">
+            ${title} <span class="ml-2 font-normal text-slate-500">0 modelos</span>
+          </summary>
+          <p class="px-3 pb-3 text-xs text-slate-500">No hay modelos en esta sección.</p>
+        </details>`;
+    }
+    const scoredBody = scoredRows
+      .map(([key, m, score]) => {
+        const { value: bgValue, tw: twClass } = barColor(doc, tierOf(m));
+        const width = widthPct(score, maxScore);
+        return barRowHtml(key, m, score, width, twClass, bgValue);
+      })
+      .join('');
+    const unavailableBody = unavailableRows
+      .map(([key, m]) => unavailableRowHtml(key, m))
+      .join('');
+    return `
+        <details class="rounded-lg border border-slate-800/70 bg-slate-950/20" open data-test="${testId}">
+          <summary class="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/40">
+            ${title} <span class="ml-2 font-normal text-slate-500">${rows.length} modelos</span>
+          </summary>
+          <div class="space-y-2.5 px-3 pb-3" data-test="${testId}-bars">
+            ${scoredBody}${unavailableBody}
+          </div>
+        </details>`;
+  }
 
   const stale = staleBadgeHtml(_meta);
 
   // V5 — build export formats. Markdown is a table of every ranked
   // model (score + tier + lifecycle); JSON is the full record set.
-  const exportRows = [...scored, ...unavailable].map(([key, m, score]) => [
+  const exportRows = groupedRows.map(([key, m, score]) => [
     m.name || key,
     tierOf(m),
     m.lifecycle || '—',
@@ -344,8 +371,10 @@ export function render(targetEl, models, _meta) {
     timestamp: new Date().toISOString(),
     scored: scored.length,
     unavailable: unavailable.length,
+    withAa: withAaRows.length,
+    withoutAa: withoutAaRows.length,
     maxScore,
-    models: [...scored, ...unavailable].map(([k, m]) => [k, m]),
+    models: groupedRows.map(([k, m]) => [k, m]),
   });
 
   targetEl.innerHTML = `
@@ -353,13 +382,14 @@ export function render(targetEl, models, _meta) {
       <div class="flex items-center justify-between gap-2 mb-3">
         <div class="flex items-baseline gap-3">
           <h3 class="text-sm font-semibold text-slate-200">Composite benchmark</h3>
-          <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · BenchLM (0-100)</span>
+          <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · BenchLM (0-100) · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
         </div>
         <div data-test="composite-chart-export"></div>
       </div>
       ${stale}
-      <div class="space-y-2.5" data-test="composite-bars">
-        ${scoredBody}${unavailableBody}
+      <div class="space-y-3" data-test="composite-bars">
+        ${chartSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, scoredRows: groupedScored.withAa, unavailableRows: groupedUnavailable.withAa, testId: 'composite-with-aa' })}
+        ${chartSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, scoredRows: groupedScored.withoutAa, unavailableRows: groupedUnavailable.withoutAa, testId: 'composite-without-aa' })}
       </div>
       <details class="mt-3 text-[11px] text-slate-500 group" data-test="composite-legend">
         <summary class="cursor-pointer text-slate-400 hover:text-slate-300 select-none">Cómo leer las barras</summary>
@@ -372,6 +402,7 @@ export function render(targetEl, models, _meta) {
       </details>
       <p class="mt-3 text-[11px] text-slate-500">
         Scores y badges vienen de BenchLM (<code>benchlm</code> con score/verified/reliability);
+        agrupado por señal de Artificial Analysis;
         fallback a Tailwind cuando el token no está definido.
       </p>
     </div>`;
