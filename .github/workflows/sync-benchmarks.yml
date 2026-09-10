@@ -63,10 +63,12 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Setup pnpm
+      - name: Setup pnpm (from packageManager)
         uses: pnpm/action-setup@v4
+        # Do NOT set `version:` here — package.json's `packageManager: pnpm@9.0.0`
+        # is the source of truth, and setting both triggers ERR_PNPM_BAD_PM_VERSION.
         with:
-          version: 9
+          run_install: false
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
