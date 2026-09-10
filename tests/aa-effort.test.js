@@ -222,8 +222,19 @@ describe('AA effort catalog: complete alias matrix (PR3F)', () => {
     expect(catalogKeys).toEqual(expect.arrayContaining(aliasTargets));
 
     const extraKeys = catalogKeys.filter((key) => !aliasTargetSet.has(key));
+    // Curated non-AA efforts (human decision, not AA-owned): Meta's
+    // Muse Spark Contributor variants run at xhigh effort.
+    const CURATED_NON_AA_EFFORT = new Map([
+      ['musespark13contributor', 'xhigh'],
+      ['musespark12contributor', 'xhigh'],
+    ]);
     for (const key of extraKeys) {
-      expect(models[key].effort, `${key} is a non-AA sync discovery`).toBeUndefined();
+      const curated = CURATED_NON_AA_EFFORT.get(key);
+      if (curated !== undefined) {
+        expect(models[key].effort, `${key} curated non-AA effort`).toBe(curated);
+      } else {
+        expect(models[key].effort, `${key} is a non-AA sync discovery`).toBeUndefined();
+      }
     }
   });
 

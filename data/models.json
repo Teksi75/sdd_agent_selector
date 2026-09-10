@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "lastSynced": "2026-08-17",
-    "nextSync": "2026-08-22",
+    "lastSynced": "2026-09-10",
+    "nextSync": "2026-09-15",
     "schemaVersion": 4,
     "scrapers": {
       "benchlm": {
@@ -165,9 +165,9 @@
       "tier": "high",
       "lifecycle": "active",
       "cacheWrite": 3.125,
-      "requestsPer5h": 340,
-      "requestsPerWeek": 840,
-      "requestsPerMonth": 1690,
+      "requestsPer5h": 170,
+      "requestsPerWeek": 420,
+      "requestsPerMonth": 840,
       "codingIndex": 66,
       "outputTokensPerSecond": 0,
       "timeToFirstTokenSeconds": 0,
@@ -1017,9 +1017,9 @@
       "cacheRead": 0.0028,
       "tier": "budget",
       "lifecycle": "active",
-      "requestsPer5h": 3800,
-      "requestsPerWeek": 9450,
-      "requestsPerMonth": 18900,
+      "requestsPer5h": 7600,
+      "requestsPerWeek": 18900,
+      "requestsPerMonth": 37800,
       "codingIndex": 69.1,
       "outputTokensPerSecond": 115.123,
       "timeToFirstTokenSeconds": 0.834,
@@ -2882,6 +2882,283 @@
         {
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-08-17",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "omenalpha": {
+      "name": "Omen Alpha",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.2,
+      "output": 0.66,
+      "cacheRead": 0.04,
+      "requestsPer5h": 11600,
+      "requestsPerWeek": 29000,
+      "requestsPerMonth": 57900,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "glm53flash": {
+      "name": "GLM-5.3-Flash",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.15,
+      "output": 0.5,
+      "cacheRead": 0.03,
+      "requestsPer5h": 6320,
+      "requestsPerWeek": 15790,
+      "requestsPerMonth": 31580,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "longcat20": {
+      "name": "LongCat-2.0",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.3,
+      "output": 1.2,
+      "cacheRead": 0.006,
+      "requestsPer5h": 11400,
+      "requestsPerWeek": 28600,
+      "requestsPerMonth": 57200,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "musespark13contributor": {
+      "name": "Muse Spark 1.3 Contributor",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.1,
+      "output": 0.2,
+      "cacheRead": 0.002,
+      "requestsPer5h": 45300,
+      "requestsPerWeek": 113300,
+      "requestsPerMonth": 226600,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ],
+      "effort": "xhigh"
+    },
+    "musespark12contributor": {
+      "name": "Muse Spark 1.2 Contributor",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.1,
+      "output": 0.2,
+      "cacheRead": 0.002,
+      "requestsPer5h": 45300,
+      "requestsPerWeek": 113300,
+      "requestsPerMonth": 226600,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ],
+      "effort": "xhigh"
+    },
+    "qwen38flash": {
+      "name": "Qwen3.8 Flash",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.15,
+      "output": 0.47,
+      "cacheRead": 0.016,
+      "cacheWrite": 0.2,
+      "requestsPer5h": 5400,
+      "requestsPerWeek": 13500,
+      "requestsPerMonth": 27000,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4flashvisionexpoffpeak": {
+      "name": "DeepSeek V4 Flash Vision Exp (Off-Peak)",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.22,
+      "output": 0.66,
+      "cacheRead": 0.007,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4flashvisionexppeak": {
+      "name": "DeepSeek V4 Flash Vision Exp (Peak)",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.44,
+      "output": 1.32,
+      "cacheRead": 0.014,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "hy4preview": {
+      "name": "Hy4 preview",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "input": 0.834,
+      "output": 2.501,
+      "cacheRead": 0.042,
+      "requestsPer5h": 1350,
+      "requestsPerWeek": 3380,
+      "requestsPerMonth": 6770,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "deepseekv4flashvisionexp": {
+      "name": "DeepSeek V4 Flash Vision Exp",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "requestsPer5h": 3800,
+      "requestsPerWeek": 9450,
+      "requestsPerMonth": 18900,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
+          "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "grok46": {
+      "name": "Grok 4.6",
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "tier": "high",
+      "lifecycle": "active",
+      "isNew": true,
+      "requestsPer5h": 169,
+      "requestsPerWeek": 423,
+      "requestsPerMonth": 845,
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "sources": [
+        {
+          "url": "https://opencode.ai/docs/es/go/#usage-limits",
+          "date": "2026-09-10",
           "scraper": "scrape-opencode-prices"
         }
       ]

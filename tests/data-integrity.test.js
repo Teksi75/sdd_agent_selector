@@ -176,6 +176,19 @@ const KNOWN_V4_ONLY = new Set([
   'deepseekv4prooffpeak',
   'deepseekv4flashpeak',
   'deepseekv4flashoffpeak',
+  // OpenCode auto-discovery 2026-09-10 (curated: admit all 11; Muse Spark
+  // Contributor variants carry effort xhigh per curation).
+  'omenalpha',
+  'glm53flash',
+  'longcat20',
+  'musespark13contributor',
+  'musespark12contributor',
+  'qwen38flash',
+  'deepseekv4flashvisionexp',
+  'deepseekv4flashvisionexppeak',
+  'deepseekv4flashvisionexpoffpeak',
+  'hy4preview',
+  'grok46',
 ]);
 
 // Non-AA models whose V4 input/output prices legitimately differ from the V3
