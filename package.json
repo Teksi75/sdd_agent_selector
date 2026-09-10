@@ -10,7 +10,8 @@
     "css:build": "tailwindcss -i css/tokens.css -o dist/_tailwind.css --minify",
     "prebuild": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\"",
     "test": "vitest run",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "preview": "pnpm dlx serve dist"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^1.0.0",

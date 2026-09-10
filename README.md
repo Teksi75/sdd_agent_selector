@@ -2,8 +2,7 @@
 
 Refactor modular del selector de modelos SDD — monolito V3 → módulos V4 con live data sync.
 
-**Live:** [https://Teksi75.github.io/sdd_agent_selector/](https://Teksi75.github.io/sdd_agent_selector/)
-*(placeholder — el primer deploy se activa cuando Pablo habilita GitHub Pages en Settings → Pages → GitHub Actions)*
+**Live:** [https://Teksi75.github.io/sdd_agent_selector/](https://Teksi75.github.io/sdd_agent_selector/) ✅ (deploy automático por GitHub Actions en cada push a `main`)
 
 ## Stack
 
@@ -22,8 +21,8 @@ Refactor modular del selector de modelos SDD — monolito V3 → módulos V4 con
 Si necesitás verificar visualmente que V4 mantiene paridad con V3:
 
 ```bash
-# 1. Servir el repo localmente
-python -m http.server 8765 --bind 127.0.0.1
+# 1. Servir el repo localmente (solo pnpm, nada de npx/python)
+pnpm dlx serve . -l 8765
 # 2. Abrir en el browser
 #    V3: http://127.0.0.1:8765/v3-monolith-backup.html
 #    V4: http://127.0.0.1:8765/dist/index.html  (con data/ y assets/ en dist/ para que cargue los JSON)
@@ -38,11 +37,14 @@ corepack enable
 # Instalar dependencias
 pnpm install
 
-# Correr los tests (16 files, 129 tests)
+# Correr los tests (34 files, 503 tests)
 pnpm test
 
 # Build de producción — produce dist/index.html (CSS+JS inlined, sin CDN)
 pnpm run build
+
+# Servir dist/ localmente (http://localhost:3000)
+pnpm run preview
 
 # Watch mode (rebuild automático al editar js/app.js)
 pnpm run dev
@@ -60,7 +62,7 @@ sdd_agent_selector/
 │  ├─ app.js               # Bootstrap entry (Phase 1+)
 │  ├─ components/          # ref-table, config-selector, workflow-table, etc.
 │  └─ services/            # data-loader, model-scorer, data-sync
-├─ tests/                  # Vitest suite (16 files, 129 tests)
+├─ tests/                  # Vitest suite (34 files, 503 tests)
 ├─ css/tokens.css          # Tailwind layers + V3 custom classes + CSS tokens
 ├─ assets/icons/*.svg      # Lucide icon set (~33) — V3 visual-parity, static
 ├─ data/                   # JSON con catálogo de modelos, configs, fases, roles
@@ -105,13 +107,7 @@ Cualquier cambio a la arquitectura, decisiones técnicas o roadmap debe proponer
 
 ## GitHub Pages
 
-La distribución de la app es via GitHub Pages. **Pablo tiene que habilitarlo manualmente** (solo una vez):
-
-1. Ir a `https://github.com/Teksi75/sdd_agent_selector/settings/pages`
-2. En **Source**, elegir **GitHub Actions** (NO "Deploy from a branch")
-3. Guardar
-
-A partir de ahí, cada `git push origin main` que pase CI va a deployar automáticamente a:
+La distribución de la app es via GitHub Pages (ya habilitado, source: GitHub Actions). Cada `git push origin main` que pasa CI deploya automáticamente a:
 
 **URL:** `https://Teksi75.github.io/sdd_agent_selector/`
 
@@ -122,8 +118,11 @@ Build local equivalente:
 ```bash
 pnpm install
 pnpm run build           # produce dist/index.html (~56 KB, CSS+JS inlined)
-# Abrir dist/index.html en el browser — totalmente offline (sin CDN runtime)
+pnpm run preview         # sirve dist/ en http://localhost:3000
+# O abrir dist/index.html en el browser — totalmente offline (sin CDN runtime)
 ```
+
+La data (`data/models.json`) se refresca sola cada 5 días vía `sync-benchmarks.yml` (scrapers upstream + gate de integridad); los modelos nuevos descubiertos se curan a mano antes de admitirlos.
 
 ### Build pipeline: `data/` is shipped as `dist/data/`
 
