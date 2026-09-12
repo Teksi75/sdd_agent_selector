@@ -1,205 +1,196 @@
 // tests/data-integrity.test.js
-// PR3 (benchlm-replace-custom-scoring) — migrated integrity assertions.
+// Integrity contract for the V5 catalog + loader join.
 //
-// After PR3, the integrity contract asserts the BenchLM-backed shape on
-// every tracked V4 model:
-//   - every tracked V4 model has a `benchlm` block with valid {score,
-//     verified, reliability, categories}
-//   - catalog schemaVersion === 5 (V5 availability matrix bump)
-//   - legacy V3 identity fields (name and tier) still match as
-//     drift-detection sanity; non-AA-owned prices remain comparable while
-//     AA-owned prices are checked for finite numeric values instead.
+// The suite asserts:
+//   - every tracked model has a `benchlm` block with valid {score,
+//     verified, reliability, categories};
+//   - catalog schemaVersion === 5 (V5 availability matrix bump);
+//   - the V5 gate aggregate (availability matrix, inheritance/override
+//     report, 6-file loader descriptor, fixed surface counts, write-guard);
+//   - the V3 cut sentinel (root snapshot absent, `V3_AVAILABLE = false`).
 //
-// This test is RED before PR1+PR2 merge (no benchlm blocks, schemaVersion
-// is still 1) and GREEN after. Stacked-to-main is the trade-off per the
-// design (T3.2).
+// The former V3 drift detector (candidate paths / HTML parser / parity
+// allowlists) was retired by the V5 V3 cut; the archived monolith is never
+// read here.
 
 import { describe, test, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 
-// --- V3 source resolution (filesystem-agnostic) ----------------------------
+// --- V3 cut sentinel (V5) ---------------------------------------------------
 //
-// The V3 monolith lives at one of these paths, in priority order:
-//   1. <project>/v3-monolith-backup.html             (in-repo snapshot)
-//   2. <parent>/Modelos SDD - V3 - Lucide.html       (Pablo's local dev dir)
-//   3. $SDD_V3_BACKUP_PATH                            (CI override)
-//
-// We resolve the first existing path; if none exist, the V3-based tests
-// are SKIPPED (not failed) so CI can run without the V3 source.
-// The BenchLM-shape assertions stay active regardless of V3 availability.
+// The V3 monolith moved to the archived rollback location (V5 cut). The drift
+// detector that used to live here is retired: no candidate resolution, no HTML
+// parser, no parity allowlists. The optional harness stays explicitly disabled
+// so the suite passes without the monolith at the repository root.
+const V3_AVAILABLE = false;
 
-const V3_CANDIDATES = [
-  join(ROOT, 'v3-monolith-backup.html'),
-  resolve(ROOT, '..', 'SDD', 'Modelos SDD - V3 - Lucide.html'),
-  process.env.SDD_V3_BACKUP_PATH,
-].filter(Boolean);
+describe('data-integrity: V3 cut sentinel', () => {
+  test('the V3 monolith no longer lives at the repository root', () => {
+    expect(existsSync(join(ROOT, 'v3-monolith-backup.html'))).toBe(false);
+  });
 
-let V3_BACKUP = null;
-for (const candidate of V3_CANDIDATES) {
-  try {
-    readFileSync(candidate, 'utf-8');
-    V3_BACKUP = candidate;
-    break;
-  } catch {
-    // try next
-  }
-}
-
-const V3_AVAILABLE = V3_BACKUP !== null;
+  test.skipIf(V3_AVAILABLE)('V3 parity harness remains disabled (V3_AVAILABLE = false)', () => {
+    // intentional no-op: the V3 drift checks were retired with the V3 cut
+  });
+});
 
 const AA_ALIAS_TARGETS = new Set(
   JSON.parse(readFileSync(join(ROOT, 'data', 'aa-aliases.json'), 'utf-8'))
     .aliases.map(({ to }) => to)
 );
 
-/**
- * Extract the MODELS constant from the V3 HTML snapshot. Kept for the
- * identity and non-AA price drift-detection test that does NOT depend on
- * the benchlm-shape migration.
- */
-function parseV3Models(html) {
-  const startIdx = html.indexOf('const MODELS');
-  if (startIdx < 0) throw new Error('V3 MODELS constant not found');
-  const openBrace = html.indexOf('{', startIdx);
-  if (openBrace < 0) throw new Error('V3 MODELS opening brace not found');
-  let depth = 1;
-  let i = openBrace + 1;
-  while (i < html.length && depth > 0) {
-    const ch = html[i];
-    if (ch === '{') depth++;
-    else if (ch === '}') depth--;
-    i++;
-  }
-  const body = html.slice(openBrace + 1, i - 1);
+// --- V5 gate aggregate (replaces the retired V3 checksum/drift contracts) ----
+//
+// The V3 checksum requirement was removed with the V3 cut. This block
+// re-points the integrity suite at the V5 gates: the full families x providers
+// availability matrix, effort-variant inheritance and the override report, the
+// 6-file loader descriptor, the fixed surface counts, the pricingSource
+// orthogonality and the scraper write-guard. Behavioral coverage of each gate
+// also lives in its dedicated suite (availability-matrix,
+// propagate-provider-availability, data-loader, hero-stats, cli-mirror-table,
+// workflow-table, config-selector, scraper-provider-registry); this block keeps
+// the aggregate contract in one place and never reads the archived monolith.
 
-  const records = {};
-  const recordRegex = /'([^']+)'\s*:\s*\{([^}]*)\}/g;
-  let m;
-  while ((m = recordRegex.exec(body)) !== null) {
-    const [, key, fieldsBody] = m;
-    const fields = {};
-    const fieldRegex = /(\w+)\s*:\s*('([^']*)'|null|true|false|-?\d+(?:\.\d+)?)/g;
-    let f;
-    while ((f = fieldRegex.exec(fieldsBody)) !== null) {
-      const [, name, rawValue, strValue] = f;
-      if (rawValue === 'null') fields[name] = null;
-      else if (rawValue === 'true') fields[name] = true;
-      else if (rawValue === 'false') fields[name] = false;
-      else if (strValue !== undefined) fields[name] = strValue;
-      else fields[name] = Number(rawValue);
+import {
+  familyKey,
+  missingMatrixCells,
+  propagate,
+  readRegistry,
+} from '../scripts/propagate-provider-availability.mjs';
+import { CURRENT_SCHEMA_VERSION, DATA_FILES } from '../js/services/data-loader.js';
+import { applyProviderFilter } from '../js/services/provider-filter.js';
+import { countModelsByLifecycle } from '../js/components/hero-stats.js';
+import {
+  MANUAL_MODEL_FIELDS,
+  MODELS_JSON_PATH,
+  preserveManualModelFields,
+} from '../scripts/_scraper-utils.mjs';
+
+const SCRAPER_FILES = Object.freeze([
+  'scrape-opencode-prices',
+  'scrape-openai-pricing',
+  'scrape-anthropic-pricing',
+  'scrape-arena-leaderboard',
+  'scrape-glm-blog',
+  'scrape-swebench-leaderboard',
+  'scrape-benchlm',
+  'scrape-artificialanalysis',
+]);
+
+describe('data-integrity: V5 gate aggregate', () => {
+  const modelsDoc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
+  const models = modelsDoc.models;
+  const availability = Object.fromEntries(
+    Object.entries(models).map(([id, record]) => [id, record.availability])
+  );
+  const registry = JSON.parse(readFileSync(join(ROOT, 'data', 'providers.json'), 'utf-8'));
+  const providerIds = registry.providers.map((p) => p.id);
+  const roles = JSON.parse(readFileSync(join(ROOT, 'data', 'agent-roles.json'), 'utf-8'));
+  const phases = JSON.parse(readFileSync(join(ROOT, 'data', 'phases.json'), 'utf-8'));
+  const configs = JSON.parse(readFileSync(join(ROOT, 'data', 'configs.json'), 'utf-8'));
+  const overrides = modelsDoc._meta.availabilityOverrides ?? [];
+
+  test('provider registry + full families x providers matrix (zero missing cells)', () => {
+    const { providerIds: ids, errors } = readRegistry(join(ROOT, 'data', 'providers.json'));
+    expect(errors).toEqual([]);
+    expect(ids).toEqual(providerIds);
+    expect(missingMatrixCells(models, providerIds)).toEqual([]);
+    for (const [id, record] of Object.entries(models)) {
+      expect(Object.keys(record.availability).sort(), id + '.availability keys').toEqual(
+        [...providerIds].sort()
+      );
+      for (const value of Object.values(record.availability)) {
+        expect(typeof value, id + '.availability value').toBe('boolean');
+      }
     }
-    records[key] = fields;
-  }
-  return records;
-}
+  });
 
-/**
- * V3 tier "mid" → V4 spec tier "balanced" mapping.
- */
-function normalizeTier(v3Tier) {
-  if (v3Tier === 'mid') return 'balanced';
-  return v3Tier;
-}
+  test('effort variants inherit the base map and every override is declared + reported', () => {
+    const result = propagate(models, providerIds, overrides);
+    expect(result.errors).toEqual([]);
+    expect(result.honored).toEqual(overrides);
+    let variants = 0;
+    for (const id of Object.keys(models)) {
+      const family = familyKey(id, models);
+      if (family === id) continue;
+      expect(result.models[id].availability, id + ' inherits ' + family).toEqual(
+        result.models[family].availability
+      );
+      variants++;
+    }
+    expect(variants).toBeGreaterThan(0);
+  });
 
-/**
- * Name comparison is case-insensitive: V3 stores display names with the
- * vendor's canonical casing while V4 normalizes them.
- */
-function nameEqual(a, b) {
-  return String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
-}
+  test('loader descriptor joins 6 files and CURRENT_SCHEMA_VERSION is 5', () => {
+    expect(DATA_FILES).toHaveLength(6);
+    expect(DATA_FILES.map(([path]) => path)).toContain('data/providers.json');
+    expect(CURRENT_SCHEMA_VERSION).toBe(5);
+  });
 
-// Models that exist in V3 with STUB payloads and were later filled in with
-// real benchmarks in V4. Same allow-list carried forward from Phase 1.
-const KNOWN_V4_ONLY = new Set([
-  'gpt54',
-  'claudeFable5',
-  'sonnet5',
-  'haiku45',
-  'gpt56terra',
-  'gpt56sol',
-  'gpt56luna',
-  'kimik27c',
-  'kimik25',
-  'kimik3',
-  'claudeOpus5',
-  'opencodeHy3',
-  'grok45',
-  'qwen38max',
-  'glm52NonReasoning',
-  'glm51NonReasoning',
-  'kimik3Low',
-  'kimik25NonReasoning',
-  'kimik26NonReasoning',
-  'mimo25proNonReasoning',
-  'deepseekv4fNonReasoning',
-  'glm5NonReasoning',
-  'gpt55High',
-  'gpt55Medium',
-  'gpt55Low',
-  'gpt55NonReasoning',
-  'gpt56terraXhigh',
-  'gpt56terraHigh',
-  'gpt56terraMedium',
-  'gpt56terraLow',
-  'gpt56terraNonReasoning',
-  'gpt56lunaXhigh',
-  'gpt56lunaHigh',
-  'gpt56lunaMedium',
-  'gpt56lunaLow',
-  'gpt56lunaNonReasoning',
-  'gpt56solXhigh',
-  'gpt56solHigh',
-  'gpt56solMedium',
-  'gpt56solLow',
-  'gpt56solNonReasoning',
-  'gpt54Low',
-  'gpt54NonReasoning',
-  'sonnet5High',
-  'sonnet5Xhigh',
-  'sonnet5Medium',
-  'sonnet5Low',
-  'sonnet5NonReasoning',
-  'haiku45Reasoning',
-  'claudeOpus5High',
-  'claudeOpus5Xhigh',
-  'claudeOpus5Medium',
-  'claudeOpus5Low',
-  // Legitimate non-AA discoveries from the full sync.
-  'glm53',
-  'deepseekv4propeak',
-  'deepseekv4prooffpeak',
-  'deepseekv4flashpeak',
-  'deepseekv4flashoffpeak',
-  // OpenCode auto-discovery 2026-09-10 (curated: admit all 11; Muse Spark
-  // Contributor variants carry effort xhigh per curation).
-  'omenalpha',
-  'glm53flash',
-  'longcat20',
-  'musespark13contributor',
-  'musespark12contributor',
-  'qwen38flash',
-  'deepseekv4flashvisionexp',
-  'deepseekv4flashvisionexppeak',
-  'deepseekv4flashvisionexpoffpeak',
-  'hy4preview',
-  'gpt6astra',
-  'gpt6astraLow',
-  'grok46',
-]);
+  test('catalog has >= 25 models and every AA alias target is AA-owned', () => {
+    expect(Object.keys(models).length).toBeGreaterThanOrEqual(25);
+    for (const target of AA_ALIAS_TARGETS) {
+      expect(models[target]?.pricingSource, target + ' AA alias target').toBe(
+        'artificialanalysis'
+      );
+    }
+  });
 
-// Non-AA models whose V4 input/output prices legitimately differ from the V3
-// snapshot due to upstream provider price changes (not scraper corruption).
-// The V3 monolith is a frozen historical snapshot and is NOT updated.
-const KNOWN_UPSTREAM_PRICE_UPDATES = new Set([
-  'deepseekv4p',  // OpenCode price drop: 1.74/3.48 → 0.435/0.87 (2026-07)
-  'mimo25pro',    // OpenCode price drop: 1.74/3.48 → 0.435/0.87 (2026-07)
-]);
+  test('fixed surface counts: cli-mirror 18 agents, workflow 9 phases, 5 config buttons', () => {
+    expect(Object.keys(roles.roles)).toHaveLength(18);
+    expect(phases.phases).toHaveLength(9);
+    expect(configs.configs).toHaveLength(5);
+    expect(configs.configs.map((c) => c.key)).toEqual([
+      'economico',
+      'balanceado',
+      'maximo',
+      'hibrido',
+      'experimental',
+    ]);
+  });
+
+  test('hero visible count: Y comes from the live active catalog and is filter-stable', () => {
+    const total = countModelsByLifecycle(models);
+    expect(total.active).toBe(
+      Object.values(models).filter((m) => m.lifecycle === 'active').length
+    );
+    const eligible = applyProviderFilter(models, availability, new Set(providerIds));
+    expect(countModelsByLifecycle(eligible).active).toBe(total.active);
+    const narrow = applyProviderFilter(models, availability, new Set(['opencode-go']));
+    expect(countModelsByLifecycle(narrow).active).toBeLessThanOrEqual(total.active);
+  });
+
+  test('pricingSource is never consulted for eligibility', () => {
+    const enabled = new Set(providerIds);
+    const before = Object.keys(applyProviderFilter(models, availability, enabled));
+    const mutated = Object.fromEntries(
+      Object.entries(models).map(([id, record]) => [id, { ...record, pricingSource: 'unknown' }])
+    );
+    expect(Object.keys(applyProviderFilter(mutated, availability, enabled))).toEqual(before);
+  });
+
+  test('scraper write-guard preserves availability for all 8 scrapers', () => {
+    expect(MANUAL_MODEL_FIELDS).toContain('availability');
+    const onDisk = { shared: { input: 1, availability: { 'opencode-go': true } } };
+    const merged = preserveManualModelFields(onDisk, { shared: { input: 2 }, fresh: { input: 3 } });
+    expect(merged.shared.input).toBe(2);
+    expect(merged.shared.availability).toEqual({ 'opencode-go': true });
+    expect(merged.fresh.availability).toEqual({});
+    expect(() => preserveManualModelFields(onDisk, {})).toThrow(/missing 1 id/);
+    expect(MODELS_JSON_PATH.endsWith(join('data', 'models.json'))).toBe(true);
+    expect(SCRAPER_FILES).toHaveLength(8);
+    for (const name of SCRAPER_FILES) {
+      const source = readFileSync(join(ROOT, 'scripts', name + '.js'), 'utf-8');
+      expect(source, name + ' uses the shared write API').toContain('writeModelsJson');
+      expect(source, name + ' never names providers.json').not.toContain('providers.json');
+    }
+  });
+});
 
 // --- PR3 assertions (always run, no V3 dependency required) ----------------
 
@@ -296,88 +287,6 @@ describe('data-integrity: BenchLM-shape contract (PR3)', () => {
     const models = doc.models;
     const keys = Object.keys(models);
     expect(keys.length).toBeGreaterThanOrEqual(25);
-  });
-});
-
-// --- V3 source drift-detection (informational; skipped without V3 source) -
-
-describe('data-integrity: V3 source vs data/models.json (drift detector)', () => {
-  if (!V3_AVAILABLE) {
-    test.skip('V3 source not found (skipped — set SDD_V3_BACKUP_PATH or restore v3-monolith-backup.html)', () => {
-      // intentional no-op
-    });
-    return;
-  }
-
-  const html = readFileSync(V3_BACKUP, 'utf-8');
-  const v3 = parseV3Models(html);
-  const v4raw = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
-  const v4 = v4raw.models;
-
-  test('V3 parser extracts the same model count we expect', () => {
-    expect(Object.keys(v3).length).toBeGreaterThanOrEqual(15);
-  });
-
-  test('V4 has at least as many models as V3', () => {
-    expect(Object.keys(v4).length).toBeGreaterThanOrEqual(Object.keys(v3).length);
-  });
-
-  test('every V3 model key exists in V4', () => {
-    const v3Keys = Object.keys(v3).sort();
-    const v4Keys = Object.keys(v4).sort();
-    for (const k of v3Keys) {
-      expect(v4Keys, `V4 missing V3 key: ${k}`).toContain(k);
-    }
-  });
-
-  test('every V4 model key exists in V3 (allowing for known V4-only additions)', () => {
-    const v3Keys = new Set(Object.keys(v3));
-    for (const k of Object.keys(v4)) {
-      if (KNOWN_V4_ONLY.has(k)) continue;
-      expect(v3Keys.has(k), `V4 has orphan key (not in V3): ${k}`).toBe(true);
-    }
-  });
-
-  // PR3 NOTE: the legacy `arena` field comparison is removed from this
-  // file. PR3 cutover moved the source of truth for benchmarks from V3
-  // LMSYS/SWE-Bench/Terminal-Bench flat fields to BenchLM, and the V3
-  // arena number no longer matches any V4 field. The identity contract
-  // (name, tier, input, output) is preserved below.
-
-  test('name, input, output, tier match between V3 and V4 (PR3 identity contract)', () => {
-    for (const key of Object.keys(v3)) {
-      if (KNOWN_V4_ONLY.has(key)) continue;
-      const a = v3[key];
-      const b = v4[key];
-      expect(b, `V4 missing model ${key}`).toBeDefined();
-      expect(nameEqual(b.name, a.name), `V4 name "${b.name}" != V3 name "${a.name}"`).toBe(true);
-      if (b.pricingSource === 'artificialanalysis') {
-        expect(Number.isFinite(b.input), `${key} AA input must be finite`).toBe(true);
-        expect(Number.isFinite(b.output), `${key} AA output must be finite`).toBe(true);
-      } else if (!KNOWN_UPSTREAM_PRICE_UPDATES.has(key)) {
-        expect(b.input).toBeCloseTo(Number(a.input), 6);
-        expect(b.output).toBeCloseTo(Number(a.output), 6);
-      }
-      expect(b.tier).toBe(normalizeTier(a.tier));
-    }
-  });
-
-  test('reference-tier models in V3 are flagged isReference in V4', () => {
-    const v3Refs = Object.values(v3)
-      .filter((m) => m.tier === 'reference')
-      .map((m) => m.name);
-    expect(v3Refs.length).toBeGreaterThan(0);
-    for (const name of v3Refs) {
-      const v4Model = Object.values(v4).find((m) => nameEqual(m.name, name));
-      expect(v4Model, `V4 missing reference model ${name}`).toBeDefined();
-      expect(v4Model.isReference).toBe(true);
-      expect(v4Model.tier).toBe('reference');
-    }
-  });
-  test('_meta block declares schemaVersion 5 (V5 availability schema bump)', () => {
-    expect(v4raw._meta).toBeDefined();
-    expect(v4raw._meta.schemaVersion).toBe(5);
-    expect(v4raw._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
 
