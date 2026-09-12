@@ -25,7 +25,7 @@
 import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
 import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
-import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
+import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
 
 const REFERENCE_DISPLAY_ORDER = ['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna'];
 const EFFORT_LABELS = Object.freeze({
@@ -165,6 +165,136 @@ export function rowsFor(models) {
 }
 
 /**
+ * Order rows for display/export: Con-AA first, Sin-AA second, active before
+ * non-active inside each block. Shared by render() and the export builders so
+ * the file mirrors exactly the eligible set the user saw.
+ *
+ * @param {Object<string, Object>} models
+ * @returns {Object}
+ */
+function orderRows(models) {
+  const { active, nonActive } = rowsFor(models);
+  const groupedActive = splitByAaSignal(active, ([, m]) => m);
+  const groupedNonActive = splitByAaSignal(nonActive, ([, m]) => m);
+  const withAaRows = [...groupedActive.withAa, ...groupedNonActive.withAa];
+  const withoutAaRows = [...groupedActive.withoutAa, ...groupedNonActive.withoutAa];
+  return {
+    active,
+    nonActive,
+    groupedActive,
+    groupedNonActive,
+    activeCount: active.length,
+    nonActiveCount: nonActive.length,
+    withAa: withAaRows.length,
+    withoutAa: withoutAaRows.length,
+    groupedRows: [...withAaRows, ...withoutAaRows],
+  };
+}
+
+/** Build the export rows (name/tier/effort/lifecycle/score/prices). */
+function exportRowsFrom(groupedRows) {
+  return groupedRows.map(([key, m]) => {
+    const sc = compositeScore(m);
+    return [
+      m.name || key,
+      m.tier || '—',
+      m.effort == null ? '—' : (EFFORT_LABELS[m.effort] || String(m.effort)),
+      lifecycleOf(m),
+      Number.isFinite(sc) ? sc.toFixed(1) : '—',
+      Number.isFinite(m.input) ? `$${m.input.toFixed(2)}` : '—',
+      Number.isFinite(m.output) ? `$${m.output.toFixed(2)}` : '—',
+    ];
+  });
+}
+
+/** Build the filtered/full-catalog markdown + JSON payloads. */
+function buildExportPayload(order, context, scope) {
+  const ctx = { ...(context || {}), scope };
+  const rows = exportRowsFrom(order.groupedRows);
+  const md =
+    `${exportHeader(ctx)}\n# SDD Models (${order.activeCount} active + ${order.nonActiveCount} non-active)\n\n` +
+    markdownTable(
+      ['Modelo', 'Tier', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
+      rows
+    ) +
+    '\n';
+  const json = toJSON(
+    {
+      active: order.activeCount,
+      nonActive: order.nonActiveCount,
+      withAa: order.withAa,
+      withoutAa: order.withoutAa,
+      models: order.groupedRows.map(([k, m]) => [k, m]),
+    },
+    ctx
+  );
+  return { md, json };
+}
+
+/**
+ * Build the export formats for `models` (the eligible/visible view). The full
+ * catalog is added ONLY when `options.fullCatalogModels` is supplied — an
+ * explicit opt-in action, never inferred from an empty filtered set.
+ *
+ * @param {Object<string, Object>} models - visible (filtered) models
+ * @param {{ exportContext?: Object, fullCatalogModels?: Object }} [options]
+ * @returns {Array<Object>}
+ */
+export function buildExportFormats(models, options) {
+  const opts = options || {};
+  const context = opts.exportContext || {};
+  const filtered = buildExportPayload(orderRows(models || {}), context, 'filtered');
+  const formats = [
+    { id: 'copy-md', label: 'Copiar markdown', description: 'Tabla de modelos visibles', content: filtered.md, scope: 'filtered' },
+    {
+      id: 'download-md',
+      label: 'Descargar markdown',
+      description: 'Archivo .md con la vista filtrada',
+      content: filtered.md,
+      filename: exportFilename('ref-table', 'md'),
+      scope: 'filtered',
+    },
+    {
+      id: 'download-json',
+      label: 'Descargar JSON',
+      description: 'Snapshot filtrado · fuente de verdad',
+      content: filtered.json,
+      filename: exportFilename('ref-table', 'json'),
+      mime: 'application/json',
+      scope: 'filtered',
+    },
+  ];
+  if (opts.fullCatalogModels) {
+    const full = buildExportPayload(orderRows(opts.fullCatalogModels), context, 'full-catalog');
+    formats.push({
+      id: 'copy-md-full-catalog',
+      label: 'Copiar catálogo completo',
+      description: 'Ignora el filtro de suscripciones',
+      content: full.md,
+      scope: 'full-catalog',
+    });
+    formats.push({
+      id: 'download-md-full-catalog',
+      label: 'Descargar catálogo completo',
+      description: 'Archivo .md con todos los modelos',
+      content: full.md,
+      filename: exportFilename('ref-table-full', 'md'),
+      scope: 'full-catalog',
+    });
+    formats.push({
+      id: 'download-json-full-catalog',
+      label: 'Descargar JSON completo',
+      description: 'Snapshot completo · ignora el filtro',
+      content: full.json,
+      filename: exportFilename('ref-table-full', 'json'),
+      mime: 'application/json',
+      scope: 'full-catalog',
+    });
+  }
+  return formats;
+}
+
+/**
  * Build one table row's HTML.
  *
  * @param {string} key
@@ -209,7 +339,7 @@ function rowHtml(key, m, isNonActive) {
  * @param {Object<string, Object>} models
  * @returns {{ rows: number, topKey: string|null, referenceModel: Object|null }}
  */
-export function render(targetEl, models) {
+export function render(targetEl, models, options) {
   if (!targetEl || !(targetEl instanceof HTMLElement)) {
     throw new TypeError('ref-table.render: targetEl must be an HTMLElement');
   }
@@ -221,27 +351,44 @@ export function render(targetEl, models) {
     return { rows: 0, topKey: null, referenceModel: null };
   }
 
-  const { active, nonActive } = rowsFor(models);
-  const allRows = [...active, ...nonActive];
+  const ordered = orderRows(models);
+  const allRows = ordered.groupedRows;
   const referenceModel =
     Object.values(models).find((m) => m && lifecycleOf(m) === 'reference') ||
     null;
 
   if (allRows.length === 0) {
     targetEl.innerHTML = `
-      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
-        No non-reference models in the dataset.
+      <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+        <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold" data-test="ref-table-empty-count">0 activos · 0 Con-AA / 0 Sin-AA</span>
+          <div data-test="ref-table-export"></div>
+        </div>
+        <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400" data-test="empty-state">
+          No hay modelos elegibles con estas suscripciones.
+        </div>
       </div>`;
+    // The default export stays available (empty set + filtered metadata);
+    // the full catalog is still only inside the explicit menu action.
+    const emptyExportMount = targetEl.querySelector('[data-test="ref-table-export"]');
+    if (emptyExportMount) {
+      renderExportButton(emptyExportMount, {
+        sectionId: 'ref-table',
+        formats: buildExportFormats(models, options),
+        copyMessage: 'Tabla copiada al portapapeles',
+        downloadMessage: 'Descarga iniciada',
+      });
+    }
     return { rows: 0, topKey: null, referenceModel };
   }
 
-  const activeCount = active.length;
-  const nonActiveCount = nonActive.length;
-  const groupedActive = splitByAaSignal(active, ([, m]) => m);
-  const groupedNonActive = splitByAaSignal(nonActive, ([, m]) => m);
+  const activeCount = ordered.activeCount;
+  const nonActiveCount = ordered.nonActiveCount;
+  const groupedActive = ordered.groupedActive;
+  const groupedNonActive = ordered.groupedNonActive;
   const withAaRows = [...groupedActive.withAa, ...groupedNonActive.withAa];
   const withoutAaRows = [...groupedActive.withoutAa, ...groupedNonActive.withoutAa];
-  const groupedRows = [...withAaRows, ...withoutAaRows];
+  const groupedRows = ordered.groupedRows;
 
   function tableSectionHtml({ title, rows, activeRows, nonActiveRows, testId }) {
     if (rows.length === 0) {
@@ -294,25 +441,9 @@ export function render(targetEl, models) {
       </details>`;
   }
 
-  // Build the export formats. Markdown is the paste-ready form
-  // (table for the full catalog); JSON is the full model record set.
-  const exportRows = groupedRows.map(([key, m]) => {
-    const sc = compositeScore(m);
-    return [
-      m.name || key,
-      m.tier || '—',
-      m.effort == null ? '—' : (EFFORT_LABELS[m.effort] || String(m.effort)),
-      lifecycleOf(m),
-      Number.isFinite(sc) ? sc.toFixed(1) : '—',
-      Number.isFinite(m.input) ? `$${m.input.toFixed(2)}` : '—',
-      Number.isFinite(m.output) ? `$${m.output.toFixed(2)}` : '—',
-    ];
-  });
-  const exportMd = `# SDD Models (${activeCount} active + ${nonActiveCount} non-active)\n\n` + markdownTable(
-    ['Modelo', 'Tier', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
-    exportRows
-  ) + '\n';
-  const exportJson = toJSON({ active: activeCount, nonActive: nonActiveCount, withAa: withAaRows.length, withoutAa: withoutAaRows.length, models: groupedRows.map(([k, m]) => [k, m]) });
+  // V5 Slice 3 — the default export is the filtered view; the full catalog
+  // is an explicit action inside the menu (never inferred).
+  const exportFormats = buildExportFormats(models, options);
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
@@ -338,24 +469,7 @@ export function render(targetEl, models) {
   if (exportMount) {
     renderExportButton(exportMount, {
       sectionId: 'ref-table',
-      formats: [
-        { id: 'copy-md', label: 'Copiar markdown', description: 'Tabla de 24 modelos activos', content: exportMd },
-        {
-          id: 'download-md',
-          label: 'Descargar markdown',
-          description: 'Archivo .md con el catálogo completo',
-          content: exportMd,
-          filename: exportFilename('ref-table', 'md'),
-        },
-        {
-          id: 'download-json',
-          label: 'Descargar JSON',
-          description: 'Snapshot completo · fuente de verdad',
-          content: exportJson,
-          filename: exportFilename('ref-table', 'json'),
-          mime: 'application/json',
-        },
-      ],
+      formats: exportFormats,
       copyMessage: 'Tabla copiada al portapapeles',
       downloadMessage: 'Descarga iniciada',
     });

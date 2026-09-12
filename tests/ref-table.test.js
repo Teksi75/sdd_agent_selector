@@ -13,7 +13,7 @@
 //   - Reference-tier models still sink to the bottom; sort still
 //     descending by score; null scores rendered inline with "—".
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { render } from '../js/components/ref-table.js';
 
 // Mixed-fixture: verified + estimated + unavailable + reference. Score
@@ -173,7 +173,8 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(summary.rows).toBe(0);
     expect(summary.topKey).toBeNull();
     expect(target.querySelector('tbody')).toBeNull();
-    expect(target.textContent).toMatch(/No non-reference models|No model data/i);
+    expect(target.querySelector('[data-test="empty-state"]')).not.toBeNull();
+    expect(target.textContent).toMatch(/No hay modelos elegibles/i);
   });
 
   test('renders an empty-state card when models is null', () => {
@@ -379,5 +380,110 @@ describe('ref-table — reference display order and legacy filtering', () => {
     const gpt55 = target.querySelector('tr[data-model-key="gpt55"]');
     expect(gpt55.textContent).toMatch(/73\.5/);
     expect(gpt55.textContent).toMatch(/REFERENCE/);
+  });
+});
+
+// V5 Slice 3 — eligible-only rendering + filtered export contract.
+// The component renders exactly the eligible set it receives (app.js feeds
+// applyProviderFilter's output) and exports that same view by default; the
+// full catalog is an explicit opt-in action, never inferred.
+describe('ref-table — V5 Slice 3 eligible-only + filtered export', () => {
+  const CTX = {
+    providerIds: ['alpha', 'beta'],
+    providerNames: ['Alpha', 'Beta'],
+    timestamp: '2026-09-12T00:00:00.000Z',
+  };
+  const CATALOG = {
+    ...FIXTURE,
+    catalogOnly: {
+      name: 'Catalog Only',
+      tier: 'balanced',
+      benchlm: { score: 50, verified: true, reliability: 0.5, categories: {} },
+      input: 1,
+      output: 2,
+    },
+  };
+
+  function mockClipboard() {
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    return writeText;
+  }
+
+  async function clickFormat(mount, id) {
+    const toggle = mount.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    const btn = mount.querySelector(`[data-format-id="${id}"]`);
+    expect(btn).not.toBeNull();
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  test('rinde solo el set elegible recibido: ninguna fila fuera del set', () => {
+    const summary = render(target, { alpha: FIXTURE.alpha, beta: FIXTURE.beta });
+    expect(summary.rows).toBe(2);
+    const keys = Array.from(target.querySelectorAll('tr[data-model-key]')).map((tr) =>
+      tr.getAttribute('data-model-key')
+    );
+    expect(keys.sort()).toEqual(['alpha', 'beta']);
+    expect(target.querySelector('[data-model-key="pending"]')).toBeNull();
+    expect(target.querySelector('[data-model-key="gamma"]')).toBeNull();
+  });
+
+  test('set elegible vacío: empty-state label dedicado, cero filas', () => {
+    const summary = render(target, {});
+    expect(summary.rows).toBe(0);
+    expect(target.querySelectorAll('tr[data-model-key]').length).toBe(0);
+    const empty = target.querySelector('[data-test="empty-state"]');
+    expect(empty).not.toBeNull();
+    expect(empty.textContent).toMatch(/No hay modelos elegibles/i);
+  });
+
+  test('export default (filtered): header con scope + providers activos y solo el set visible', async () => {
+    const writeText = mockClipboard();
+    render(target, { alpha: FIXTURE.alpha }, { exportContext: CTX, fullCatalogModels: CATALOG });
+    await clickFormat(target, 'copy-md');
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
+    expect(captured).toContain('Alpha-1');
+    expect(captured).not.toContain('Catalog Only');
+    expect(captured).not.toContain('Beta-2');
+  });
+
+  test('full-catalog explícito: scope=full-catalog, catálogo completo y providers activos registrados', async () => {
+    const writeText = mockClipboard();
+    render(target, { alpha: FIXTURE.alpha }, { exportContext: CTX, fullCatalogModels: CATALOG });
+    await clickFormat(target, 'copy-md-full-catalog');
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=full-catalog providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
+    expect(captured).toContain('Catalog Only');
+  });
+
+  test('set elegible vacío NO cambia el default a full-catalog', async () => {
+    const writeText = mockClipboard();
+    render(target, {}, { exportContext: CTX, fullCatalogModels: CATALOG });
+    await clickFormat(target, 'copy-md');
+    const captured = writeText.mock.calls[0][0];
+    expect(captured).toContain('scope=filtered');
+    expect(captured).not.toContain('Catalog Only');
+  });
+
+  test('la acción full-catalog aparece marcada en el menú', () => {
+    render(target, { alpha: FIXTURE.alpha }, { exportContext: CTX, fullCatalogModels: CATALOG });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    const full = target.querySelector('[data-format-id="copy-md-full-catalog"]');
+    expect(full).not.toBeNull();
+    expect(full.getAttribute('data-export-scope')).toBe('full-catalog');
+    const filtered = target.querySelector('[data-format-id="copy-md"]');
+    expect(filtered.getAttribute('data-export-scope')).toBe('filtered');
   });
 });
