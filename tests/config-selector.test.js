@@ -35,7 +35,7 @@ beforeEach(() => {
   document.body.appendChild(target);
 });
 
-let render, selectConfig, setData, resetForTests, InvalidConfigError;
+let render, selectConfig, setData, resetForTests, InvalidConfigError, recomputeActiveConfig;
 
 describe('config-selector — selection semantics', () => {
   test('selectConfig("balanceado") updates DOM (button gana .active)', async () => {
@@ -311,5 +311,102 @@ describe('config-selector — V5+ KI-P0-1 silent option', () => {
     selectConfig('balanceado');
     // El toast debe aparecer (cualquier export-toast en el DOM).
     expect(document.querySelectorAll('[data-test="export-toast"]').length).toBeGreaterThan(0);
+  });
+});
+
+// V5 Slice 3 — recomputeActiveConfig({ silent: true }): the filter-change /
+// refresh entry point. Recomputes the active config over the injected data
+// set, runs the twin gate BEFORE painting/calling onSelect, and a gate error
+// keeps the previous config + assignments untouched.
+describe('config-selector — V5 Slice 3 recomputeActiveConfig', () => {
+  const REAL_CONFIGS = JSON.parse(
+    readFileSync(join(ROOT, 'data', 'configs.json'), 'utf-8')
+  ).configs;
+  const REF = {
+    name: 'Ref', tier: 'reference', lifecycle: 'reference',
+    benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
+    input: 5, output: 25,
+  };
+  const SHARED = {
+    name: 'Shared', tier: 'high', lifecycle: 'active',
+    benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} },
+    input: 4, output: 20,
+  };
+  const CHEAP = {
+    name: 'Cheap', tier: 'budget', lifecycle: 'active',
+    benchlm: { score: 70, verified: false, reliability: 0.8, categories: {} },
+    input: 0.5, output: 1,
+  };
+  const ROLES = {
+    'sdd-apply': { minReasoning: 40, costRatio: 1.0, role: 'apply' },
+    'jd-judge-a': { minReasoning: 40, costRatio: 1.0, role: 'judge-a' },
+    'jd-judge-b': { minReasoning: 40, costRatio: 1.0, role: 'judge-b' },
+  };
+
+  test('siguen existiendo exactamente 5 botones (set cerrado de configs)', async () => {
+    ({ render, setData, resetForTests } = await import(
+      '../js/components/config-selector.js'
+    ));
+    resetForTests();
+    setData({ models: MODELS, roleMatrix: ROLE_MATRIX, profiles: PROFILES });
+    render(target, REAL_CONFIGS, () => {});
+    const buttons = target.querySelectorAll('button[data-config-key]');
+    expect(buttons.length).toBe(5);
+    const keys = Array.from(buttons).map((b) => b.dataset.configKey).sort();
+    expect(keys).toEqual(['balanceado', 'economico', 'experimental', 'hibrido', 'maximo']);
+  });
+
+  test('filter change: setData + recomputeActiveConfig recalcula assignments', async () => {
+    ({ render, selectConfig, setData, resetForTests, recomputeActiveConfig } =
+      await import('../js/components/config-selector.js'));
+    resetForTests();
+    setData({ models: { ref: REF, shared: SHARED, cheap: CHEAP }, roleMatrix: ROLES, profiles: {} });
+    const calls = [];
+    render(target, CONFIGS, (assignments) => calls.push(assignments));
+    selectConfig('balanceado');
+    expect(calls.length).toBe(1);
+    expect(calls[0]['sdd-apply'].key).toBe('shared');
+
+    // Filter change: only ref + cheap remain eligible -> recompute.
+    setData({ models: { ref: REF, cheap: CHEAP }, roleMatrix: ROLES, profiles: {} });
+    const next = recomputeActiveConfig({ silent: true });
+    expect(calls.length).toBe(2);
+    expect(calls[1]['sdd-apply'].key).toBe('cheap');
+    expect(next['sdd-apply'].key).toBe('cheap');
+    // El botón sigue activo (no se pierde la selección por el filtro).
+    expect(target.querySelector('button[data-config-key="balanceado"]').classList.contains('active')).toBe(true);
+  });
+
+  test('error de twin judge: conserva config y assignments previos (sin paint nuevo)', async () => {
+    ({ render, selectConfig, setData, resetForTests, recomputeActiveConfig } =
+      await import('../js/components/config-selector.js'));
+    resetForTests();
+    setData({ models: { ref: REF, shared: SHARED, cheap: CHEAP }, roleMatrix: ROLES, profiles: {} });
+    let calls = 0;
+    render(target, CONFIGS, () => { calls += 1; });
+    selectConfig('balanceado');
+    expect(calls).toBe(1);
+
+    // Data change that makes the twins diverge: judge-b cannot afford ANY
+    // cost-clearing model, judge-a can.
+    const divergentRoles = {
+      ...ROLES,
+      'jd-judge-a': { minReasoning: 40, costRatio: 1.0, role: 'judge-a' },
+      'jd-judge-b': { minReasoning: 95, costRatio: 0.0001, role: 'judge-b' },
+    };
+    setData({ models: { ref: REF, shared: SHARED, cheap: CHEAP }, roleMatrix: divergentRoles, profiles: {} });
+    let caught;
+    try {
+      recomputeActiveConfig({ silent: true });
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeDefined();
+    expect(caught.name).toBe('InvalidConfigError');
+    expect(caught.message).toBe(TWIN_JUDGE_MSG);
+    // No hubo un segundo onSelect: el estado visible no mutó.
+    expect(calls).toBe(1);
+    expect(target.querySelectorAll('button.active').length).toBe(1);
+    expect(target.querySelector('button.active').dataset.configKey).toBe('balanceado');
   });
 });
