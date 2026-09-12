@@ -25,6 +25,10 @@ const SEED_IDS = [
   'qwen',
   'xai',
   'deepseek',
+  // Follow-up v5-fup-acquire-003: Meta ships as a manual registry record; the
+  // availability matrix gate re-reads the registry, so this seed also proves the
+  // 10th provider column is wired end to end.
+  'meta',
 ];
 
 describe('providers registry gate — data/providers.json', () => {
