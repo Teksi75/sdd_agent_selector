@@ -11,6 +11,7 @@
     "prebuild": "node -e \"require('node:fs').mkdirSync('dist',{recursive:true})\"",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "propagate:availability": "node scripts/propagate-provider-availability.mjs",
     "preview": "pnpm dlx serve dist"
   },
   "devDependencies": {
