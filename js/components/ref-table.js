@@ -126,9 +126,10 @@ function sourceBadges(m) {
 }
 
 /**
- * Sort models: active rows first (by compositeScore desc; cheaper input
- * breaks ties), non-active rows appended after (sorted among themselves
- * the same way).
+ * Sort models: active rows first (V5 follow-up — `isNew === true` rows are
+ * pinned to the top of the active group, then compositeScore desc; cheaper
+ * input breaks ties), non-active rows appended after (sorted among themselves
+ * the same way, reference display order first).
  *
  * @param {Object<string, Object>} models
  * @returns {{ active: Array<[string, Object]>, nonActive: Array<[string, Object]> }}
@@ -142,7 +143,7 @@ export function rowsFor(models) {
     if (lc === 'active') active.push(entry);
     else if (lc !== 'legacy') nonActive.push(entry);
   }
-  const sortFn = (a, b) => {
+  const compareScore = (a, b) => {
     const sa = compositeScore(a[1]);
     const sb = compositeScore(b[1]);
     if (sa == null && sb == null) return 0;
@@ -153,13 +154,22 @@ export function rowsFor(models) {
     const cb = Number.isFinite(b[1].input) ? b[1].input : Infinity;
     return ca - cb;
   };
-  active.sort(sortFn);
+  // V5 follow-up (v5-fup-acquire-003): the pin is scoped to the active group —
+  // every `isNew` row leads, so null-score newcomers stop sinking to the bottom;
+  // non-active rows keep the existing reference ordering untouched.
+  const compareActive = (a, b) => {
+    const aNew = a[1].isNew === true;
+    const bNew = b[1].isNew === true;
+    if (aNew !== bNew) return aNew ? -1 : 1;
+    return compareScore(a, b);
+  };
+  active.sort(compareActive);
   const orderIndex = new Map(REFERENCE_DISPLAY_ORDER.map((k, i) => [k, i]));
   nonActive.sort((a, b) => {
     const ai = orderIndex.has(a[0]) ? orderIndex.get(a[0]) : Infinity;
     const bi = orderIndex.has(b[0]) ? orderIndex.get(b[0]) : Infinity;
     if (ai !== bi) return ai - bi;
-    return sortFn(a, b);
+    return compareScore(a, b);
   });
   return { active, nonActive };
 }
