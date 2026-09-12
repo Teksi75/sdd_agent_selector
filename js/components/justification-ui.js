@@ -22,7 +22,7 @@
 
 import { render as renderExportButton } from './export-button.js';
 import { selectConfig } from './config-selector.js';
-import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
+import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
 
 const CANONICAL_ORDER = Object.freeze([
   'gentle-orchestrator', 'sdd-init', 'sdd-explore', 'sdd-propose', 'sdd-spec',
@@ -177,7 +177,7 @@ function cardHtml(agent, role, assignment, doc) {
  * @param {Object<string, Object>} models - keyed by model id (alternative model lookup)
  * @returns {{ cards: number, withAssignment: number, withoutAssignment: number }}
  */
-export function render(targetEl, agentsAssignments, roleMatrix, models) {
+export function render(targetEl, agentsAssignments, roleMatrix, models, options) {
   if (!targetEl || !(targetEl instanceof HTMLElement)) {
     throw new TypeError('justification-ui.render: targetEl must be an HTMLElement');
   }
@@ -220,16 +220,19 @@ export function render(targetEl, agentsAssignments, roleMatrix, models) {
       ea.softFallback ? 'soft fallback' : (ea.key ? 'ok' : '—'),
     ];
   });
-  const exportMd = `# Justificación por agente (${withA}/18 con asignación)\n\n` + markdownTable(
+  const exportContext = (options && options.exportContext) || {};
+  const exportMd = `${exportHeader(exportContext)}\n# Justificación por agente (${withA}/18 con asignación)\n\n` + markdownTable(
     ['Agent', 'Role', 'Modelo', 'Tier', 'Score', 'Costo/req', 'Estado'],
     exportRows
   ) + '\n';
-  const exportJson = toJSON({
-    timestamp: new Date().toISOString(),
-    withAssignment: withA,
-    withoutAssignment: withoutA,
-    assignments: exportAssignments,
-  });
+  const exportJson = toJSON(
+    {
+      withAssignment: withA,
+      withoutAssignment: withoutA,
+      assignments: exportAssignments,
+    },
+    exportContext
+  );
 
   // V5+ critique v2 — P2-4: aria-live="polite" on the cards grid
   // so screen readers announce the new assignment set after the

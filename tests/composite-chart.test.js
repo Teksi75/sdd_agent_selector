@@ -9,7 +9,7 @@
 //   - show a "BenchLM stale" freshness badge when lastRun > 7d
 //   - include reference-tier models (with numeric BenchLM scores) in the chart
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -320,5 +320,60 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     render(target, evil);
     expect(target.innerHTML).not.toMatch(/<img src=x onerror/);
     expect(target.innerHTML).toMatch(/&lt;img/);
+  });
+});
+
+// V5 Slice 3 — eligible-only rendering + filtered export contract.
+describe('composite-chart — V5 Slice 3 eligible-only + filtered export', () => {
+  const CTX = {
+    providerIds: ['alpha', 'beta'],
+    providerNames: ['Alpha', 'Beta'],
+    timestamp: '2026-09-12T00:00:00.000Z',
+  };
+
+  test('rinde solo el set elegible recibido (sin filas fuera del set)', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      a: { name: 'A', tier: 'high', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+      b: { name: 'B', tier: 'balanced', benchlm: { score: 70, verified: true, reliability: 0.8, categories: {} } },
+      c: { name: 'C', tier: 'budget', benchlm: { score: 60, verified: true, reliability: 0.7, categories: {} } },
+    };
+    render(target, { a: FIXTURE.a, b: FIXTURE.b });
+    const keys = Array.from(target.querySelectorAll('[data-model-key]')).map((el) =>
+      el.getAttribute('data-model-key')
+    );
+    expect(keys.sort()).toEqual(['a', 'b']);
+    expect(target.querySelector('[data-model-key="c"]')).toBeNull();
+  });
+
+  test('set elegible vacío: empty-state label dedicado, cero barras', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const summary = render(target, {});
+    expect(summary.scored + summary.unavailable).toBe(0);
+    expect(target.querySelectorAll('[data-model-key]').length).toBe(0);
+    const empty = target.querySelector('[data-test="empty-state"]');
+    expect(empty).not.toBeNull();
+    expect(empty.textContent).toMatch(/No hay modelos elegibles/i);
+  });
+
+  test('export default (filtered): primera línea con scope + providers', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const FIXTURE = {
+      a: { name: 'A', tier: 'high', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+    };
+    render(target, FIXTURE, undefined, { exportContext: CTX });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    target.querySelector('[data-format-id="copy-md"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
   });
 });

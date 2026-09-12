@@ -8,7 +8,7 @@
 //
 // Imports declared at the bottom so the test file reads top-down.
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -171,5 +171,50 @@ describe('cli-mirror-table — render() contract (spec.md)', () => {
     expect(target.querySelector('tr[data-agent="sdd-init"] [data-effort="high"]')?.textContent)
       .toBe('Alto');
     expect(target.querySelector('tr[data-agent="sdd-explore"] [data-effort]')).toBeNull();
+  });
+});
+
+// V5 Slice 3 — unassigned rows stay stable (18 rows), and the export is the
+// filtered assignment view with the active-providers header.
+describe('cli-mirror-table — V5 Slice 3 unassigned + filtered export', () => {
+  const CTX = {
+    providerIds: ['alpha', 'beta'],
+    providerNames: ['Alpha', 'Beta'],
+    timestamp: '2026-09-12T00:00:00.000Z',
+  };
+
+  test('18 filas preservadas con todos los assignments unassigned', async () => {
+    ({ render } = await import('../js/components/cli-mirror-table.js'));
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) assignments[agent] = { key: null, reason: 'filtro vacío' };
+    const summary = render(target, assignments, ROLE_MATRIX);
+    expect(summary.rows).toBe(18);
+    expect(summary.withAssignment).toBe(0);
+    expect(summary.withoutAssignment).toBe(18);
+    expect(target.querySelectorAll('tr[data-agent]').length).toBe(18);
+    expect(target.querySelectorAll('.warn-row').length).toBe(18);
+  });
+
+  test('export default: primera línea con scope + providers activos', async () => {
+    ({ render } = await import('../js/components/cli-mirror-table.js'));
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) {
+      assignments[agent] = { key: 'shared', model: { name: 'Shared Model', tier: 'high' } };
+    }
+    render(target, assignments, ROLE_MATRIX, { exportContext: CTX });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    target.querySelector('[data-format-id="copy-md"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
+    expect(captured).toContain('Shared Model');
   });
 });

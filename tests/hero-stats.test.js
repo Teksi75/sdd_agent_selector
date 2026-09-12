@@ -78,13 +78,14 @@ describe('hero-stats — countAgentsByFamily', () => {
 });
 
 describe('hero-stats — buildStatsLine', () => {
-  test('formato "X activos · Y reference · Z agentes (a SDD + b JD + c review)"', () => {
+  test('formato "X de Y visibles · reference · Z agentes (a SDD + b JD + c review)"', () => {
     const data = {
       models: {
         a: { lifecycle: 'active' },
         b: { lifecycle: 'active' },
         c: { lifecycle: 'reference' },
       },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: {
         'sdd-init': {}, 'sdd-explore': {},
         'jd-judge-a': {},
@@ -92,28 +93,45 @@ describe('hero-stats — buildStatsLine', () => {
       },
     };
     const line = buildStatsLine(data);
-    expect(line).toMatch(/2 activos/);
+    expect(line).toMatch(/1 de 2 visibles/);
     expect(line).toMatch(/1 reference/);
     expect(line).toMatch(/4 agentes \(2 SDD \+ 1 JD \+ 1 review\)/);
+  });
+
+  test('Y (total activo) es estable cuando el filtro vacía el set elegible', () => {
+    const data = {
+      models: {
+        a: { lifecycle: 'active' },
+        b: { lifecycle: 'active' },
+      },
+      eligibleModels: {},
+      roleMatrix: { 'sdd-init': {} },
+    };
+    const line = buildStatsLine(data);
+    expect(line).toMatch(/0 de 2 visibles/);
   });
 
   test('omite el sufijo "reference" cuando no hay modelos de referencia', () => {
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {} },
     };
     const line = buildStatsLine(data);
     expect(line).not.toMatch(/reference/);
-    expect(line).toMatch(/1 activos/);
+    expect(line).toMatch(/1 de 1 visibles/);
   });
 
   test('omite "legacy" cuando no hay modelos legacy', () => {
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {} },
     };
     const line = buildStatsLine(data);
     expect(line).not.toMatch(/legacy/);
+    // La copia estática vieja ("24 activos" / "N activos") ya no existe.
+    expect(line).not.toMatch(/\bactivos\b/);
   });
 
   test('incluye "legacy" cuando hay modelos legacy', () => {
@@ -122,6 +140,7 @@ describe('hero-stats — buildStatsLine', () => {
         a: { lifecycle: 'active' },
         b: { lifecycle: 'legacy' },
       },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {} },
     };
     const line = buildStatsLine(data);
@@ -133,6 +152,7 @@ describe('hero-stats — render()', () => {
   test('pinta el data-test="hero-stats" en el mount', () => {
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {} },
     };
     const out = render(target, data);
@@ -140,11 +160,15 @@ describe('hero-stats — render()', () => {
     expect(target.querySelector('[data-test="hero-stats"]')).not.toBeNull();
   });
 
-  test('incluye los counts en el DOM como texto', () => {
+  test('muestra "X de Y visibles" + counts secundarios + agentes', () => {
     const data = {
       models: {
         a: { lifecycle: 'active' },
         b: { lifecycle: 'active' },
+        c: { lifecycle: 'reference' },
+      },
+      eligibleModels: {
+        a: { lifecycle: 'active' },
         c: { lifecycle: 'reference' },
       },
       roleMatrix: {
@@ -155,25 +179,40 @@ describe('hero-stats — render()', () => {
     };
     render(target, data);
     const text = target.textContent.replace(/\s+/g, ' ');
-    expect(text).toMatch(/2\s+activos/);
+    expect(text).toMatch(/1\s+de\s+2\s+visibles/);
     expect(text).toMatch(/1\s+reference/);
     expect(text).toMatch(/6\s+agentes/);
     expect(text).toMatch(/3\s+SDD/);
     expect(text).toMatch(/2\s+JD/);
     expect(text).toMatch(/1\s+review/);
+    expect(text).not.toMatch(/24\s+activos/);
+  });
+
+  test('set elegible vacío → "0 de Y visibles" (Y estable)', () => {
+    const data = {
+      models: {
+        a: { lifecycle: 'active' },
+        b: { lifecycle: 'active' },
+      },
+      eligibleModels: {},
+      roleMatrix: { 'sdd-init': {} },
+    };
+    render(target, data);
+    const text = target.textContent.replace(/\s+/g, ' ');
+    expect(text).toMatch(/0\s+de\s+2\s+visibles/);
   });
 
   test('safe con mount null (no-op, no throw)', () => {
-    const data = { models: {}, roleMatrix: {} };
+    const data = { models: {}, eligibleModels: {}, roleMatrix: {} };
     const out = render(null, data);
     expect(out.mounted).toBe(false);
-    // html siempre se computa — el caller puede inspeccionarlo offline.
     expect(out.html).toMatch(/data-test="hero-stats"/);
   });
 
   test('re-render sobreescribe el contenido previo (re-paint seguro)', () => {
     const data1 = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {} },
     };
     render(target, data1);
@@ -185,6 +224,10 @@ describe('hero-stats — render()', () => {
         y: { lifecycle: 'active' },
         z: { lifecycle: 'active' },
       },
+      eligibleModels: {
+        x: { lifecycle: 'active' },
+        y: { lifecycle: 'active' },
+      },
       roleMatrix: {
         'sdd-init': {}, 'sdd-explore': {}, 'sdd-archive': {},
       },
@@ -192,9 +235,9 @@ describe('hero-stats — render()', () => {
     render(target, data2);
     const second = target.textContent;
 
-    expect(first).toMatch(/1\s+activos/);
-    expect(second).toMatch(/3\s+activos/);
-    expect(second).not.toMatch(/1\s+activos/);
+    expect(first).toMatch(/1\s+de\s+1\s+visibles/);
+    expect(second).toMatch(/2\s+de\s+3\s+visibles/);
+    expect(second).not.toMatch(/1\s+de\s+1\s+visibles/);
   });
 });
 
@@ -207,6 +250,7 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
   test('buildStatsLine acepta data.roles (live data-loader contract)', () => {
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roles: { 'sdd-init': {}, 'sdd-archive': {} },
     };
     const line = buildStatsLine(data);
@@ -217,6 +261,7 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
   test('buildStatsLine acepta data.roleMatrix (legacy name)', () => {
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {} },
     };
     const line = buildStatsLine(data);
@@ -228,6 +273,7 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
     // Si ambas están presentes, gana `roles` (la del data-loader real).
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roles: { 'sdd-init': {}, 'sdd-archive': {}, 'sdd-explore': {} },  // 3
       roleMatrix: { 'sdd-init': {} },  // 1 — ignorado
     };
@@ -236,7 +282,10 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
   });
 
   test('buildStatsLine con ninguna key cae a 0 agentes (no throw)', () => {
-    const data = { models: { a: { lifecycle: 'active' } } };
+    const data = {
+      models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
+    };
     const line = buildStatsLine(data);
     expect(line).toMatch(/0 agentes/);
   });
@@ -244,6 +293,7 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
   test('render pinta el conteo correcto con data.roles', () => {
     const data = {
       models: { a: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' } },
       roles: {
         'sdd-init': {}, 'sdd-archive': {}, 'sdd-archive2': {},
         'jd-judge-a': {}, 'jd-judge-b': {},
@@ -253,7 +303,7 @@ describe('hero-stats — V5+ KI-P0-2 dual-key tolerance', () => {
     const out = render(target, data);
     expect(out.mounted).toBe(true);
     const text = target.textContent.replace(/\s+/g, ' ');
-    expect(text).toMatch(/1\s+activos/);
+    expect(text).toMatch(/1\s+de\s+1\s+visibles/);
     expect(text).toMatch(/6\s+agentes/);
     expect(text).toMatch(/3\s+SDD/);
     expect(text).toMatch(/2\s+JD/);
@@ -270,6 +320,7 @@ describe('hero-stats — V5+ critique v3 P1-1 visual hierarchy', () => {
   test('renderiza 2 bloques + divider vertical con data-test markers', () => {
     const data = {
       models: { a: { lifecycle: 'active' }, b: { lifecycle: 'active' } },
+      eligibleModels: { a: { lifecycle: 'active' }, b: { lifecycle: 'active' } },
       roleMatrix: { 'sdd-init': {}, 'sdd-archive': {} },
     };
     render(target, data);
@@ -292,12 +343,16 @@ describe('hero-stats — V5+ critique v3 P1-1 visual hierarchy', () => {
     expect(divider.getAttribute('aria-hidden')).toBe('true');
   });
 
-  test('los headline numbers (24 activos / 18 agentes) están en text-slate-100 font-semibold', () => {
+  test('los headline numbers (X de Y visibles / 18 agentes) están en text-slate-100 font-semibold', () => {
     const data = {
       models: {
         a: { lifecycle: 'active' }, b: { lifecycle: 'active' },
         c: { lifecycle: 'active' }, d: { lifecycle: 'active' },
         e: { lifecycle: 'reference' },
+      },
+      eligibleModels: {
+        a: { lifecycle: 'active' }, b: { lifecycle: 'active' },
+        c: { lifecycle: 'active' }, d: { lifecycle: 'active' },
       },
       roleMatrix: {
         'sdd-init': {}, 'sdd-explore': {}, 'sdd-archive': {},
@@ -325,5 +380,10 @@ describe('hero-stats — V5+ critique v3 P1-1 visual hierarchy', () => {
     const agentsHeadline = target.querySelector('[data-test="hero-stats-agents"] [data-test="hero-stats-headline"]');
     expect(modelsHeadline.textContent.trim()).toBe('4');
     expect(agentsHeadline.textContent.trim()).toBe('18');
+    // La copia vive como "4 de 4 visibles" (X elegible de Y total).
+    const modelsBlockText = target
+      .querySelector('[data-test="hero-stats-models"]')
+      .textContent.replace(/\s+/g, ' ');
+    expect(modelsBlockText).toMatch(/4\s+de\s+4\s+visibles/);
   });
 });

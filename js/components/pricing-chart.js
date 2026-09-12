@@ -126,13 +126,13 @@ function barRowHtml(key, m, cost, width, bgClass, bgValue) {
 }
 
 /** Render the cost-per-default-request bar chart into `targetEl`. Pure render. */
-export function render(targetEl, models) {
+export function render(targetEl, models, options) {
   if (!targetEl || !(targetEl instanceof HTMLElement)) {
     throw new TypeError('pricing-chart.render: targetEl must be an HTMLElement');
   }
   if (!models || typeof models !== 'object') {
     targetEl.innerHTML = `
-      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
+      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400" data-test="empty-state">
         No hay datos de modelos para graficar.
       </div>`;
     return { bars: 0, maxCost: null };
@@ -141,8 +141,8 @@ export function render(targetEl, models) {
   const rows = rowsFor(models);
   if (rows.length === 0) {
     targetEl.innerHTML = `
-      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
-        No hay modelos activos para mostrar.
+      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400" data-test="empty-state">
+        No hay modelos elegibles para mostrar con estas suscripciones.
       </div>`;
     return { bars: 0, maxCost: null };
   }
