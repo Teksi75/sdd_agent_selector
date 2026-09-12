@@ -116,8 +116,8 @@ const AA_VARIANT_KEYS = aliases
   .map(({ to }) => to);
 
 describe('AA effort catalog: schema 4 consolidation (PR3A)', () => {
-  test('declares catalog schema version 4', () => {
-    expect(raw._meta.schemaVersion).toBe(4);
+  test('declares catalog schema version 5 (V5 availability bump)', () => {
+    expect(raw._meta.schemaVersion).toBe(5);
   });
 
   test('uses gpt56luna as the sole canonical max-effort entry', () => {

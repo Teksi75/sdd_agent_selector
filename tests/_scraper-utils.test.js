@@ -19,6 +19,8 @@ import {
   writeModelsJson,
   _setFsForTesting,
   _resetFsForTesting,
+  MANUAL_MODEL_FIELDS,
+  preserveManualModelFields,
 } from '../scripts/_scraper-utils.mjs';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -106,7 +108,9 @@ describe('writeModelsJson — atomic write', () => {
     });
     _setFsForTesting({ ...fsImpl, renameSync: renameSpy });
 
-    expect(() => writeModelsJson(targetPath, makeDoc(99), 'scrape-benchlm-test')).toThrow(/EBUSY/);
+    const candidate = makeDoc(99);
+    candidate.models.preexisting = { name: 'untouched' };
+    expect(() => writeModelsJson(targetPath, candidate, 'scrape-benchlm-test')).toThrow(/EBUSY/);
 
     // Tmp file remains (forensic value).
     const leftover = listTmpFiles(tmpDir, TARGET_NAME);
@@ -254,5 +258,78 @@ describe('writeModelsJson — _meta.sources migration', () => {
     const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
     expect(result._meta.sources).toEqual(['a', 'b', 'c']);
     expect(result._meta).not.toHaveProperty('source');
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Block 3 — manual-field write-guard (V5 availability)
+//
+// `availability` is human-owned data curation. The 8 scrapers re-read the
+// canonical target and may never create, replace or delete it: an existing id
+// gets its on-disk map restored byte-semantically, a new id is forced to `{}`
+// (fail-closed), and an accidental deletion aborts the write.
+
+describe('preserveManualModelFields — availability is human-owned', () => {
+  const onDisk = {
+    foo: { name: 'Foo', tier: 'high', availability: { p1: true, p2: false } },
+  };
+
+  test('exports a frozen manual-field allowlist', () => {
+    expect(MANUAL_MODEL_FIELDS).toEqual(['availability']);
+    expect(Object.isFrozen(MANUAL_MODEL_FIELDS)).toBe(true);
+  });
+
+  test('restores the on-disk map when the candidate omits or replaces it', () => {
+    const omitted = preserveManualModelFields(onDisk, { foo: { name: 'Foo', input: 9 } });
+    expect(omitted.foo.availability).toEqual({ p1: true, p2: false });
+
+    const replaced = preserveManualModelFields(onDisk, {
+      foo: { name: 'Foo', availability: { p1: false, p2: true } },
+    });
+    expect(replaced.foo.availability).toEqual({ p1: true, p2: false });
+    // Byte-semantic clone: never a shared reference with the on-disk record.
+    expect(replaced.foo.availability).not.toBe(onDisk.foo.availability);
+  });
+
+  test('scraped fields keep precedence; manual fields do not', () => {
+    const next = preserveManualModelFields(onDisk, {
+      foo: { name: 'Foo v2', input: 1.5, availability: {} },
+    });
+    expect(next.foo.name).toBe('Foo v2');
+    expect(next.foo.input).toBe(1.5);
+    expect(next.foo.availability).toEqual({ p1: true, p2: false });
+  });
+
+  test('new ids are forced to an empty (fail-closed) map', () => {
+    const next = preserveManualModelFields(onDisk, {
+      foo: { name: 'Foo', availability: { p1: true, p2: false } },
+      bar: { name: 'Bar', availability: { p1: true } },
+    });
+    expect(next.bar.availability).toEqual({});
+    expect(Object.keys(next.bar.availability)).toEqual([]);
+  });
+
+  test('an on-disk id missing from the candidate aborts the write', () => {
+    expect(() => preserveManualModelFields(onDisk, { bar: { name: 'Bar' } })).toThrow(/foo/);
+  });
+
+  test('writeModelsJson applies the guard against the canonical target', () => {
+    fsImpl.writeFileSync(
+      tempFile,
+      JSON.stringify(
+        { _meta: { schemaVersion: 5 }, models: { foo: { name: 'Foo', availability: { p1: true } } } },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+    const doc = {
+      _meta: { schemaVersion: 5 },
+      models: { foo: { name: 'Foo v2', input: 2, availability: { p1: false } } },
+    };
+    writeModelsJson(tempFile, doc, 'scrape-x');
+    const result = JSON.parse(fsImpl.readFileSync(tempFile, 'utf-8'));
+    expect(result.models.foo.availability).toEqual({ p1: true });
+    expect(result.models.foo.input).toBe(2);
   });
 });
