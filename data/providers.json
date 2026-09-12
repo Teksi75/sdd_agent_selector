@@ -1,0 +1,14 @@
+{
+  "_meta": { "schemaVersion": 1 },
+  "providers": [
+    { "id": "opencode-go", "name": "Opencode Go", "tier": "Go", "url": "https://opencode.ai/docs/es/go/", "updated": "2026-09-12" },
+    { "id": "chatgpt-plus", "name": "ChatGPT Plus", "tier": "Plus", "url": "https://openai.com/chatgpt/pricing/", "updated": "2026-09-12" },
+    { "id": "minimax", "name": "MiniMax", "tier": "Coding Plan", "url": "https://www.minimax.io/", "updated": "2026-09-12" },
+    { "id": "anthropic", "name": "Anthropic Claude", "tier": "Pro/Max", "url": "https://www.anthropic.com/pricing", "updated": "2026-09-12" },
+    { "id": "kimi", "name": "Kimi (Moonshot)", "tier": "Plan", "url": "https://www.kimi.com/", "updated": "2026-09-12" },
+    { "id": "zai-glm", "name": "Z.ai GLM", "tier": "GLM Coding Plan", "url": "https://z.ai/", "updated": "2026-09-12" },
+    { "id": "qwen", "name": "Qwen", "tier": "Qwen Chat", "url": "https://chat.qwen.ai/", "updated": "2026-09-12" },
+    { "id": "xai", "name": "xAI Grok", "tier": "SuperGrok", "url": "https://x.ai/grok", "updated": "2026-09-12" },
+    { "id": "deepseek", "name": "DeepSeek", "tier": "Platform", "url": "https://platform.deepseek.com/", "updated": "2026-09-12" }
+  ]
+}
