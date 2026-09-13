@@ -12,9 +12,11 @@
 //   - Source-badges cell still carries the inputs/outputs and NEW flag.
 //   - Reference-tier models still sink to the bottom; sort still
 //     descending by score; null scores rendered inline with "—".
+//   - V5 follow-up: `isNew === true` rows are pinned to the top of the active
+//     group (score/price tie-break unchanged inside each bucket).
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { render } from '../js/components/ref-table.js';
+import { render, rowsFor } from '../js/components/ref-table.js';
 
 // Mixed-fixture: verified + estimated + unavailable + reference. Score
 // ordering is clear: alpha (verified 85) > beta (estimated 65) >
@@ -78,7 +80,8 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
 
     const activeRows = Array.from(target.querySelectorAll('[data-test="active-rows"] tr'));
     const activeKeys = activeRows.map((tr) => tr.getAttribute('data-model-key'));
-    expect(activeKeys).toEqual(['alpha', 'beta', 'pending']);
+    // V5 follow-up: beta carries `isNew`, so it leads the active group.
+    expect(activeKeys).toEqual(['beta', 'alpha', 'pending']);
 
     const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
     expect(nonActiveSection, 'non-active section missing').toBeDefined();
@@ -88,16 +91,18 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(nonActiveKeys).toEqual(['delta', 'gamma']);
   });
 
-  test('(d) scored rows sort by benchlm.score descending; references last', () => {
+  test('(d) isNew pins first; scored rows sort by benchlm.score descending; references last', () => {
     const summary = render(target, FIXTURE);
     const tbody = target.querySelector('tbody');
     const keys = Array.from(tbody.querySelectorAll('tr')).map(
       (tr) => tr.getAttribute('data-model-key')
     );
-    expect(keys[0]).toBe('alpha');     // 85
-    expect(keys[1]).toBe('beta');      // 65
+    // V5 follow-up: beta (isNew) is pinned above alpha despite the lower score;
+    // score order still holds inside the non-isNew bucket.
+    expect(keys[0]).toBe('beta');      // isNew (65)
+    expect(keys[1]).toBe('alpha');     // 85
     expect(keys[2]).toBe('pending');   // null (unavailable)
-    expect(summary.topKey).toBe('alpha');
+    expect(summary.topKey).toBe('beta');
   });
 
   test('(a) row shows benchlm score column; NO legacy 4-benchmark columns', () => {
@@ -485,5 +490,108 @@ describe('ref-table — V5 Slice 3 eligible-only + filtered export', () => {
     expect(full.getAttribute('data-export-scope')).toBe('full-catalog');
     const filtered = target.querySelector('[data-format-id="copy-md"]');
     expect(filtered.getAttribute('data-export-scope')).toBe('filtered');
+  });
+});
+
+// V5 follow-up (v5-fup-acquire-003) — `isNew === true` active models are pinned
+// to the top of the active group. The pin is scoped to the active lifecycle
+// group: every isNew row (including null-score newcomers such as GPT-6 Astra)
+// ranks above every non-isNew active row, while score desc / cheaper-input
+// tie-break stays untouched inside each bucket and non-active rows keep their
+// reference ordering.
+describe('ref-table — isNew pin inside the active group (V5 follow-up)', () => {
+  const PIN_FIXTURE = {
+    scoredOld: {
+      name: 'Scored Old',
+      tier: 'high',
+      benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} },
+      input: 1,
+      output: 2,
+    },
+    newScored: {
+      name: 'New Scored',
+      tier: 'high',
+      benchlm: { score: 70, verified: true, reliability: 0.7, categories: {} },
+      input: 1,
+      output: 2,
+      isNew: true,
+    },
+    newUnscored: {
+      name: 'New Unscored',
+      tier: 'high',
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+      input: 1,
+      output: 2,
+      isNew: true,
+    },
+    oldUnscored: {
+      name: 'Old Unscored',
+      tier: 'high',
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+      input: 1,
+      output: 2,
+    },
+    refNew: {
+      name: 'Reference New',
+      tier: 'reference',
+      lifecycle: 'reference',
+      isReference: true,
+      isNew: true,
+      benchlm: { score: 99, verified: true, reliability: 0.9, categories: {} },
+      input: 5,
+      output: 25,
+    },
+  };
+
+  test('rowsFor: isNew leads the active group; score tie-break unchanged inside each bucket', () => {
+    const { active, nonActive } = rowsFor(PIN_FIXTURE);
+    expect(active.map(([key]) => key)).toEqual([
+      'newScored',   // isNew, 70
+      'newUnscored', // isNew, null score — no longer sinks to the bottom
+      'scoredOld',   // 90 (non-isNew)
+      'oldUnscored', // null score (non-isNew)
+    ]);
+    // The pin never crosses lifecycle groups: refNew stays out of `active`.
+    expect(nonActive.map(([key]) => key)).toEqual(['refNew']);
+  });
+
+  test('render: the visible active rows follow the pinned order', () => {
+    render(target, PIN_FIXTURE);
+    const activeTable = target.querySelector('[data-test="active-rows"]');
+    expect(activeTable).not.toBeNull();
+    const keys = Array.from(activeTable.querySelectorAll('tr')).map((tr) =>
+      tr.getAttribute('data-model-key')
+    );
+    expect(keys).toEqual(['newScored', 'newUnscored', 'scoredOld', 'oldUnscored']);
+  });
+
+  test('inside a bucket, equal scores fall back to the cheaper input (tie-break as today)', () => {
+    const models = {
+      newPricey: {
+        name: 'New Pricey',
+        tier: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+        input: 3,
+        output: 2,
+        isNew: true,
+      },
+      newCheap: {
+        name: 'New Cheap',
+        tier: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+        input: 1,
+        output: 2,
+        isNew: true,
+      },
+      oldCheapest: {
+        name: 'Old Cheapest',
+        tier: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+        input: 0.5,
+        output: 2,
+      },
+    };
+    const { active } = rowsFor(models);
+    expect(active.map(([key]) => key)).toEqual(['newCheap', 'newPricey', 'oldCheapest']);
   });
 });
