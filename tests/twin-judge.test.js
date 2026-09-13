@@ -29,6 +29,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
 
 import { getBestFor } from '../js/services/model-scorer.js';
+import { applyProviderFilter } from '../js/services/provider-filter.js';
 
 /**
  * Phase-2 placeholder — emulates what selectConfig() will do.
@@ -184,5 +185,86 @@ describe('twin-judge constraint', () => {
     expect(() =>
       selectConfigEmulator('balanced', models, roleMatrix, profiles)
     ).not.toThrow();
+  });
+});
+
+// V5 Slice 3 — the twin invariant holds under provider filtering. Both judges
+// MUST draw from the same eligible set; an empty eligible set yields two
+// `key: null` results (normalized `unassigned`) and never throws.
+describe('twin-judge — V5 Slice 3 filtered eligible set', () => {
+  const availability = {
+    ref: { p1: true, p2: true },
+    shared: { p1: true, p2: true },
+    p1only: { p1: true, p2: false },
+    p2only: { p1: false, p2: true },
+  };
+  const models = {
+    ref: { name: 'Ref', tier: 'reference', lifecycle: 'reference', benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} }, input: 5, output: 25 },
+    shared: { name: 'Shared', tier: 'high', lifecycle: 'active', benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} }, input: 4, output: 20 },
+    p1only: { name: 'P1 Only', tier: 'balanced', lifecycle: 'active', benchlm: { score: 70, verified: true, reliability: 0.8, categories: {} }, input: 0.5, output: 1 },
+    p2only: { name: 'P2 Only', tier: 'budget', lifecycle: 'active', benchlm: { score: 60, verified: false, reliability: 0.7, categories: {} }, input: 0.1, output: 0.2 },
+  };
+  const alignedMatrix = {
+    'jd-judge-a': { minReasoning: 40, costRatio: 1.0, role: 'judge-a' },
+    'jd-judge-b': { minReasoning: 40, costRatio: 1.0, role: 'judge-b' },
+  };
+  const profs = {
+    'jd-judge-a': { inputTokens: 1000, outputTokens: 500 },
+    'jd-judge-b': { inputTokens: 1000, outputTokens: 500 },
+  };
+
+  test('both judges draw from the same eligible reference and resolve identically', () => {
+    const eligible = applyProviderFilter(models, availability, ['p1']);
+    // The exclusive p2 model is NOT in the projected set.
+    expect(Object.keys(eligible).sort()).toEqual(['p1only', 'ref', 'shared']);
+    const a = getBestFor('jd-judge-a', eligible, alignedMatrix, profs, 'balanced');
+    const b = getBestFor('jd-judge-b', eligible, alignedMatrix, profs, 'balanced');
+    expect(a.key).toBe(b.key);
+    expect(Object.keys(eligible)).toContain(a.key);
+    expect(a.key).not.toBe('p2only');
+  });
+
+  test('divergence over a filtered fixture throws the exact message and mutates no DOM', async () => {
+    const { render, setData, selectConfig, resetForTests, InvalidConfigError } =
+      await import('../js/components/config-selector.js');
+    resetForTests();
+    const eligible = applyProviderFilter(models, availability, ['p1']);
+    const divergentMatrix = {
+      'jd-judge-a': { minReasoning: 40, costRatio: 1.0, role: 'judge-a' },
+      // Judge B cannot afford ANY cost-clearing model → null vs shared.
+      'jd-judge-b': { minReasoning: 99, costRatio: 0.0001, role: 'judge-b' },
+    };
+    const target = document.createElement('div');
+    document.body.appendChild(target);
+    setData({ models: eligible, roleMatrix: divergentMatrix, profiles: profs });
+    render(target, [{ key: 'balanceado', name: 'Balanceado', strategy: 'balanced' }], () => {});
+    let caught;
+    try {
+      selectConfig('balanceado');
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(InvalidConfigError);
+    expect(caught.message).toBe(
+      'jd-judge-a and jd-judge-b must resolve to the same model (twin judge constraint violated)'
+    );
+    // No DOM mutation: no button painted active.
+    expect(target.querySelectorAll('button.active').length).toBe(0);
+    target.remove();
+  });
+
+  test('empty eligible set yields key null for both (unassigned, no throw)', () => {
+    const eligible = applyProviderFilter(models, availability, []);
+    expect(Object.keys(eligible)).toHaveLength(0);
+    const a = getBestFor('jd-judge-a', eligible, alignedMatrix, profs, 'balanced');
+    const b = getBestFor('jd-judge-b', eligible, alignedMatrix, profs, 'balanced');
+    expect(a.key).toBeNull();
+    expect(b.key).toBeNull();
+    // The twin gate normalizes both nulls to unassigned without throwing.
+    expect(() => {
+      const ea = a.key ?? null;
+      const eb = b.key ?? null;
+      if (ea !== eb) throw new Error('twin judge constraint violated');
+    }).not.toThrow();
   });
 });
