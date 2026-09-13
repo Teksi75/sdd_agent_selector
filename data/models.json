@@ -2609,10 +2609,10 @@
       "intelligenceIndex": 49.7
     },
     "claudeFable51": {
-      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Fable 5.1",
       "effort": "max",
-      "lifecycle": "benchmark-only",
+      "lifecycle": "active",
       "input": 10,
       "output": 50,
       "blended": 20,
@@ -2639,10 +2639,10 @@
       "intelligenceIndex": 53.4
     },
     "claudeFable51Xhigh": {
-      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Fable 5.1 (Adaptive Reasoning, Xhigh Effort)",
       "effort": "xhigh",
-      "lifecycle": "benchmark-only",
+      "lifecycle": "active",
       "input": 10,
       "output": 50,
       "blended": 20,
@@ -2669,10 +2669,10 @@
       "intelligenceIndex": 53.2
     },
     "claudeFable51High": {
-      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Fable 5.1 (Adaptive Reasoning, High Effort)",
       "effort": "high",
-      "lifecycle": "benchmark-only",
+      "lifecycle": "active",
       "input": 10,
       "output": 50,
       "blended": 20,
@@ -2699,10 +2699,10 @@
       "intelligenceIndex": 51.2
     },
     "claudeFable51Medium": {
-      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Fable 5.1 (Adaptive Reasoning, Medium Effort)",
       "effort": "medium",
-      "lifecycle": "benchmark-only",
+      "lifecycle": "active",
       "input": 10,
       "output": 50,
       "blended": 20,
@@ -2729,10 +2729,10 @@
       "intelligenceIndex": 49.1
     },
     "claudeFable51Low": {
-      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Fable 5.1 (Adaptive Reasoning, Low Effort)",
       "effort": "low",
-      "lifecycle": "benchmark-only",
+      "lifecycle": "active",
       "input": 10,
       "output": 50,
       "blended": 20,

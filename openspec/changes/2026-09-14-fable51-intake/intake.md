@@ -68,3 +68,14 @@ No `claude-fable-5-1-non-reasoning` slug exists in the 650-item payload (exact m
 ## 6. Visibility verdict
 
 Probe: jsdom/node against the default provider set (`pnpm` script surface, no curation). Result: **CONFIRMED — all 5 rows invisible under default filters** (benchmark-only excluded from selector eligibility, Composite ranking, and Pricing views; all-false availability filtered by every provider gate). Rows remain visible only in separated comparison/catalog surfaces. No availability curated to force visibility.
+
+## 7. Curation follow-up (2026-09-14) — Anthropic availability + active lifecycle
+
+Evidence (USER-CONFIRMED product input, not inference): the Fable 5.1 family is served via Anthropic — family parity with `claudeFable5` (anthropic-only; the user runs it there).
+
+- Availability: `anthropic: true`, other 9 providers `false`, on all 5 ids (`claudeFable51`, `claudeFable51Xhigh`, `claudeFable51High`, `claudeFable51Medium`, `claudeFable51Low`); variants still inherit the base map; `availabilityOverrides` stays `[]`. II / sources / pricing untouched.
+- Visibility probe (node + real `provider-filter` + `model-scorer` + `ii-ranking` + `composite-chart.rowsFor` + `ref-table.rowsFor`, post-availability / pre-lifecycle): all 5 rows provider-eligible under BOTH the default (all-enabled) set and the anthropic-only filter, yet `refRanked=false`, `chartScored=false`, `iiRanked=false` for every row under both filters. Verdict: **benchmark-only lifecycle still hides the rows from every ranked view even with `anthropic:true`** — the pre-authorized conditional fired.
+- Lifecycle therefore flipped `benchmark-only` → `active` on the 5 ids. Rationale recorded: user-confirmed production usage via Anthropic + AA lists them as current models + family precedent `claudeFable5` is active; the fail-closed rationale no longer applies once provider evidence exists.
+- Post-flip probe: all 5 rows `refRanked=true`, `chartScored=true`, `iiRanked=true` under BOTH filters. Benchmark-only list is now `['musespark13']` only.
+- Assignment impact (frozen thresholds, `balanced` strategy, `getBestFor` per role, before vs after, both filters): **none — 0 of 18 agents change assignment**. Why: 17/18 roles carry `minReasoning` 60–95, above the top Fable II 53.4 (reasoning floor fails); the one role that clears II (`sdd-archive`, min 50) fails cost (Fable 10/50 → $0.0340 vs ceiling $0.0009, ~38× over). Winners unchanged (default: `glm53`/`claudeOpus5`/`gpt56luna`; anthropic-only: `sonnet5`/`haiku45Reasoning`/`claudeOpus5`; twin judges stay equal). No threshold or matrix changes — report only.
+- Validation: `pnpm test` 46 files / 750 tests green; matrix gate green.

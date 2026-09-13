@@ -359,14 +359,17 @@ describe('lifecycle — data/models.json catalog classification', () => {
     }
   });
 
-  test('benchmark-only is reserved for fail-closed chart newcomers (musespark13 + Fable 5.1 family)', () => {
+  test('benchmark-only is reserved for the fail-closed chart newcomer (musespark13)', () => {
     // 2026-09-13 AA backfill: the new Muse Spark 1.3 (max) entry lands
     // benchmark-only with every provider false until a sourceOfTruth exists.
-        // 2026-09-14 Fable 5.1 intake: same fail-closed shape for the 5-row family.
+        // 2026-09-14 Fable 5.1 curation follow-up: benchmark-only kept, anthropic:true per user-confirmed Anthropic serving.
     const bmOnly = Object.entries(models).filter(([, m]) => m.lifecycle === 'benchmark-only');
-    expect(bmOnly.map(([id]) => id).sort()).toEqual(['claudeFable51', 'claudeFable51High', 'claudeFable51Low', 'claudeFable51Medium', 'claudeFable51Xhigh', 'musespark13']);
-    for (const [, model] of bmOnly) {
-      expect(Object.values(model.availability).every((value) => value === false)).toBe(true);
+    expect(bmOnly.map(([id]) => id).sort()).toEqual(['musespark13']);
+    for (const [id, model] of bmOnly) {
+      const anthropicCurated = id.startsWith('claudeFable51');
+      for (const [provider, value] of Object.entries(model.availability)) {
+        expect(value, `${id}.availability.${provider}`).toBe(anthropicCurated ? provider === 'anthropic' : false);
+      }
     }
   });
 

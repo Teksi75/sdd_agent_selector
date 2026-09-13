@@ -81,12 +81,9 @@ const PRE_VARIANT_KEYS = new Set([
   'qwen38max',
 ]);
 
+// 2026-09-14 curation follow-up: Fable 5.1 rows are active (user-confirmed
+// Anthropic production serving), so they leave the non-active-variant map.
 const NON_ACTIVE_NEW_VARIANTS = new Map([
-  ['claudeFable51', 'benchmark-only'],
-  ['claudeFable51Xhigh', 'benchmark-only'],
-  ['claudeFable51High', 'benchmark-only'],
-  ['claudeFable51Medium', 'benchmark-only'],
-  ['claudeFable51Low', 'benchmark-only'],
   ['glm51NonReasoning', 'legacy'],
   ['glm5NonReasoning', 'legacy'],
   ['gpt55High', 'reference'],
@@ -669,13 +666,13 @@ describe('Fable 5.1 intake — aliases, live-exact II, fail-closed shape', () =>
       expect(model.pricingSource, `${id} AA-owned`).toBe('artificialanalysis');
     }
   });
-  test('fail-closed newcomer shape: benchmark-only + full-false maps + benchlm placeholder', () => {
+  test('Anthropic-curated shape: active + anthropic:true (others false) + benchlm placeholder', () => {
     for (const id of Object.keys(FABLE51_II)) {
       const model = models[id];
-      expect(model.lifecycle, `${id}.lifecycle`).toBe('benchmark-only');
-      const values = Object.values(model.availability || {});
-      expect(values.length, `${id} availability map`).toBeGreaterThan(0);
-      expect(values.every((value) => value === false), `${id} all providers false`).toBe(true);
+      expect(model.lifecycle, `${id}.lifecycle`).toBe('active');
+      for (const [provider, value] of Object.entries(model.availability || {})) {
+        expect(value, `${id}.availability.${provider}`).toBe(provider === 'anthropic');
+      }
       expect(model.benchlm).toEqual({ score: null, verified: false, reliability: 0, categories: {} });
       expect(model.notes).toContain(NO_BENCHLM_NOTE);
       expect(model.tier, `${id} no tier`).toBeUndefined();
