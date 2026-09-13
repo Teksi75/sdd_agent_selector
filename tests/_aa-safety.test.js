@@ -71,11 +71,11 @@ const V2_ALIASES = [
 ];
 
 describe('loadAaAliases (v2)', () => {
-  test('the real data/aa-aliases.json is the curated v2 table (69 entries + 2026-09-13 Astra/Spark curation)', () => {
+  test('the real data/aa-aliases.json is the curated v2 table (69 entries + 2026-09-13 curation + S1 mass mapping)', () => {
     const doc = JSON.parse(fsImpl.readFileSync(REAL_ALIASES_PATH, 'utf-8'));
     expect(doc._meta.version).toBe(2);
     const aliases = loadAaAliases(REAL_ALIASES_PATH);
-    expect(aliases).toHaveLength(71);
+    expect(aliases).toHaveLength(74);
     const slugs = new Set();
     for (const a of aliases) {
       expect(typeof a.slug).toBe('string');
@@ -193,6 +193,59 @@ describe('mapAaSlug', () => {
     expect(mapAaSlug('some-brand-new-model-9', V2_ALIASES)).toBeNull();
   });
 
+  test('S1 mass mapping — exact slug → to with the AA display-name suffix effort', () => {
+    const aliases = loadAaAliases(REAL_ALIASES_PATH);
+    // Live capture 2026-09-13T03:53:18Z: grok-4-6 = "Grok 4.6 (high)",
+    // glm-5-3 = "GLM-5.3 (max)", gpt-6-astra-low = "GPT-6 Astra (low)".
+    expect(mapAaSlug('grok-4-6', aliases)).toEqual({ to: 'grok46', effort: 'high' });
+    expect(mapAaSlug('glm-5-3', aliases)).toEqual({ to: 'glm53', effort: 'max' });
+    expect(mapAaSlug('gpt-6-astra-low', aliases)).toEqual({ to: 'gpt6astraLow', effort: 'low' });
+  });
+
+  test('S1 mass mapping — bare slug never defaults to max (Grok 4.6 is (high))', () => {
+    const aliases = loadAaAliases(REAL_ALIASES_PATH);
+    const mapped = mapAaSlug('grok-4-6', aliases);
+    expect(mapped.effort).toBe('high');
+    expect(mapped.effort).not.toBe('max');
+  });
+
+  test('S1 mass mapping — duplicate-identity / no-evidence slugs stay uncurated (ignored)', () => {
+    const aliases = loadAaAliases(REAL_ALIASES_PATH);
+    for (const slug of [
+      'deepseek-v4-1-flash', // V4.1 release, distinct from V4 Flash 0731
+      'deepseek-v4-pro-0424', // 0424 release, distinct from V4 Pro 0813
+      'deepseek-v4-flash-0420',
+      'muse-spark-1-3-xhigh', // distinct effort row, no catalog key
+      'hy3-preview',
+      'glm-5-3-flash', // live name carries no effort suffix
+      'longcat-2-0', // live name carries no effort suffix
+      'qwen3-8-flash-next', // no effort suffix and no catalog key
+      'grok-4-6-xhigh', // effort variants are not curated in this slice
+      'grok-4-6-medium',
+      'grok-4-6-low',
+    ]) {
+      expect(mapAaSlug(slug, aliases), `${slug} must stay unmapped (fail closed)`).toBeNull();
+    }
+  });
+
+  test('S1 mass mapping — payload-evidenced xhigh/high rows never fold into another effort', () => {
+    const aliases = loadAaAliases(REAL_ALIASES_PATH);
+    // Live xhigh rows exist for grok-4-6 / gpt-6-astra, but no catalog key
+    // is curated for them in S1: they stay unmapped rather than folding
+    // into the base/max record.
+    expect(mapAaSlug('grok-4-6-xhigh', aliases)).toBeNull();
+    expect(mapAaSlug('gpt-6-astra-xhigh', aliases)).toBeNull();
+    // Every suffixed slug in the table carries its own suffix effort.
+    for (const alias of aliases) {
+      if (/-xhigh$/.test(alias.slug)) expect(alias.effort, alias.slug).toBe('xhigh');
+      if (/-high$/.test(alias.slug)) expect(alias.effort, alias.slug).toBe('high');
+      if (/-medium$/.test(alias.slug)) expect(alias.effort, alias.slug).toBe('medium');
+      if (/-low$/.test(alias.slug)) expect(alias.effort, alias.slug).toBe('low');
+      if (/-non-reasoning$/.test(alias.slug)) expect(alias.effort, alias.slug).toBe('non-reasoning');
+      if (/-max$/.test(alias.slug)) expect(alias.effort, alias.slug).toBe('max');
+    }
+  });
+
   test('expected-but-absent slug (missing/empty) → throws AA_UNKNOWN_SLUG (fail closed)', () => {
     try {
       mapAaSlug(undefined, V2_ALIASES);
@@ -256,5 +309,12 @@ describe('detectMissing', () => {
 
   test('ignores AA keys that are not in the known set', () => {
     expect(detectMissing(['sonnet5'], new Set(['sonnet5', 'extra-key-from-aa']))).toEqual([]);
+  });
+
+  test('S1 mass mapping — curated-but-absent keys are reported for WARN + preserve', () => {
+    expect(detectMissing(['grok46', 'glm53', 'gpt6astraLow'], new Set(['glm53']))).toEqual([
+      'gpt6astraLow',
+      'grok46',
+    ]);
   });
 });

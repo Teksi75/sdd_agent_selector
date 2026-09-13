@@ -44,6 +44,13 @@ const AA_ALIAS_TARGETS = new Set(
     .aliases.map(({ to }) => to)
 );
 
+// S1 (2026-09-14, AA alias mass-mapping) maps three auto-stubbed catalog rows
+// to live AA slugs before the S2 II backfill materializes them. Until that
+// backfill lands they are alias targets that do not yet claim AA pricing; S2
+// MUST shrink this set to empty and the strict equality checks below are the
+// review grip that forces the update.
+const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'gpt6astraLow', 'grok46']);
+
 // --- V5 gate aggregate (replaces the retired V3 checksum/drift contracts) ----
 //
 // The V3 checksum requirement was removed with the V3 cut. This block
@@ -132,12 +139,14 @@ describe('data-integrity: V5 gate aggregate', () => {
     expect(CURRENT_SCHEMA_VERSION).toBe(5);
   });
 
-  test('catalog has >= 25 models and every AA alias target is AA-owned', () => {
+  test('catalog has >= 25 models, every AA alias target exists, and AA-owned rows keep an alias', () => {
     expect(Object.keys(models).length).toBeGreaterThanOrEqual(25);
     for (const target of AA_ALIAS_TARGETS) {
-      expect(models[target]?.pricingSource, target + ' AA alias target').toBe(
-        'artificialanalysis'
-      );
+      expect(models[target], target + ' AA alias target must exist in the catalog').toBeDefined();
+    }
+    for (const [id, model] of Object.entries(models)) {
+      if (model.pricingSource !== 'artificialanalysis') continue;
+      expect(AA_ALIAS_TARGETS.has(id), id + ' AA-owned model must keep its alias').toBe(true);
     }
   });
 
@@ -333,12 +342,23 @@ describe('data-integrity: schema v4 (AA pricing schema)', () => {
     expect(raw._meta.sources).toContain('scrape-artificialanalysis');
   });
 
-  test('AA-owned pricing covers every curated alias target', () => {
+  test('AA-owned pricing covers every curated alias target (S1 stubs pending backfill)', () => {
     const aaModels = Object.entries(raw.models).filter(
       ([, model]) => model.pricingSource === 'artificialanalysis'
     );
-    expect(new Set(aaModels.map(([key]) => key))).toEqual(AA_ALIAS_TARGETS);
+    const expectedOwned = [...AA_ALIAS_TARGETS].filter(
+      (id) => !AA_MAPPED_PENDING_BACKFILL.has(id)
+    );
+    expect(new Set(aaModels.map(([key]) => key))).toEqual(new Set(expectedOwned));
     expect(AA_ALIAS_TARGETS.has('gpt56luna')).toBe(true);
+    for (const id of AA_MAPPED_PENDING_BACKFILL) {
+      expect(AA_ALIAS_TARGETS.has(id), id + ' S1 stub must carry an alias').toBe(true);
+      expect(raw.models[id], id + ' S1 stub must exist in the catalog').toBeDefined();
+      expect(
+        raw.models[id].pricingSource,
+        id + ' must not claim AA pricing before the S2 backfill'
+      ).not.toBe('artificialanalysis');
+    }
     for (const [key, model] of Object.entries(raw.models)) {
       if (model.pricingSource === 'artificialanalysis') continue;
       expect(model.pricingSource, `model ${key} must not claim AA pricing`).toBeUndefined();

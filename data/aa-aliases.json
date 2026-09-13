@@ -2,7 +2,7 @@
   "_meta": {
     "version": 2,
     "lastUpdated": "2026-09-13",
-    "notes": "AA slug → curated key + effort. Identity = stable slug (UUID id dropped). Bare slug → family key; suffixed → <familyKey><Effort>. Effort from AA name suffix (authoritative), not bare-slug=max. 2026-09-13 curation: gpt-6-astra (max) + muse-spark-1-3 (max) chart rows; competitor rows (gpt-5-6-sol/terra/luna, gpt-5-5, gpt-5-4) already mapped."
+    "notes": "AA slug → curated key + effort. Identity = stable slug (UUID id dropped). Bare slug → family key; suffixed → <familyKey><Effort>. Effort from AA name suffix (authoritative), not bare-slug=max. 2026-09-13 curation: gpt-6-astra (max) + muse-spark-1-3 (max) chart rows; competitor rows (gpt-5-6-sol/terra/luna, gpt-5-5, gpt-5-4) already mapped. S1 mass mapping (live capture 2026-09-13T03:53:18Z, 646 items): grok-4-6→grok46 (high), glm-5-3→glm53 (max), gpt-6-astra-low→gpt6astraLow (low) — effort only from the AA display-name suffix. Stay unmapped (fail-closed): deepseek-v4-1-flash (V4.1 ≠ V4 Flash 0731), deepseek-v4-pro-0424 / deepseek-v4-flash-0420 (older releases), muse-spark-1-3-xhigh, hy3-preview (no catalog key), glm-5-3-flash / longcat-2-0 / qwen3-8-flash-next (no display-name effort suffix), grok-4-6 / gpt-6-astra effort variants (no catalog key in this slice). No II backfill and no catalog mutation in S1."
   },
   "aliases": [
     { "slug": "glm-5-2", "to": "glm52", "effort": "max" },
@@ -75,6 +75,9 @@
     { "slug": "grok-4-5", "to": "grok45", "effort": "high" },
     { "slug": "qwen3-8-max", "to": "qwen38max", "effort": "max" },
     { "slug": "gpt-6-astra", "to": "gpt6astra", "effort": "max" },
-    { "slug": "muse-spark-1-3", "to": "musespark13", "effort": "max" }
+    { "slug": "muse-spark-1-3", "to": "musespark13", "effort": "max" },
+    { "slug": "grok-4-6", "to": "grok46", "effort": "high" },
+    { "slug": "glm-5-3", "to": "glm53", "effort": "max" },
+    { "slug": "gpt-6-astra-low", "to": "gpt6astraLow", "effort": "low" }
   ]
 }

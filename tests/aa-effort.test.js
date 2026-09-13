@@ -30,13 +30,24 @@ const OPTIONAL_FIELDS = [
 const NO_BENCHLM_NOTE =
   'No BenchLM observation for this effort variant; scores documented as absent';
 
+// S1 (AA alias mass-mapping) maps three auto-stubbed catalog rows to live AA
+// slugs. The S2 II backfill materializes their `effort`/`pricingSource`; until
+// then these transitional lists MUST stay explicit so the strict invariants
+// below cannot silently weaken. S2 MUST shrink both to [] when it lands.
+const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'gpt6astraLow', 'grok46']);
+const AA_PENDING_EFFORT = new Set(['glm53', 'grok46']);
+
 // Pre-variant curated records: they existed (or land via one-shot curation)
 // outside the PR3A variant materialization, so the PR3B variant contract
 // below does not apply to them. gpt6astra/gpt6astraLow are manual OpenAI docs
 // curation; musespark13 is the 2026-09-13 AA max backfill (benchmark-only),
-// distinct from musespark13contributor (xhigh).
+// distinct from musespark13contributor (xhigh). grok46/glm53 are S1-mapped
+// opencode stubs whose AA backfill lands in S2.
 const PRE_VARIANT_KEYS = new Set([
   'gpt6astra',
+  'grok46',
+  'glm53',
+  'gpt6astraLow',
   'musespark13',
   'glm52',
   'qwen37max',
@@ -231,15 +242,21 @@ describe('AA effort catalog: complete alias matrix (PR3F)', () => {
     expect(aliasTargetSet.size).toBe(aliasTargets.length);
     expect(catalogKeys).toEqual(expect.arrayContaining(aliasTargets));
 
+    // Every AA-owned row keeps an alias; S1-mapped stubs are the only alias
+    // targets that do not claim AA pricing yet (S2 backfill closes them).
+    const aaOwned = catalogKeys.filter((key) => models[key].pricingSource === 'artificialanalysis');
+    for (const key of aaOwned) {
+      expect(aliasTargetSet.has(key), `${key} AA-owned must keep an alias`).toBe(true);
+    }
+    const pendingBackfill = aliasTargets.filter((key) => !aaOwned.includes(key)).sort();
+    expect(pendingBackfill).toEqual([...AA_MAPPED_PENDING_BACKFILL].sort());
+
     const extraKeys = catalogKeys.filter((key) => !aliasTargetSet.has(key));
     // Curated non-AA efforts (human decision, not AA-owned): Meta's
     // Muse Spark Contributor variants run at xhigh effort.
     const CURATED_NON_AA_EFFORT = new Map([
       ['musespark13contributor', 'xhigh'],
       ['musespark12contributor', 'xhigh'],
-      // Astra low stays a curated non-AA row in this slice; the (max) base
-      // becomes AA-owned via the 2026-09-13 backfill.
-      ['gpt6astraLow', 'low'],
     ]);
     for (const key of extraKeys) {
       const curated = CURATED_NON_AA_EFFORT.get(key);
@@ -252,11 +269,20 @@ describe('AA effort catalog: complete alias matrix (PR3F)', () => {
   });
 
   test('applies the alias effort to every family and covers all six effort values', () => {
+    const pendingEffort = [];
     const efforts = aliases.map((alias) => {
       expect(models[alias.to], `${alias.to} must exist`).toBeDefined();
-      expect(models[alias.to].effort, `${alias.to} effort`).toBe(alias.effort);
+      if (models[alias.to].effort === undefined) {
+        // S1-mapped stubs: the alias is the effort authority until the S2
+        // backfill merge materializes it (fail closed, never inferred).
+        pendingEffort.push(alias.to);
+      } else {
+        expect(models[alias.to].effort, `${alias.to} effort`).toBe(alias.effort);
+      }
       return alias.effort;
     });
+
+    expect(pendingEffort.sort()).toEqual([...AA_PENDING_EFFORT].sort());
 
     expect(new Set(efforts)).toEqual(new Set([
       'max',
@@ -368,14 +394,19 @@ describe('AA 2026-09-13 backfill — aliases, traced numbers, gate Astra', () =>
     for (const id of ['deepseekv4p', 'deepseekv4f', 'minimaxm3']) {
       expect(ids.filter((candidate) => candidate === id)).toHaveLength(1);
     }
-    // The AA-owned catalog set equals the curated alias target set: no orphan
-    // duplicate can claim AA ownership without a curated slug.
+    // Every AA-owned row keeps its alias; the S1-mapped stubs (grok46, glm53,
+    // gpt6astraLow) are the only alias targets pending AA backfill, so no
+    // orphan duplicate can claim AA ownership without a curated slug.
     const aaOwned = Object.entries(models)
       .filter(([, model]) => model.pricingSource === 'artificialanalysis')
       .map(([id]) => id)
       .sort();
     const aliasTargets = [...new Set(aliases.map((alias) => alias.to))].sort();
-    expect(aaOwned).toEqual(aliasTargets);
+    const pendingBackfill = aliasTargets.filter((id) => !aaOwned.includes(id));
+    expect(pendingBackfill).toEqual([...AA_MAPPED_PENDING_BACKFILL].sort());
+    for (const id of aaOwned) {
+      expect(aliasTargets, `${id} AA-owned must keep an alias`).toContain(id);
+    }
   });
 
   test('G1 — Astra is the real maximum of the chatgpt-plus eligible set (scorer intact)', () => {
@@ -398,5 +429,79 @@ describe('AA 2026-09-13 backfill — aliases, traced numbers, gate Astra', () =>
     // 53 — and the top row must be Astra (criterion 1 of the handoff).
     expect(ranked[0].score).toBe(realMax);
     expect(ranked[0].id).toBe('gpt6astra');
+  });
+});
+
+// --- S1 (2026-09-14): AA alias mass-mapping --------------------------------
+//
+// Live capture 2026-09-13T03:53:18Z (646 items, HTTP 200). Three catalog rows
+// auto-stubbed by scrape-opencode-prices are now mapped to their live AA slug
+// with effort taken ONLY from the AA display-name suffix:
+//   grok-4-6        → grok46        (high) "Grok 4.6 (high)"
+//   glm-5-3         → glm53         (max)  "GLM-5.3 (max)"
+//   gpt-6-astra-low → gpt6astraLow  (low)  "GPT-6 Astra (low)"
+// No II backfill lands in this slice (S2 owns it); availability is untouched.
+
+describe('AA alias mass-mapping (S1)', () => {
+  test('every S1 row carries an explicit closed-vocabulary effort', () => {
+    for (const [slug, to, effort] of [
+      ['grok-4-6', 'grok46', 'high'],
+      ['glm-5-3', 'glm53', 'max'],
+      ['gpt-6-astra-low', 'gpt6astraLow', 'low'],
+    ]) {
+      const alias = aliases.find((candidate) => candidate.slug === slug);
+      expect(alias, `${slug} must be curated in data/aa-aliases.json`).toBeDefined();
+      expect(alias.to).toBe(to);
+      expect(alias.effort).toBe(effort);
+      expect(AA_EFFORTS, `${slug} effort must be closed-vocabulary`).toContain(alias.effort);
+    }
+  });
+
+  test('bare slug never defaults to max — grok-4-6 is (high)', () => {
+    const alias = aliases.find((candidate) => candidate.slug === 'grok-4-6');
+    expect(alias.effort).toBe('high');
+    expect(alias.effort).not.toBe('max');
+  });
+
+  test('S1 targets exist with a full boolean availability map and no synthesized II', () => {
+    for (const id of ['grok46', 'glm53', 'gpt6astraLow']) {
+      const model = models[id];
+      expect(model, `${id} must exist`).toBeDefined();
+      expect(model.intelligenceIndex, `${id} II must not be synthesized in S1`).toBeUndefined();
+      const values = Object.values(model.availability || {});
+      expect(values.length, `${id} availability map`).toBeGreaterThan(0);
+      expect(
+        values.every((value) => typeof value === 'boolean'),
+        `${id} availability must stay fail-closed booleans`
+      ).toBe(true);
+    }
+  });
+
+  test('TRIANGULATE — an uncurated slug produces no catalog entry (fail closed)', () => {
+    const aliasTargetSet = new Set(aliases.map((alias) => alias.to));
+    const catalogKeys = new Set(Object.keys(models));
+    for (const slug of [
+      'deepseek-v4-1-flash',
+      'deepseek-v4-pro-0424',
+      'glm-5-3-flash',
+      'longcat-2-0',
+      'hy3-preview',
+      'muse-spark-1-3-xhigh',
+    ]) {
+      expect(aliasTargetSet.has(slug), `${slug} must not be an alias target`).toBe(false);
+      expect(catalogKeys.has(slug), `${slug} must not become an auto-created catalog key`).toBe(false);
+    }
+  });
+
+  test('TRIANGULATE — duplicate-identity slugs stay ignored (V4.1 / 0424 / xhigh)', () => {
+    const bySlug = new Map(aliases.map((alias) => [alias.slug, alias]));
+    expect(bySlug.get('deepseek-v4-flash')?.to).toBe('deepseekv4f');
+    expect(bySlug.get('deepseek-v4-1-flash')).toBeUndefined();
+    expect(bySlug.get('deepseek-v4-pro')?.to).toBe('deepseekv4p');
+    expect(bySlug.get('deepseek-v4-pro-0424')).toBeUndefined();
+    expect(bySlug.get('minimax-m3')?.to).toBe('minimaxm3');
+    expect(bySlug.get('muse-spark-1-3-xhigh')).toBeUndefined();
+    const v41Names = Object.values(models).filter((model) => /v4\.1/i.test(model.name || ''));
+    expect(v41Names, 'no synthesized V4.1 catalog identity').toHaveLength(0);
   });
 });
