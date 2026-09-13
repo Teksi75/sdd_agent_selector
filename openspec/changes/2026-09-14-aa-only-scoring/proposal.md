@@ -46,7 +46,7 @@ Out of scope as users: upstream AA itself, provider pricing pages (availability 
 
 After this change:
 
-- Every ranked view (ref-table Score column + sort, composite-chart bars + sort + unavailable handling, cli-mirror assigned scores, justification-ui card scores + alternatives ordering, exporter score lines) orders by AA II only. A reader can trust that position N > position M means higher AA Intelligence Index, full stop.
+- Every ranked view (ref-table Score column + sort, composite-chart bars + sort + unavailable handling, cli-mirror assigned scores, justification-ui card scores + alternatives ordering, exporter score lines) orders by AA II only. A reader can trust that position N > position M means higher AA Intelligence Index within each display bucket; the preserved `isNew` pin leads its group regardless of score (ref-table pin scenario), so a new low-II row can still render above a higher-II row.
 - Rows without II are gone from ranked views, and the UI says exactly how many vanished and why (count/note UX in §5) instead of showing `—` rows that read as ranked.
 - `benchlm` and sister benchmarks remain visible as data where they are data, but nothing about ordering, eligibility, reference-model choice, or freshness depends on them.
 - The freshness signal tracks the AA II sync, not the benchlm run (retarget note in §6), so "stale" means "II is stale".
