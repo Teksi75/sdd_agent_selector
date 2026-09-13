@@ -817,6 +817,109 @@ describe('model-scorer — intelligenceIndex is inert (AA 2026-09-13 change)', (
   });
 });
 
+// === ii-score dark core (S3a, change 2026-09-14-aa-only-scoring) ==========
+//
+// Task 4.1 RED: contract tests for the NEW pure module
+// `js/services/ii-score.js` (does not exist yet — this block MUST fail
+// collection on the missing-module reason until task 4.2 creates it).
+//
+// Final contract (design §5.1): non-object → null; non-number/non-finite
+// `intelligenceIndex` → null (never 0); else clamp to [0, 100]. No
+// benchlm reads, no I/O, no surface imports. NOTHING imports this module
+// in S3a — the runtime stays fully benchlm (dark boundary, design §10.2).
+
+describe('model-scorer — ii-score dark core (S3a II contract)', () => {
+  test('(ii-a) finite II returned verbatim (live-exact, never rounded)', () => {
+    expect(iiScore({ intelligenceIndex: 52.8 })).toBe(52.8);
+    expect(iiScore({ key: 'astra', intelligenceIndex: 49.7 })).toBe(49.7);
+  });
+
+  test('(ii-b) clamps high (>100 → 100)', () => {
+    expect(iiScore({ intelligenceIndex: 150 })).toBe(100);
+  });
+
+  test('(ii-c) clamps low (<0 → 0)', () => {
+    expect(iiScore({ intelligenceIndex: -10 })).toBe(0);
+  });
+
+  test('(ii-d) missing/null/numeric-string/NaN → null (never 0)', () => {
+    expect(iiScore({})).toBeNull();
+    expect(iiScore({ intelligenceIndex: null })).toBeNull();
+    expect(iiScore({ intelligenceIndex: '52.8' })).toBeNull();
+    expect(iiScore({ intelligenceIndex: NaN })).toBeNull();
+    expect(iiScore({ intelligenceIndex: undefined })).toBeNull();
+    // Null-sentinel: must NEVER collapse to a stale zero bar.
+    expect(iiScore({})).not.toBe(0);
+    expect(iiScore({ intelligenceIndex: null })).not.toBe(0);
+  });
+
+  test('(ii-e) non-object input → null (never throws)', () => {
+    expect(iiScore(null)).toBeNull();
+    expect(iiScore(undefined)).toBeNull();
+    expect(iiScore('not-an-object')).toBeNull();
+    expect(iiScore(42)).toBeNull();
+  });
+
+  test('(ii-f) benchlm-inert pair: differing only in benchlm.score → identical', () => {
+    const withBenchlm = {
+      intelligenceIndex: 52.8,
+      benchlm: { score: 96.0, verified: true, reliability: 0.97, categories: {} },
+    };
+    const withoutBenchlm = { intelligenceIndex: 52.8 };
+    expect(iiScore(withBenchlm)).toBe(52.8);
+    expect(iiScore(withoutBenchlm)).toBe(52.8);
+    expect(iiScore(withBenchlm)).toBe(iiScore(withoutBenchlm));
+  });
+
+  test('(ii-g) purity: same input → same output, no input mutation', () => {
+    const m = { intelligenceIndex: 42.5 };
+    const snapshot = JSON.parse(JSON.stringify(m));
+    expect(iiScore(m)).toBe(iiScore(m));
+    expect(iiScore(m)).toBe(42.5);
+    expect(m).toEqual(snapshot);
+  });
+});
+
+// === ii-score TRIANGULATE (S3a task 4.3) ===================================
+//
+// Second, distinguishing pairs that a wrong implementation (round/floor,
+// benchlm fallback, truthy-check) would fail.
+
+describe('model-scorer — ii-score triangulation (S3a task 4.3)', () => {
+  test('(ii-h) boundary pair: 99.9 passes through, 100.1 clamps to 100', () => {
+    // A Math.round/floor implementation would collapse this pair;
+    // the contract keeps them distinct.
+    expect(iiScore({ intelligenceIndex: 99.9 })).toBe(99.9);
+    expect(iiScore({ intelligenceIndex: 100.1 })).toBe(100);
+    expect(iiScore({ intelligenceIndex: 99.9 })).not.toBe(
+      iiScore({ intelligenceIndex: 100.1 })
+    );
+  });
+
+  test('(ii-i) second benchlm-inert pair: null benchlm.score vs absent benchlm', () => {
+    const withNullBenchlm = {
+      intelligenceIndex: 43.8,
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+    };
+    const withoutBenchlm = { intelligenceIndex: 43.8 };
+    // A benchlm-fallback implementation would return null for the first
+    // row; the II contract returns the verbatim value for both.
+    expect(iiScore(withNullBenchlm)).toBe(43.8);
+    expect(iiScore(withoutBenchlm)).toBe(43.8);
+  });
+
+  test('(ii-j) Infinity/-Infinity → null (non-finite, never clamped)', () => {
+    expect(iiScore({ intelligenceIndex: Infinity })).toBeNull();
+    expect(iiScore({ intelligenceIndex: -Infinity })).toBeNull();
+  });
+
+  test('(ii-k) zero II is a real score (0), not the null sentinel', () => {
+    // Distinguishes falsy-check implementations (`score || null` → null)
+    // from the finite-check contract.
+    expect(iiScore({ intelligenceIndex: 0 })).toBe(0);
+  });
+});
+
 // === Imports ===========================================================
 // Imports declared at the bottom so the test file is still readable top-down.
 
@@ -827,3 +930,5 @@ import {
   applyStrategy,
   getBestFor,
 } from '../js/services/model-scorer.js';
+
+import { iiScore } from '../js/services/ii-score.js';

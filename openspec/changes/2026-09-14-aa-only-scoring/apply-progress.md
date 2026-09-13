@@ -356,3 +356,61 @@ Sustitución data-only (regla global tasks.md): 2.1–2.5 usan manifiesto + gate
 2. **Delta canónico quirúrgico** (II+sources+ownership glm53/grok46, `serializeModels`), igual que S2a: no se copian pricing/speed/notes del candidato (`may refresh` es opcional por diseño §3.1-p8). `lastSynced`/`lastRun` preservados.
 3. **Sin filas nuevas en `tests/fixtures/aa-sample.json`** (0/0): las probes S2b usan inline source con valores live reales — más barato en budget y misma autenticidad. El fixture S2a (`kimi-k3` 43.8) se reutiliza por coincidencia verificada.
 4. **benchlm-only llega a 0.** Ningún test exigía el bucket no-vacío; `kimik3` deja de ser el precedente vivo y pasa a II-covered con `benchlm.score` 80.96 intacto (assert conservado como triangulación).
+
+## S3a — Dark II scoring foundation (NO activation) — PR 4
+
+- **Implementation status: complete (6/6 tareas S3a, 4.1–4.6).** Nuevo módulo puro `js/services/ii-score.js` (contrato final diseño §5.1) + 11 tests II-core en `tests/model-scorer.test.js` + 3 asserts de dark-readiness en `tests/data-integrity.test.js`. Runtime sigue **fully benchlm**: nada bajo `js/` importa `ii-score.js`, `compositeScore` intacto, cero diff en superficies.
+- **Delivery status: slice listo para PR 4** en la rama `feat/aa-only-s3a-dark` (base `29c71b0`, tip S2b). Se commitean **solo** las 5 superficies permitidas. No se tocan los 4 archivos pre-existentes del usuario (`.atl/*`, `.gitignore`, `openspec/specs/model-picker/spec.md`), dirs archive, `.pi/`, ni nada fuera de superficies.
+- **Budget:** **~195 líneas** código/tests/docs-técnicas (model-scorer +105, data-integrity +41/−1, ii-score.js 43 nuevo, tasks.md 6 checkboxes) + esta bitácora (artefacto SDD). Forecast S3a: 160–260, riesgo Low. **Bajo el techo 400.**
+
+### Completed tasks (persisted checkboxes `[x]` in `tasks.md`)
+
+| Task | Summary | Persisted |
+|---|---|---|
+| 4.1 | **RED:** 7 tests II-core (`ii-a`–`ii-g`: finite verbatim, clamp high/low, missing/null/string/NaN→null never 0, non-object→null, benchlm-inert pair, purity) + `import { iiScore }` → colección falla con `Failed to resolve import "../js/services/ii-score.js" ... Does the file exist?` (missing-module reason) | `[x]` |
+| 4.2 | **GREEN:** `js/services/ii-score.js` creado (contrato mínimo: non-object→null, non-number/non-finite→null, else clamp [0,100]; sin benchlm, sin I/O, sin imports) → **61/61 passed** (54 baseline + 7 nuevos) | `[x]` |
+| 4.3 | **TRIANGULATE + REFACTOR:** 4 tests (`ii-h` boundary 99.9 vs 100.1, `ii-i` segundo par inert con benchlm.score null, `ii-j` ±Infinity→null, `ii-k` cero es score real no sentinel) → **65/65**; REFACTOR confirma single clamp path ya existente, sin cambios | `[x]` |
+| 4.4 | **Dark-readiness assert** en `data-integrity.test.js`: ii-score.js existe + contiene `intelligenceIndex`; ningún módulo bajo `js/` lo importa (grep de patrón import/from/require — no substring, el módulo se nombra en su propio header); `model-scorer.js` contiene `benchlm` y NO `intelligenceIndex` | `[x]` |
+| 4.5 | **Dark verification:** focused + 7 surface suites → 8/9 files passed, **179/179 tests**; único fallo es colección pre-existente de data-integrity (Node 24 `node:vm`, idéntico al baseline); `git diff --stat` vacío en las 7 superficies + scorer + components; espejo node de los 3 asserts 4.4 + recount 73/0/15 ALL PASS | `[x]` |
+| 4.6 | **Rollback check:** `git checkout HEAD --` tests + delete ii-score.js → **54/54 passed** (cero acoplamiento runtime); trabajo restaurado desde /tmp backup → **65/65** | `[x]` |
+
+### Test commands run (evidence)
+
+| Command | Result |
+|---|---|
+| `pnpm vitest run tests/model-scorer.test.js` (safety net, pre-edit) | **54/54 passed** |
+| `pnpm vitest run tests/model-scorer.test.js` (RED, 4.1) | **collection FAIL — `Failed to resolve import "../js/services/ii-score.js" ... Does the file exist?`** (missing-module reason) |
+| `pnpm vitest run tests/model-scorer.test.js` (GREEN, 4.2) | **65→61/61 passed** (54 + 7 nuevos) |
+| `pnpm vitest run tests/model-scorer.test.js` (TRIANGULATE, 4.3) | **65/65 passed** |
+| S3a focused + surfaces (4.5): `pnpm vitest run tests/model-scorer.test.js tests/data-integrity.test.js tests/ref-table.test.js tests/composite-chart.test.js tests/cli-mirror-table.test.js tests/justification-ui.test.js tests/exporter.test.js tests/freshness-badge.test.js tests/staleness-parity.test.js` | **8 passed / 1 failed-to-collect (pre-existente) — 179 tests passed** |
+| `node --input-type=module` espejo dark-readiness (4.4: existe+contiene, ningún import bajo js/, scorer benchlm-y-no-II, contrato iiScore 11 asserts) | **ALL DARK-READINESS MIRROR ASSERTIONS PASS** |
+| `node -e` recount mirror (73/0/15, schema 5, lastRun 2026-09-13T03:53:18.345Z) | **BUCKET RECOUNT MIRROR PASS** |
+| `git diff --stat` superficies intactas (7 suites + model-scorer.js + components + exporter + data-sync + data-loader + app.js) | **vacío (exit 0)** |
+| Rollback 4.6: sin ii-score.js + tests base | **54/54 passed** (cero acoplamiento) |
+| Post-restore | **65/65 passed** |
+
+**Nota Node/collection (pre-existente, no se parchea):** `tests/data-integrity.test.js` no colecta bajo Node 24 local (`SyntaxError: Invalid or unexpected token`, `node:vm`, sobre líneas de comentario — idéntico al baseline S1/S2 medido antes del slice). `node --check` pasa en los 3 archivos tocados; los 3 asserts nuevos se espejaron bajo node con ALL PASS. CI Node 20 gobierna.
+
+### TDD Cycle Evidence (strict TDD activo)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 4.1 | `tests/model-scorer.test.js` (bloque ii-a–ii-g) | Unit | ✅ 54/54 pre-edit | ✅ Escrito — colección falla por missing-module (`Does the file exist?`) | — (lo cierra 4.2) | — | — |
+| 4.2 | `js/services/ii-score.js` (nuevo, puro) | Unit | ✅ RED registrado | — | ✅ 61/61 passed (54 + 7) | — | — |
+| 4.3 | `tests/model-scorer.test.js` (bloque ii-h–ii-k) | Unit | ✅ 61/61 | — | — | ✅ 4 casos distintivos (99.9/100.1, 2º par inert, ±Inf, cero-real) → 65/65 | ✅ Single clamp path ya existente, sin cambios, tests verdes |
+| 4.4 | `tests/data-integrity.test.js` (dark-readiness ×3) | Unit/grep-assert | ✅ Symmetry con :740 pre-existente | ✅ Falla sin ii-score.js (existsSync false) | ✅ Espejo node ALL PASS (vitest colección pre-existente bloquea ejecución local) | ✅ Patrón import-vs-substring (self-match del header lo exige) | ➖ None needed |
+| 4.5 | Gate focused + 7 surfaces + diff vacío | Gate | ✅ 4.4 mirror | 8/9 files, 179 tests, diff vacío | — | — | — |
+| 4.6 | Rollback delete + restore | Gate rollback | ✅ Backup /tmp/s3a-rb | 54/54 sin el slice (sensibilidad: −11 tests, runtime idéntico) | 65/65 restaurado | — | — |
+
+### Test Summary
+
+- **Tests escritos en S3a: 11 nuevos** (model-scorer: ii-a–ii-k) + **3 asserts** dark-readiness (data-integrity).
+- **Tests pasando: 65/65** en model-scorer (baseline 54 → +11); **179/179** en el gate 4.5 (8 suites colectables).
+- **Capas**: Unit 14; sin integración/E2E (slice de fundación pura).
+- **Approval tests**: baseline 54 como red de seguridad; rollback a 54 demuestra cero acoplamiento.
+- **Funciones puras creadas**: 1 (`iiScore` + helper `clamp` privado, single path).
+
+### Deviations from design / tasks
+
+1. **Grep de imports por patrón, no substring** (tests/data-integrity): `ii-score.js` se nombra en su propio header, así que un `includes('ii-score')` da falso positivo sobre sí mismo. El assert usa regex `from/import()/require()` — más fiel al "imports" de la tarea 4.4.
+2. **Sin `verify-report.md` top-level** (orden explícita del padre).

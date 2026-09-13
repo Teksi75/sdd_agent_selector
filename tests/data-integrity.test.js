@@ -14,7 +14,7 @@
 // read here.
 
 import { describe, test, expect } from 'vitest';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -802,5 +802,44 @@ describe('data-integrity: S2a three-bucket + provenance (chatgpt-plus + anthropi
     expect(s2aDoc._meta.schemaVersion).toBe(5);
     expect(DATA_FILES).toHaveLength(6);
     expect(s2aDoc._meta.scrapers['scrape-artificialanalysis'].lastRun).toBe('2026-09-13T03:53:18.345Z');
+  });
+});
+
+// --- S3a (2026-09-14): dark-path readiness (NO activation) -----------------
+//
+// Executable form of the dark invariant (design §10.2): the II core exists
+// and is correct, but NOTHING under js/ imports it and the public scorer
+// is still benchlm. The `:740`-style flip (compositeScore contains
+// intelligenceIndex) belongs to S3b only.
+describe('data-integrity: S3a dark-path readiness (ii-score unreachable)', () => {
+  test('js/services/ii-score.js exists and contains intelligenceIndex', () => {
+    const p = join(ROOT, 'js', 'services', 'ii-score.js');
+    expect(existsSync(p)).toBe(true);
+    expect(readFileSync(p, 'utf-8')).toContain('intelligenceIndex');
+  });
+
+  test('no production module under js/ imports ii-score.js', () => {
+    // Import-pattern grep (not a bare substring: ii-score.js names itself
+    // in its own header comment). Any from/import()/require() of the
+    // module from another file under js/ breaks the dark boundary.
+    const importRe = /(?:from\s+['"][^'"]*ii-score[^'"]*['"]|import\s*\(\s*['"][^'"]*ii-score|require\s*\(\s*['"][^'"]*ii-score)/;
+    const hits = [];
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir)) {
+        const p = join(dir, entry);
+        if (statSync(p).isDirectory()) walk(p);
+        else if (entry.endsWith('.js') && importRe.test(readFileSync(p, 'utf-8'))) {
+          hits.push(p);
+        }
+      }
+    };
+    walk(join(ROOT, 'js'));
+    expect(hits).toEqual([]);
+  });
+
+  test('public compositeScore source still benchlm (contains benchlm, NOT intelligenceIndex)', () => {
+    const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
+    expect(source).toContain('benchlm');
+    expect(source).not.toContain('intelligenceIndex');
   });
 });
