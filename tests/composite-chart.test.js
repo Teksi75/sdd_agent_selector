@@ -201,7 +201,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(nonActiveSection).toBeNull();
   });
 
-  test('Sol, Terra, Luna render with exact displayed scores 82.0, 72.6, 67.2', async () => {
+  test('Sol, Terra, Luna render with the traced AA-2026-09-13 displayed scores 47.1, 42.3, 37.5', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     render(target, MODELS);
 
@@ -213,9 +213,12 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(terraRow).toBeDefined();
     expect(lunaRow).toBeDefined();
 
-    expect(Number(solRow.getAttribute('data-score'))).toBeCloseTo(82.0, 1);
-    expect(Number(terraRow.getAttribute('data-score'))).toBeCloseTo(72.6, 1);
-    expect(Number(lunaRow.getAttribute('data-score'))).toBeCloseTo(67.2, 1);
+    // Values backfilled one-shot from the live AA v2 payload 2026-09-13
+    // (see evidence/aa-2026-09-13-backfill-manifest.md); the chart reads the
+    // unchanged compositeScore = benchlm.score contract.
+    expect(Number(solRow.getAttribute('data-score'))).toBeCloseTo(47.1, 1);
+    expect(Number(terraRow.getAttribute('data-score'))).toBeCloseTo(42.3, 1);
+    expect(Number(lunaRow.getAttribute('data-score'))).toBeCloseTo(37.5, 1);
   });
 
   test('no Reference / Legacy catalog section exists in Composite output', async () => {
@@ -375,5 +378,61 @@ describe('composite-chart — V5 Slice 3 eligible-only + filtered export', () =>
     expect(captured.split('\n')[0]).toBe(
       '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
     );
+  });
+});
+
+// PR-B (effort-only) — the chart stops encoding tier: one neutral fill for
+// every bar, no `data-tier`, no tier legend text, no `Tier` column in the
+// markdown export. Sort/null-last/AA grouping stay untouched.
+describe('composite-chart — effort-only neutral bars (PR-B)', () => {
+  test('bars use one neutral fill, no data-tier and no tier legend text', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const FIXTURE = {
+      high: { name: 'High', tier: 'high', lifecycle: 'active', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+      budget: { name: 'Budget', tier: 'budget', lifecycle: 'active', benchlm: { score: 60, verified: true, reliability: 0.8, categories: {} } },
+      ref: { name: 'Ref', tier: 'reference', lifecycle: 'active', benchlm: { score: 75, verified: true, reliability: 0.7, categories: {} } },
+    };
+    render(target, FIXTURE);
+    // No tier attribute survives anywhere in the chart DOM.
+    expect(target.querySelectorAll('[data-tier]').length).toBe(0);
+    // Every bar fill carries the same neutral class (no per-tier color).
+    const fills = Array.from(target.querySelectorAll('.bar-fill'));
+    expect(fills.length).toBe(3);
+    for (const fill of fills) {
+      expect(fill.className).toMatch(/bg-indigo-500/);
+      expect(fill.className).not.toMatch(/bg-emerald-500|bg-amber-500|bg-rose-500/);
+    }
+    // Legend no longer explains tier colors.
+    expect(target.textContent).not.toMatch(/Color del tier/i);
+    expect(target.textContent).not.toMatch(/emerald=alto/);
+    expect(target.textContent).not.toMatch(/tier/i);
+  });
+
+  test('source reads the neutral --composite-score-fill token and drops tier helpers', () => {
+    const SRC = readFileSync(join(ROOT, 'js', 'components', 'composite-chart.js'), 'utf-8');
+    expect(SRC).toMatch(/--composite-score-fill/);
+    expect(SRC).not.toMatch(/--composite-tier-/);
+    expect(SRC).not.toMatch(/tierOf/);
+    expect(SRC).not.toMatch(/data-tier/);
+  });
+
+  test('export markdown carries Modelo/Lifecycle/Score and no Tier column', async () => {
+    ({ render } = await import('../js/components/composite-chart.js'));
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const FIXTURE = {
+      a: { name: 'A', tier: 'high', lifecycle: 'active', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+    };
+    render(target, FIXTURE);
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    target.querySelector('[data-format-id="copy-md"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const md = writeText.mock.calls[0][0];
+    expect(md).toContain('| Modelo | Lifecycle | Score |');
+    expect(md).not.toMatch(/\|\s*Tier\s*\|/);
   });
 });

@@ -65,11 +65,18 @@ describe('P2-6 — color-blind safe tier-tag', () => {
     expect(TOKENS_CSS).toMatch(/\.tier-tag\[data-tier="reference"\]::before\s*\{\s*content:\s*"\\25C6/);
   });
 
-  test('tokens.css también cubre .model-tier-tag (model-card.js)', () => {
-    // The model-card component uses .model-tier-tag instead of .tier-tag.
-    // Color-blind users viewing the ref-table get the same shape prefix.
-    const shapeRules = TOKENS_CSS.match(/\.model-tier-tag\[data-tier="[^"]+"\]::before/g) || [];
-    expect(shapeRules.length).toBe(4);
+  test('tokens.css ya no cubre .model-tier-tag (effort-only) y conserva .tier-tag para workflow', () => {
+    // model-card dropped its tier badge in PR-B; workflow-table still owns
+    // the `.tier-tag` shape prefixes, so those stay.
+    const modelRules = TOKENS_CSS.match(/\.model-tier-tag\[data-tier="[^"]+"\]::before/g) || [];
+    expect(modelRules.length).toBe(0);
+    const tierRules = TOKENS_CSS.match(/\.tier-tag\[data-tier="[^"]+"\]::before/g) || [];
+    expect(tierRules.length).toBe(4);
+  });
+
+  test('tokens.css define --composite-score-fill y ya no --composite-tier-*', () => {
+    expect(TOKENS_CSS).toMatch(/--composite-score-fill\s*:/);
+    expect(TOKENS_CSS).not.toMatch(/--composite-tier-/);
   });
 });
 

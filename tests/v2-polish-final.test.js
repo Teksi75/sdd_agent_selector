@@ -83,13 +83,13 @@ describe('P1-1 — tier h2 visibility (size + contrast)', () => {
 });
 
 // ────────────────────────────────────────────────────────────────────
-// P1-2 — SOFT badge color
+// P1-2 — soft badge retirado (PR-B effort-only)
 // ────────────────────────────────────────────────────────────────────
-describe('P1-2 — SOFT badge color (purple + ~ prefix)', () => {
-  test('tokens.css define .soft-badge con color púrpura (no amber)', () => {
-    expect(TOKENS_CSS).toMatch(/\.soft-badge\s*\{[^}]*color:\s*#d8b4fe/s);
-    // El prefijo `~` se inyecta via ::before para color-blind safety.
-    expect(TOKENS_CSS).toMatch(/\.soft-badge::before\s*\{[^}]*content:\s*"~"/s);
+describe('P1-2 — soft badge retirado (effort-only)', () => {
+  test('tokens.css ya no define .soft-badge ni .soft-summary ni el prefijo ~', () => {
+    expect(TOKENS_CSS).not.toMatch(/\.soft-badge/);
+    expect(TOKENS_CSS).not.toMatch(/\.soft-summary/);
+    expect(TOKENS_CSS).not.toMatch(/content:\s*"~"/);
   });
 
   test('renderButton acepta format.description y emite un <span class="export-menu-desc">', () => {
