@@ -162,7 +162,7 @@ function orderRows(models) {
   };
 }
 
-/** Build the export rows (name/effort/lifecycle/score/prices). */
+/** Build the export rows (name/effort/lifecycle/score/prices). Full-catalog scope only. */
 function exportRowsFrom(groupedRows) {
   return groupedRows.map(([key, m]) => {
     const sc = compositeScore(m);
@@ -177,14 +177,55 @@ function exportRowsFrom(groupedRows) {
   });
 }
 
+/** Plain-text Sources cell for the filtered export (mirrors sourceBadges text). */
+function sourceText(m) {
+  const parts = [];
+  if (m.arena != null) parts.push(String(m.arena));
+  if (m.swePro != null) parts.push(`${fmt(m.swePro)}%`);
+  if (m.sweVer != null) parts.push(`${fmt(m.sweVer)}%`);
+  if (m.term != null) parts.push(`${fmt(m.term)}%`);
+  if (m.input != null || m.output != null) parts.push(fmtPrice(m.input));
+  if (m.isNew === true) parts.push('NEW');
+  return parts.length > 0 ? parts.join(' ') : '—';
+}
+
+/**
+ * Build the filtered-export rows: the visible ranked set only
+ * (rankedActive, 10 DOM contract columns, no Lifecycle).
+ */
+function filteredExportRowsFrom(rankedActive) {
+  return rankedActive.map(([key, m]) => {
+    const sc = compositeScore(m);
+    return [
+      m.name || key,
+      effortLabel(m.effort) || '—',
+      Number.isFinite(sc) ? sc.toFixed(1) : '—',
+      m.arena != null ? String(m.arena) : '—',
+      m.swePro != null ? `${fmt(m.swePro)}%` : '—',
+      m.sweVer != null ? `${fmt(m.sweVer)}%` : '—',
+      m.term != null ? `${fmt(m.term)}%` : '—',
+      Number.isFinite(m.input) ? `$${m.input.toFixed(2)}` : '—',
+      Number.isFinite(m.output) ? `$${m.output.toFixed(2)}` : '—',
+      sourceText(m),
+    ];
+  });
+}
+
+const FILTERED_EXPORT_HEADERS = ['Modelo', 'Esfuerzo', 'Score', 'Arena', 'SWE-Pro', 'SWE-Ver', 'Term', 'Input $', 'Output $', 'Sources'];
+
 /** Build the filtered/full-catalog markdown + JSON payloads. */
 function buildExportPayload(order, context, scope) {
   const ctx = { ...(context || {}), scope };
-  const rows = exportRowsFrom(order.groupedRows);
+  // S3e: the default (filtered) export reproduces the visible ranked set
+  // (rankedActive, 10 contract columns, no Lifecycle). The full-catalog
+  // scope keeps its existing projection untouched.
+  const isFiltered = scope === 'filtered';
+  const exportedRows = isFiltered ? order.rankedActive : order.groupedRows;
+  const rows = isFiltered ? filteredExportRowsFrom(exportedRows) : exportRowsFrom(exportedRows);
   const md =
     `${exportHeader(ctx)}\n# SDD Models (${order.activeCount} active + ${order.nonActiveCount} non-active)\n\n` +
     markdownTable(
-      ['Modelo', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
+      isFiltered ? FILTERED_EXPORT_HEADERS : ['Modelo', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
       rows
     ) +
     '\n';
@@ -192,8 +233,8 @@ function buildExportPayload(order, context, scope) {
     {
       active: order.activeCount,
       nonActive: order.nonActiveCount,
-      ranked: order.groupedRows.length,
-      models: order.groupedRows.map(([k, m]) => [k, m]),
+      ranked: exportedRows.length,
+      models: exportedRows.map(([k, m]) => [k, m]),
     },
     ctx
   );

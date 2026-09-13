@@ -686,14 +686,43 @@ describe('ref-table — effort-only export (PR-B)', () => {
     },
   };
 
-  test('export markdown carries Modelo/Esfuerzo/Lifecycle/Score/Input/Output and no Tier', () => {
-    const formats = buildExportFormats(EFFORT_MODELS);
+  test('filtered export mirrors the visible ranked set: 10 contract columns, no Lifecycle, no reference rows (S3e)', () => {
+    const models = {
+      ...EFFORT_MODELS,
+      ref: {
+        name: 'Ref-Model',
+        tier: 'reference',
+        isReference: true,
+        intelligenceIndex: 99,
+        benchlm: { score: 99, verified: true, reliability: 0.9, categories: {} },
+        input: 5.0,
+        output: 25.0,
+      },
+    };
+    const formats = buildExportFormats(models);
     const md = formats.find((f) => f.id === 'copy-md').content;
-    expect(md).toContain('| Modelo | Esfuerzo | Lifecycle | Score | Input $ | Output $ |');
+    expect(md).toContain('| Modelo | Esfuerzo | Score | Arena | SWE-Pro | SWE-Ver | Term | Input $ | Output $ | Sources |');
+    expect(md).not.toMatch(/\|\s*Lifecycle\s*\|/);
     expect(md).not.toMatch(/\|\s*Tier\s*\|/);
+    expect(md).toContain('Alpha-1');
     expect(md).toContain('Máximo');
     // Missing effort exports as the em-dash placeholder, never an invented label.
     expect(md).toMatch(/Legacy-No-Effort \| —/);
+    // Reference rows never reach the ranked export (visible-set rule).
+    expect(md).not.toContain('Ref-Model');
+    const json = formats.find((f) => f.id === 'download-json').content;
+    expect(json).toContain('Alpha-1');
+    expect(json).not.toContain('Ref-Model');
+  });
+
+  test('filtered export carries the shared hidden note iff N>0 (S3e)', () => {
+    const clean = buildExportFormats(EFFORT_MODELS, { modelsMeta: { lastSynced: '2026-09-13' } });
+    expect(clean.find((f) => f.id === 'copy-md').content).not.toMatch(/models hidden/);
+    const withHidden = buildExportFormats(
+      { ...EFFORT_MODELS, ghost: { name: 'Ghost', lifecycle: 'active', intelligenceIndex: null, input: 1, output: 1 } },
+      { modelsMeta: { lastSynced: '2026-09-13' } }
+    );
+    expect(withHidden.find((f) => f.id === 'copy-md').content).toMatch(/1 models hidden/);
   });
 
   test('rendered rows carry at most the effort badge; invalid effort gets the placeholder, not a badge', () => {
