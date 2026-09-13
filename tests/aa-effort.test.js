@@ -8,7 +8,7 @@ import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { AA_EFFORTS } from '../scripts/_aa-safety.mjs';
 import { applyProviderFilter } from '../js/services/provider-filter.js';
-import { compositeScore } from '../js/services/model-scorer.js';
+import { compositeScore, costEstimate, applyStrategy } from '../js/services/model-scorer.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
@@ -34,7 +34,7 @@ const NO_BENCHLM_NOTE =
 // slugs. The S2 II backfill materializes their `effort`/`pricingSource`; until
 // then these transitional lists MUST stay explicit so the strict invariants
 // below cannot silently weaken. S2 MUST shrink both to [] when it lands.
-const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'gpt6astraLow', 'grok46']);
+const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'grok46']); // S2a shrinks gpt6astraLow (covered); S2b remainder stays explicit
 const AA_PENDING_EFFORT = new Set(['glm53', 'grok46']);
 
 // Pre-variant curated records: they existed (or land via one-shot curation)
@@ -464,7 +464,7 @@ describe('AA alias mass-mapping (S1)', () => {
   });
 
   test('S1 targets exist with a full boolean availability map and no synthesized II', () => {
-    for (const id of ['grok46', 'glm53', 'gpt6astraLow']) {
+    for (const id of ['grok46', 'glm53']) { // S2a: gpt6astraLow covered (II 46); S2b remainder stays II-absent
       const model = models[id];
       expect(model, `${id} must exist`).toBeDefined();
       expect(model.intelligenceIndex, `${id} II must not be synthesized in S1`).toBeUndefined();
@@ -475,6 +475,12 @@ describe('AA alias mass-mapping (S1)', () => {
         `${id} availability must stay fail-closed booleans`
       ).toBe(true);
     }
+  });
+  test('S2a covers gpt6astraLow: exact II 46 with AA provenance (S1 no-synthesis lifted for this id)', () => {
+    const model = models.gpt6astraLow;
+    expect(model, 'gpt6astraLow must exist').toBeDefined();
+    expect(model.intelligenceIndex, 'gpt6astraLow II backfilled in S2a').toBe(46);
+    expect(model.sources).toEqual(expect.arrayContaining([expect.objectContaining({ url: 'https://artificialanalysis.ai/', date: '2026-09-13', scraper: 'scrape-artificialanalysis' })]));
   });
 
   test('TRIANGULATE — an uncurated slug produces no catalog entry (fail closed)', () => {
@@ -503,5 +509,64 @@ describe('AA alias mass-mapping (S1)', () => {
     expect(bySlug.get('muse-spark-1-3-xhigh')).toBeUndefined();
     const v41Names = Object.values(models).filter((model) => /v4\.1/i.test(model.name || ''));
     expect(v41Names, 'no synthesized V4.1 catalog identity').toHaveLength(0);
+  });
+});
+
+// --- S2a-1 (2026-09-14): chatgpt-plus II backfill (live-exact, Half-1) ---
+//
+// Live capture reuse 2026-09-13T03:53:18.345Z (646 items). Exact payload II
+// (chart rounds; payload governs). Half-1 covers chatgpt-plus only (22 new II);
+// anthropic incl. Fable lands in Half-2. lastRun lands in Half-2.
+const S2A_II = Object.freeze({
+  gpt6astraLow: 46,
+  gpt55High: 37.3,
+  gpt56solXhigh: 44.1,
+});
+const S2A_SOURCE = Object.freeze({
+  url: 'https://artificialanalysis.ai/',
+  date: '2026-09-13',
+  scraper: 'scrape-artificialanalysis',
+});
+describe('S2a-1 II backfill — chatgpt-plus (live-exact)', () => {
+  test('S2a-1 live-exact values land verbatim with dated AA sources[]', () => {
+    for (const [id, value] of Object.entries(S2A_II)) {
+      const model = models[id];
+      expect(model, `${id} must exist`).toBeDefined();
+      expect(model.intelligenceIndex, `${id}.intelligenceIndex`).toBe(value);
+      expect(model.sources, `${id}.sources`).toEqual(
+        expect.arrayContaining([expect.objectContaining(S2A_SOURCE)])
+      );
+    }
+  });
+  test('every finite S2a-1 II carries its own AA source tuple (no evidence without number)', () => {
+    for (const id of Object.keys(S2A_II)) {
+      const model = models[id];
+      expect(Number.isFinite(model.intelligenceIndex), `${id} II finite`).toBe(true);
+      expect(model.sources, `${id} AA attribution`).toEqual(
+        expect.arrayContaining([expect.objectContaining(S2A_SOURCE)])
+      );
+    }
+  });
+  test('S2a-1 shrinks pending backfill: gpt6astraLow covered, S2b remainder stays explicit', () => {
+    expect(models.gpt6astraLow.intelligenceIndex).toBe(46);
+    expect(models.gpt6astraLow.pricingSource).toBe('artificialanalysis');
+    for (const id of ['glm53', 'grok46']) {
+      expect(models[id], `${id} stays pending for S2b`).toBeDefined();
+      expect(models[id].intelligenceIndex, `${id} II stays absent until S2b`).toBeUndefined();
+    }
+  });
+  test('TRIANGULATE — live-exact beats chart rounding (52.8 not 53, 47.1 not 47)', () => {
+    expect(models.gpt6astra.intelligenceIndex).toBe(52.8);
+    expect(models.gpt6astra.intelligenceIndex).not.toBe(53);
+    expect(models.gpt56sol.intelligenceIndex).toBe(47.1);
+    expect(models.gpt56sol.intelligenceIndex).not.toBe(47);
+  });
+  test('TRIANGULATE — uncovered rows keep the key absent, never a synthesized null', () => {
+    for (const id of ['glm53', 'grok46']) {
+      expect(Object.hasOwn(models[id], 'intelligenceIndex'), `${id} key stays absent`).toBe(false);
+      expect(models[id].intelligenceIndex).toBeUndefined();
+      expect(models[id].intelligenceIndex).not.toBeNull();
+    }
+    expect(Number.isFinite(models.gpt6astraLow.intelligenceIndex)).toBe(true);
   });
 });

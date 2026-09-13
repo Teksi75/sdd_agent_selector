@@ -894,3 +894,103 @@ describe('scrape-artificialanalysis — missing secret soft-fail', () => {
     }
   });
 });
+
+// --- S2a-1 (2026-09-14): live-exact provenance via extended fixture (chatgpt-plus) ---
+describe('scrape-artificialanalysis — S2a-1 live-exact (astra fixture)', () => {
+  test('S2a-1 fixture rows land verbatim: no clamp/round, source tuple once, benchlm untouched', async () => {
+    fsImpl.writeFileSync(
+      aliasesPath,
+      JSON.stringify({
+        _meta: { version: 2, notes: 'S2a-1 probe aliases.' },
+        aliases: [
+          { slug: 'gpt-6-astra', to: 'gpt6astraProbe', effort: 'max' },
+          { slug: 'gpt-6-astra-low', to: 'gpt6astraLowProbe', effort: 'low' },
+        ],
+      }, null, 2),
+      'utf-8',
+    );
+    const mkProbe = (key) => ({
+      name: key,
+      tier: 'high',
+      availability: { 'chatgpt-plus': true, 'opencode-go': false },
+      benchlm: { score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } },
+      input: 0.5,
+      output: 1.5,
+      notes: 'curated note',
+      sources: [{ url: 'https://benchlm.ai', date: '2026-07-01', scraper: 'scrape-benchlm' }],
+    });
+    fsImpl.writeFileSync(
+      modelsPath,
+      JSON.stringify(
+        {
+          _meta: { schemaVersion: 5, sources: ['scrape-benchlm'] },
+          models: {
+            gpt6astraProbe: mkProbe('gpt6astraProbe'),
+            gpt6astraLowProbe: mkProbe('gpt6astraLowProbe'),
+          },
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+    const fetchText = vi.fn(async () => { throw new Error('fixture source must be local'); });
+    const result = await runScrape({ ...BASE_ARGS(), source: AA_FIXTURE }, { fetchText });
+    expect(result.ok).toBe(true);
+    expect(fetchText).not.toHaveBeenCalled();
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    // Live-exact beats chart rounding: verbatim, never clamped/rounded.
+    expect(after.models.gpt6astraProbe.intelligenceIndex).toBe(52.8);
+    expect(after.models.gpt6astraLowProbe.intelligenceIndex).toBe(46);
+    expect(after.models.gpt6astraProbe.effort).toBe('max');
+    expect(after.models.gpt6astraLowProbe.effort).toBe('low');
+    // Source tuple appended exactly once with the run date.
+    for (const key of ['gpt6astraProbe', 'gpt6astraLowProbe']) {
+      const aaSources = after.models[key].sources.filter((s) => s.scraper === 'scrape-artificialanalysis');
+      expect(aaSources.length).toBeGreaterThanOrEqual(1);
+      expect(aaSources.every((s) => s.url === 'https://artificialanalysis.ai/')).toBe(true);
+      const today = new Date().toISOString().slice(0, 10);
+      expect(aaSources.filter((s) => s.date === today)).toHaveLength(1);
+    }
+    // benchlm stays byte-identical through the AA merge.
+    expect(after.models.gpt6astraProbe.benchlm).toEqual({ score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } });
+    expect(after.models.gpt6astraLowProbe.benchlm).toEqual({ score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } });
+  });
+
+  test('covered-but-absent S2a-1 row → null + idempotent omission note (key never deleted)', async () => {
+    fsImpl.writeFileSync(
+      aliasesPath,
+      JSON.stringify({
+        _meta: { version: 2, notes: 'S2a-1 null probe.' },
+        aliases: [{ slug: 'gpt-5-4-pro', to: 'gpt54proProbe', effort: 'xhigh' }],
+      }, null, 2),
+      'utf-8',
+    );
+    fsImpl.writeFileSync(
+      modelsPath,
+      JSON.stringify(
+        {
+          _meta: { schemaVersion: 5, sources: [] },
+          models: {
+            gpt54proProbe: { name: 'gpt54proProbe', availability: {}, benchlm: { score: null, verified: false, reliability: 0, categories: {} }, input: 1, output: 2, notes: 'curated', sources: [] },
+          },
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+    const fetchText = vi.fn(async () => { throw new Error('fixture source must be local'); });
+    const r1 = await runScrape({ ...BASE_ARGS(), source: AA_FIXTURE }, { fetchText });
+    expect(r1.ok).toBe(true);
+    const once = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect('intelligenceIndex' in once.models.gpt54proProbe).toBe(true);
+    expect(once.models.gpt54proProbe.intelligenceIndex).toBeNull();
+    expect(once.models.gpt54proProbe.notes).toMatch(/omitted .*intelligenceIndex/);
+    const r2 = await runScrape({ ...BASE_ARGS(), source: AA_FIXTURE }, { fetchText });
+    expect(r2.ok).toBe(true);
+    const twice = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(twice.models.gpt54proProbe.intelligenceIndex).toBeNull();
+    expect(twice.models.gpt54proProbe.notes.match(/AA sync \d{4}-\d{2}-\d{2}: omitted/g).length).toBe(1);
+  });
+});

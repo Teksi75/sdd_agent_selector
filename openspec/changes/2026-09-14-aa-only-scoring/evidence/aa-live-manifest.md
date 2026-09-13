@@ -128,3 +128,24 @@ Procedimiento probado con `git show <slice-base>:data/aa-aliases.json` (no toca 
 - Tabla del slice restaurada (**74 filas**): misma corrida → **48/48 passed**.
 
 No se ejecuta ningún scraper "de reversa"; el rollback es restore exacto del JSON + expectativas de test (contrato de slices data-only).
+
+---
+
+# S2a Half-1 — chatgpt-plus II backfill (22 new II, live-exact + sources)
+
+Slice: **S2a-1 (PR 2/6, Half-1)** · Rama: `feat/aa-only-s2a1-chatgpt` (base `cc1cab2`) · Captura reuse: **S1 live capture `2026-09-13T03:53:18.345Z`, 646 items, HTTP 200** (misma fecha UTC que la materialización `2026-09-13`; no stale, sin re-fetch; key solo en memoria, payload fuera del repo).
+Reglas: pnpm only, strict TDD (data JSON usa manifest+gate), sin tocar `providers.json`/`benchlm`/`minReasoning`/counts, `model-scorer.js` intacto, cero `intelligenceIndex` bajo `js/`.
+
+## Half-1 scope (chatgpt-plus only)
+
+28 ids tocados (sources + II donde nuevo): `gpt55`, `gpt55High:37.3`, `gpt55Medium:34.2`, `gpt55Low:30.7`, `gpt55NonReasoning:23.2`, `gpt56terra`, `gpt56terraXhigh:38.2`, `gpt56terraHigh:34.5`, `gpt56terraMedium:30.4`, `gpt56terraLow:27.9`, `gpt56terraNonReasoning:22.3`, `gpt56luna`, `gpt56lunaXhigh:34.8`, `gpt56lunaHigh:32.4`, `gpt56lunaMedium:25.5`, `gpt56lunaLow:21.5`, `gpt56lunaNonReasoning:16.8`, `gpt56sol`, `gpt56solXhigh:44.1`, `gpt56solHigh:42.5`, `gpt56solMedium:39.5`, `gpt56solLow:33.8`, `gpt56solNonReasoning:28.3`, `gpt6astra`, `gpt6astraLow:46` (incl. pricingSource/blended), `gpt54`, `gpt54Low:27.6`, `gpt54NonReasoning:18.2`. De los 28, 6 ya tenían II en base (`gpt55`, `gpt56terra`, `gpt56luna`, `gpt56sol`, `gpt6astra`, `gpt54`); **22 son backfill nuevo**. Todos finite → copia verbatim, sin clamp/round. Chart público redondea; acá vale el payload exacto.
+
+Anthropic incl. Fable (`opus48`, `claudeFable5:49.7`, `sonnet5` family, `haiku45` family, `claudeOpus5` family) **no tocado en Half-1 — lands in Half-2** (`feat/aa-only-s2a2-anthropic`).
+
+## Half-1 buckets + preservation
+
+- Base: **8 / 22 / 58 = 88**. Post-Half-1: **II-covered 30 / benchlm-only 22 / fully-scoreless 36 = 88** (movimiento +22 nuevo backfill; benchlm-only intacto pues los 4 que migran a II en S2a full son anthropic Half-2). `kimik3` sigue benchlm-only (80.96, sin key II).
+- `benchlm` 0 diffs (28/28), `availability` 0 diffs (28/28), `providers.json` git-clean, `schemaVersion` 5, `DATA_FILES` 6, sources dedupe 0 duplicados.
+- **`_meta.scrapers['scrape-artificialanalysis'].lastRun` NO se registra en Half-1 — lands in Half-2** (solo porque el run válido + escritura exitosa se materializa completo en S2a-2 con `2026-09-13T03:53:18.345Z`). Preservación Half-1 verificada SIN lastRun.
+- S2a-1 focused: `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js` → verde en Half-1 (subset, never weaken); espejos standalone para suites no colectables como en S1 §6.
+

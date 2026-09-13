@@ -1292,8 +1292,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 37.3
     },
     "gpt55Medium": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1326,8 +1332,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 34.2
     },
     "gpt55Low": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1360,8 +1372,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 30.7
     },
     "gpt55NonReasoning": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1394,8 +1412,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 23.2
     },
     "gpt56terra": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1491,8 +1515,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 38.2
     },
     "gpt56terraHigh": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1525,8 +1555,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 34.5
     },
     "gpt56terraMedium": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1559,8 +1595,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 30.4
     },
     "gpt56terraLow": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1593,8 +1635,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 27.9
     },
     "gpt56terraNonReasoning": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1627,8 +1675,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 22.3
     },
     "gpt56luna": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1727,8 +1781,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 34.8
     },
     "gpt56lunaHigh": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1761,8 +1821,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 32.4
     },
     "gpt56lunaMedium": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1795,8 +1861,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 25.5
     },
     "gpt56lunaLow": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1829,8 +1901,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 21.5
     },
     "gpt56lunaNonReasoning": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1863,8 +1941,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 16.8
     },
     "gpt56sol": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1949,8 +2033,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 44.1
     },
     "gpt56solHigh": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1983,8 +2073,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 42.5
     },
     "gpt56solMedium": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2017,8 +2113,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 39.5
     },
     "gpt56solLow": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2051,8 +2153,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 33.8
     },
     "gpt56solNonReasoning": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2085,8 +2193,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 28.3
     },
     "gpt6astra": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2145,8 +2259,16 @@
           "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
           "date": "2026-09-10",
           "scraper": "manual-curation"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 46,
+      "pricingSource": "artificialanalysis",
+      "blended": 20
     },
     "gpt54": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2234,8 +2356,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 27.6
     },
     "gpt54NonReasoning": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2266,8 +2394,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 18.2
     },
     "claudeFable5": {
       "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },

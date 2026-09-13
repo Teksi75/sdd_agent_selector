@@ -49,7 +49,7 @@ const AA_ALIAS_TARGETS = new Set(
 // backfill lands they are alias targets that do not yet claim AA pricing; S2
 // MUST shrink this set to empty and the strict equality checks below are the
 // review grip that forces the update.
-const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'gpt6astraLow', 'grok46']);
+const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'grok46']); // S2a shrinks gpt6astraLow (covered); S2b remainder stays explicit
 
 // --- V5 gate aggregate (replaces the retired V3 checksum/drift contracts) ----
 //
@@ -760,5 +760,39 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
   test('compositeScore source stays untouched: no intelligenceIndex reference', () => {
     const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
     expect(source).not.toContain('intelligenceIndex');
+  });
+});
+
+// --- S2a-1 (2026-09-14): three-bucket coverage + provenance (chatgpt-plus, Half-1) ---
+describe('data-integrity: S2a-1 three-bucket + provenance (chatgpt-plus)', () => {
+  const s2aDoc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
+  const s2aModels = s2aDoc.models;
+  const S2A_SRC = { url: 'https://artificialanalysis.ai/', date: '2026-09-13', scraper: 'scrape-artificialanalysis' };
+  test('three-bucket recount after S2a-1: 30 II-covered / 22 benchlm-only / 36 scoreless = 88', () => {
+    let ii = 0, bench = 0, none = 0;
+    for (const mo of Object.values(s2aModels)) {
+      if (Number.isFinite(mo.intelligenceIndex)) ii++;
+      else if (mo.benchlm && Number.isFinite(mo.benchlm.score)) bench++;
+      else none++;
+    }
+    expect(ii).toBe(30);
+    expect(bench).toBe(22);
+    expect(none).toBe(36);
+    expect(ii + bench + none).toBe(Object.keys(s2aModels).length);
+    expect(s2aModels.kimik3.intelligenceIndex).toBeUndefined();
+    expect(s2aModels.kimik3.benchlm.score).toBe(80.96);
+  });
+  test('every finite II carries its own AA 2026-09-13 source tuple', () => {
+    const finite = Object.entries(s2aModels).filter(([, mo]) => Number.isFinite(mo.intelligenceIndex));
+    expect(finite.length).toBe(30);
+    for (const [id, mo] of finite) {
+      expect(mo.sources, `${id}.sources`).toEqual(
+        expect.arrayContaining([expect.objectContaining(S2A_SRC)])
+      );
+    }
+  });
+  test('preservation: schema 5, DATA_FILES 6 (lastRun lands in Half-2)', () => {
+    expect(s2aDoc._meta.schemaVersion).toBe(5);
+    expect(DATA_FILES).toHaveLength(6);
   });
 });
