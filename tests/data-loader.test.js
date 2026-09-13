@@ -21,6 +21,95 @@ describe('data-loader S3b catalogRevision task 5.8', () => {
   });
 });
 
+describe('data-loader S3b 5.8 catalogRevision envelope wiring (S3d F4)', () => {
+  beforeEach(async () => {
+    globalThis.sessionStorage = new FakeStorage();
+    mockFetch(freshFiles);
+    vi.resetModules();
+    const mod = await import('../js/services/data-loader.js');
+    mod.clearCache();
+  });
+  afterEach(() => {
+    delete globalThis.sessionStorage;
+    delete globalThis.fetch;
+  });
+
+  test('written envelope stores catalogRevision derived from the fetched modelsMeta', async () => {
+    const { loadAll, CACHE_KEY, catalogRevision } = await import('../js/services/data-loader.js');
+    const data = await loadAll();
+    const parsed = JSON.parse(sessionStorage.getItem(CACHE_KEY));
+    expect(parsed.catalogRevision).toBe(catalogRevision(data.modelsMeta));
+    expect(parsed.catalogRevision).toBe(catalogRevision({ lastSynced: '2026-07-04' }));
+  });
+
+  test('old envelope without catalogRevision is refetched, not reused', async () => {
+    const first = await import('../js/services/data-loader.js');
+    await first.loadAll();
+    const seeded = JSON.parse(sessionStorage.getItem(first.CACHE_KEY));
+    delete seeded.catalogRevision;
+    seeded.data.models.glm52.name = 'STALE';
+    sessionStorage.setItem(first.CACHE_KEY, JSON.stringify(seeded));
+    globalThis.fetch.mockClear();
+
+    vi.resetModules();
+    const { loadAll } = await import('../js/services/data-loader.js');
+    const data = await loadAll();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(6);
+    expect(data.models.glm52.name).toBe('GLM-5.2');
+  });
+
+  test('equal revision reuses the cache after a single models.json revalidation', async () => {
+    const first = await import('../js/services/data-loader.js');
+    await first.loadAll();
+    const seeded = JSON.parse(sessionStorage.getItem(first.CACHE_KEY));
+    seeded.data.models.glm52.name = 'CACHED';
+    sessionStorage.setItem(first.CACHE_KEY, JSON.stringify(seeded));
+    globalThis.fetch.mockClear();
+
+    vi.resetModules();
+    const { loadAll } = await import('../js/services/data-loader.js');
+    const data = await loadAll();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(data.models.glm52.name).toBe('CACHED');
+  });
+
+  test('different revision refetches all six files', async () => {
+    const first = await import('../js/services/data-loader.js');
+    await first.loadAll();
+    const seeded = JSON.parse(sessionStorage.getItem(first.CACHE_KEY));
+    seeded.catalogRevision = 'stale|revision';
+    seeded.data.models.glm52.name = 'STALE';
+    sessionStorage.setItem(first.CACHE_KEY, JSON.stringify(seeded));
+    globalThis.fetch.mockClear();
+
+    vi.resetModules();
+    const { loadAll } = await import('../js/services/data-loader.js');
+    const data = await loadAll();
+    expect(globalThis.fetch).toHaveBeenCalledTimes(7);
+    expect(data.models.glm52.name).toBe('GLM-5.2');
+  });
+
+  test('revalidation fetch failure reuses the cache with a warning (fail-soft)', async () => {
+    const first = await import('../js/services/data-loader.js');
+    await first.loadAll();
+    const seeded = JSON.parse(sessionStorage.getItem(first.CACHE_KEY));
+    seeded.data.models.glm52.name = 'CACHED';
+    sessionStorage.setItem(first.CACHE_KEY, JSON.stringify(seeded));
+
+    vi.resetModules();
+    globalThis.fetch = vi.fn(async () => { throw new TypeError('network down'); });
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      const { loadAll } = await import('../js/services/data-loader.js');
+      const data = await loadAll();
+      expect(data.models.glm52.name).toBe('CACHED');
+      expect(warn).toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+});
+
 
 class FakeStorage {
   constructor(initial = {}) {
@@ -381,6 +470,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
       CACHE_KEY,
       JSON.stringify({
         schemaVersion: 5,
+        catalogRevision: '2026-07-04|', // new envelope contract (S3d F4): seeded revision matches the mock files
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },
@@ -394,8 +484,14 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
       })
     );
 
-    // 4) A concurrent loadAll() picks up the FRESH cache and memoizes it.
-    const fresh = await loadAll();
+    // 4) Resolve the stale fetches, then a concurrent loadAll() revalidates
+    //    the FRESH envelope: same revision reuses + memoizes it (one
+    //    models.json revalidation fetch).
+    gate.resolveAll();
+    const freshPromise = loadAll();
+    expect(gate.count()).toBe(1);
+    gate.resolveAll();
+    const fresh = await freshPromise;
     expect(fresh.models.freshModel.name).toBe('FRESH');
     expect(fresh.models.glm52).toBeUndefined();
 

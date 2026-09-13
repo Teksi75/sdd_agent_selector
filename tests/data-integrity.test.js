@@ -805,23 +805,23 @@ describe('data-integrity: S2a three-bucket + provenance (chatgpt-plus + anthropi
   });
 });
 
-// --- S3a (2026-09-14): dark-path readiness (NO activation) -----------------
+// --- S3b (2026-09-14): II-authority wiring (S3d remediation of the S3a dark) ---
 //
-// Executable form of the dark invariant (design §10.2): the II core exists
-// and is correct, but NOTHING under js/ imports it and the public scorer
-// is still benchlm. The `:740`-style flip (compositeScore contains
-// intelligenceIndex) belongs to S3b only.
-describe('data-integrity: S3a dark-path readiness (ii-score unreachable)', () => {
+// S3b flipped the S3a dark invariant (design §10.2 → delta flip): the II
+// core is now wired as the sole authority behind the public scorer.
+// Executable pin: ii-score.js exists; model-scorer.js is its ONLY
+// production importer; compositeScore source stays II-only (next test).
+describe('data-integrity: S3b II-authority wiring (ii-score reachable only via scorer)', () => {
   test('js/services/ii-score.js exists and contains intelligenceIndex', () => {
     const p = join(ROOT, 'js', 'services', 'ii-score.js');
     expect(existsSync(p)).toBe(true);
     expect(readFileSync(p, 'utf-8')).toContain('intelligenceIndex');
   });
 
-  test('no production module under js/ imports ii-score.js', () => {
-    // Import-pattern grep (not a bare substring: ii-score.js names itself
-    // in its own header comment). Any from/import()/require() of the
-    // module from another file under js/ breaks the dark boundary.
+  test('ii-score has exactly one production importer: the public scorer (S3b II authority)', () => {
+    // S3d remediation of the S3a dark assert: S3b correctly wired
+    // model-scorer.js to the proven ii-score core, so "no importer"
+    // is now the defect and "exactly the scorer" is the contract.
     const importRe = /(?:from\s+['"][^'"]*ii-score[^'"]*['"]|import\s*\(\s*['"][^'"]*ii-score|require\s*\(\s*['"][^'"]*ii-score)/;
     const hits = [];
     const walk = (dir) => {
@@ -834,7 +834,9 @@ describe('data-integrity: S3a dark-path readiness (ii-score unreachable)', () =>
       }
     };
     walk(join(ROOT, 'js'));
-    expect(hits).toEqual([]);
+    const scorer = join(ROOT, 'js', 'services', 'model-scorer.js');
+    expect(hits).toContain(scorer);
+    expect(hits.filter((p) => p !== scorer)).toEqual([]);
   });
 
   test('public compositeScore source is II-only (contains intelligenceIndex, no benchlm ordering)', () => {

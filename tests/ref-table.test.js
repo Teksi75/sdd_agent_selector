@@ -109,10 +109,11 @@ beforeEach(() => {
 });
 
 describe('ref-table — render() (PR3 benchlm columns)', () => {
-  test('includes all models; non-active rows in separated section after active rows', () => {
+  test('renders one ranked row per II-covered eligible non-reference model (S3d F2)', () => {
     const summary = render(target, FIXTURE);
-    // 3 active + 2 non-active = 5 rows.
-    expect(summary.rows).toBe(5);
+    // beta + alpha + pending are active with finite II; gamma/delta are
+    // reference-lifecycle → excluded from the ranked DOM (delta scenario).
+    expect(summary.rows).toBe(3);
 
     const activeRows = Array.from(target.querySelectorAll('[data-test="active-rows"] tr'));
     const activeKeys = activeRows.map((tr) => tr.getAttribute('data-model-key'));
@@ -120,11 +121,9 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(activeKeys).toEqual(['beta', 'alpha', 'pending']);
 
     const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
-    expect(nonActiveSection, 'non-active section missing').toBeDefined();
-    const nonActiveKeys = Array.from(nonActiveSection.querySelectorAll('tr')).map(
-      (tr) => tr.getAttribute('data-model-key')
-    );
-    expect(nonActiveKeys).toEqual(['delta', 'gamma']);
+    expect(nonActiveSection, 'non-active section must be gone (S3d F2)').toBeNull();
+    expect(target.querySelector('[data-model-key="gamma"]')).toBeNull();
+    expect(target.querySelector('[data-model-key="delta"]')).toBeNull();
   });
 
   test('(d) isNew pins first; scored rows sort by benchlm.score descending; references last', () => {
@@ -141,62 +140,51 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(summary.topKey).toBe('beta');
   });
 
-  test('(a) row shows benchlm score column; NO legacy 4-benchmark columns', () => {
+  test('(a) delta columns: Modelo/Esfuerzo/Score-II/arena/swePro/sweVer/term/Input/Output/Sources; no Tier/Lifecycle/BenchLM (S3d F2)', () => {
     render(target, FIXTURE);
-    // Effort-only columns: Modelo, Esfuerzo, Lifecycle, Score, BenchLM,
-    // Input $, Output $, Sources = 8 (Tier column removed in PR-B).
+    // Modelo, Esfuerzo, Score, Arena, SWE-Pro, SWE-Ver, Term, Input $, Output $, Sources = 10.
     const ths = target.querySelectorAll('thead th');
-    expect(ths.length).toBe(8);
-    // Specific columns present.
+    expect(ths.length).toBe(10);
     const labels = Array.from(ths).map((th) => th.textContent.trim());
-    expect(labels).toContain('Modelo');
-    expect(labels).toContain('Esfuerzo');
-    expect(labels).toContain('Lifecycle');
-    expect(labels).toContain('Score');
-    expect(labels).toContain('BenchLM');
-    // Tier header is gone (effort-only).
+    expect(labels).toEqual(['Modelo', 'Esfuerzo', 'Score', 'Arena', 'SWE-Pro', 'SWE-Ver', 'Term', 'Input $', 'Output $', 'Sources']);
+    // Tier/Lifecycle/BenchLM headers are gone (effort-only delta contract).
     expect(labels).not.toContain('Tier');
-    // Legacy columns gone.
-    expect(labels).not.toContain('Arena');
-    expect(labels).not.toContain('SWE-Pro');
-    expect(labels).not.toContain('SWE-Ver');
-    expect(labels).not.toContain('Term');
+    expect(labels).not.toContain('Lifecycle');
+    expect(labels).not.toContain('BenchLM');
     // No tier markup survives anywhere in the rendered table.
     expect(target.querySelectorAll('[data-tier]').length).toBe(0);
     expect(target.querySelectorAll('.tier-tag').length).toBe(0);
     expect(target.querySelectorAll('.model-tier-tag').length).toBe(0);
+    // BenchLM-provenance + reliability cells are gone from every row.
+    expect(target.querySelectorAll('[data-benchlm-cell]').length).toBe(0);
+    expect(target.querySelectorAll('[data-reliability-dots]').length).toBe(0);
 
     // The alpha row scores match the data.
     const alpha = target.querySelector('tr[data-model-key="alpha"]');
     expect(alpha.textContent).toMatch(/85/);
-
-    // No SWE-Pro/SWE-Ver/Term cells in the row body.
-    expect(alpha.textContent).not.toMatch(/SWE-Pro/);
-    expect(alpha.textContent).not.toMatch(/SWE-Ver/);
   });
 
-  test('(b) verified badge column renders green for verified and amber for estimated', () => {
-    render(target, FIXTURE);
-    const alpha = target.querySelector('tr[data-model-key="alpha"]');
-    const beta = target.querySelector('tr[data-model-key="beta"]');
-
-    expect(alpha.innerHTML).toMatch(/data-badge="verified"/);
-    expect(beta.innerHTML).toMatch(/data-badge="estimated"/);
-    expect(alpha.innerHTML).toMatch(/bg-emerald/);
-    expect(beta.innerHTML).toMatch(/bg-amber/);
+  test('(b) source badges reflect available benchmarks; missing benchmark shows no badge (S3d F2)', () => {
+    // Delta scenario: arena:1500 + swePro:60 + term:null → arena and swe
+    // badges present, no term badge. Pricing badge unchanged.
+    render(target, {
+      m: { name: 'M', lifecycle: 'active', intelligenceIndex: 60, arena: 1500, swePro: 60, term: null, input: 1, output: 2 },
+    });
+    const row = target.querySelector('tr[data-model-key="m"]');
+    const sources = row.querySelectorAll('td')[9].innerHTML;
+    expect(sources).toMatch(/src-arena/);
+    expect(sources).toMatch(/src-swe/);
+    expect(sources).not.toMatch(/src-term/);
+    expect(row.textContent).toMatch(/1500/);
   });
 
-  test('(c) reliability column shows scaled indicator (5-dot scale)', () => {
+  test('(c) no BenchLM reliability scale survives the column removal (S3d F2)', () => {
+    // Contract-correct rewrite (never softened): the BenchLM-provenance
+    // column is removed per the delta column list, so floor(reliability*5)
+    // dots MUST be absent from every row — pinning them would pin the defect.
     render(target, FIXTURE);
-    const alpha = target.querySelector('tr[data-model-key="alpha"]');
-    // floor(0.92 * 5) = 4 filled dots.
-    const filled = alpha.querySelectorAll('[data-dot="filled"]').length;
-    expect(filled).toBe(4);
-
-    const beta = target.querySelector('tr[data-model-key="beta"]');
-    // floor(0.7 * 5) = 3 filled dots.
-    const filledBeta = beta.querySelectorAll('[data-dot="filled"]').length;
-    expect(filledBeta).toBe(3);
+    expect(target.querySelectorAll('[data-reliability-dots]').length).toBe(0);
+    expect(target.querySelectorAll('[data-dot="filled"]').length).toBe(0);
   });
 
   test('benchlm-null with finite II shows II; truly II-less rows hidden (S3b)', () => {
@@ -391,13 +379,17 @@ describe('ref-table — reference display order and legacy filtering', () => {
     },
   };
 
-  test('visible non-active keys are exactly [gpt56sol, opus48, gpt56terra, gpt56luna, gpt55] in that order', () => {
-    render(target, CATALOG_FIXTURE);
-    const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
-    const nonActiveKeys = Array.from(nonActiveSection.querySelectorAll('tr')).map(
+  test('reference rows never reach the ranked DOM; only II-covered active rows render (S3d F2)', () => {
+    const summary = render(target, CATALOG_FIXTURE);
+    expect(summary.rows).toBe(1);
+    expect(target.querySelector('[data-test="non-active-rows"]')).toBeNull();
+    const keys = Array.from(target.querySelectorAll('tr[data-model-key]')).map(
       (tr) => tr.getAttribute('data-model-key')
     );
-    expect(nonActiveKeys).toEqual(['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna', 'gpt55']);
+    expect(keys).toEqual(['glm52']);
+    for (const ref of ['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna', 'gpt55']) {
+      expect(target.querySelector(`[data-model-key="${ref}"]`)).toBeNull();
+    }
   });
 
   test('legacy rows (glm51, glm5) do not render', () => {
@@ -409,40 +401,29 @@ describe('ref-table — reference display order and legacy filtering', () => {
     expect(allKeys).not.toContain('glm5');
   });
 
-  test('active rows remain before reference rows', () => {
+  test('single ranked section: active ranked rows only, no reference section (S3d F2)', () => {
     render(target, CATALOG_FIXTURE);
     const activeRows = Array.from(target.querySelectorAll('[data-test="active-rows"] tr'));
-    const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
-    const nonActiveRows = Array.from(nonActiveSection.querySelectorAll('tr'));
     expect(activeRows.length).toBe(1);
     expect(activeRows[0].getAttribute('data-model-key')).toBe('glm52');
-    expect(nonActiveRows.length).toBe(5);
+    expect(target.querySelector('[data-test="non-active-rows"]')).toBeNull();
   });
 
-  test('summary visible non-active count reflects five reference rows, not seven total non-active records', () => {
+  test('summary counts ranked rows only; header/footer never mention non-active (S3d F2)', () => {
     const summary = render(target, CATALOG_FIXTURE);
-    expect(summary.rows).toBe(6);
+    expect(summary.rows).toBe(1);
+    expect(summary.topKey).toBe('glm52');
     const summaryText = target.querySelector('p.mt-3').textContent;
-    expect(summaryText).toMatch(/\+ 5 non-active/);
-    expect(summaryText).not.toMatch(/\+ 7 non-active/);
+    expect(summaryText).toMatch(/Showing 1 active model/);
+    expect(summaryText).not.toMatch(/non-active/);
   });
 
-  test('preserve score/lifecycle rendering for visible reference rows (no tier survivors)', () => {
+  test('ranked rows show II scores with effort-only markup (no tier survivors, S3d F2)', () => {
     render(target, CATALOG_FIXTURE);
-    const gpt56sol = target.querySelector('tr[data-model-key="gpt56sol"]');
-    expect(gpt56sol.textContent).toMatch(/82\.0/);
-    expect(gpt56sol.textContent).toMatch(/reference/i);
-    expect(gpt56sol.getAttribute('data-lifecycle')).toBe('reference');
+    const glm52 = target.querySelector('tr[data-model-key="glm52"]');
+    expect(glm52.textContent).toMatch(/64\.0/);
 
-    const opus48 = target.querySelector('tr[data-model-key="opus48"]');
-    expect(opus48.textContent).toMatch(/78\.3/);
-    expect(opus48.textContent).toMatch(/reference/i);
-
-    const gpt55 = target.querySelector('tr[data-model-key="gpt55"]');
-    expect(gpt55.textContent).toMatch(/73\.5/);
-    expect(gpt55.textContent).toMatch(/reference/i);
-
-    // Effort-only: no tier badge/attribute leaks through the reference rows.
+    // Effort-only: no tier badge/attribute leaks through the ranked rows.
     expect(target.querySelectorAll('[data-tier]').length).toBe(0);
     expect(target.querySelectorAll('.tier-tag').length).toBe(0);
   });
@@ -505,7 +486,24 @@ describe('ref-table — V5 Slice 3 eligible-only + filtered export', () => {
     expect(target.querySelectorAll('tr[data-model-key]').length).toBe(0);
     const empty = target.querySelector('[data-test="empty-state"]');
     expect(empty).not.toBeNull();
+        expect(target.querySelector('[data-test="hidden-ii-note"]')).toBeNull();
     expect(empty.textContent).toMatch(/No hay modelos elegibles/i);
+  });
+
+  test('all-II-less set renders the empty state WITH the shared hidden note (S3d F3)', () => {
+    // Every hiding surface iff N > 0: hidden N = total > 0 here, so the
+    // empty-state path must carry the note. (The full-catalog export note
+    // stays N/A there by spec — it hides nothing — see progress log.)
+    const t2 = document.createElement('div');
+    document.body.appendChild(t2);
+    const summary = render(t2, {
+      a: { name: 'A', lifecycle: 'active', intelligenceIndex: null, input: 1, output: 1 },
+      b: { name: 'B', lifecycle: 'active', intelligenceIndex: null, input: 1, output: 1 },
+    }, { modelsMeta: { lastSynced: '2026-09-13' } });
+    expect(summary.rows).toBe(0);
+    expect(t2.querySelector('[data-test="empty-state"]')).not.toBeNull();
+    expect(t2.querySelector('[data-test="hidden-ii-note"]')).not.toBeNull();
+    expect(t2.textContent).toMatch(/2 models hidden/);
   });
 
   test('export default (filtered): header con scope + providers activos y solo el set visible', async () => {

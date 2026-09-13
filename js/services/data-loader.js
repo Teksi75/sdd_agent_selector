@@ -3,7 +3,7 @@
 //
 // Storage shape (sessionStorage, versioned key):
 //   {
-//     schemaVersion: number,        // must match CURRENT_SCHEMA_VERSION
+//     catalogRevision: string,      // catalogRevision(modelsMeta) — task 5.8
 //     timestamp: number,             // Date.now() when cached
 //     data: { models, phases, ... } // the loaded payload
 //   }
@@ -147,7 +147,7 @@ function cacheBackend() {
 }
 
 /**
- * Read the cached payload (if any) and return it ONLY if the schema version
+ * Read the cached envelope (if any) and return it ONLY if the schema version
  * matches `CURRENT_SCHEMA_VERSION`. A miss / mismatched / corrupted cache
  * all return `null` to trigger a fresh fetch.
  *
@@ -165,24 +165,23 @@ function readCacheEntry(backend, key) {
     // runtime contract — discard it and re-fetch (no silent availability).
     if (!parsed.data.providers || typeof parsed.data.providers !== 'object') return null;
     if (!parsed.data.availability || typeof parsed.data.availability !== 'object') return null;
-    return parsed.data;
+    return parsed;
   } catch {
     return null;
   }
 }
 
-function readCache() {
+function readCacheEnvelope() {
   const backend = cacheBackend();
   if (!backend) return null;
   return readCacheEntry(backend, CACHE_KEY);
 }
-
 function readLegacyFallback() {
   const backend = cacheBackend();
   if (!backend) return null;
   for (const legacyKey of LEGACY_CACHE_KEYS) {
     const legacy = readCacheEntry(backend, legacyKey);
-    if (legacy) return legacy;
+    if (legacy) return legacy.data;
   }
   return null;
 }
@@ -203,6 +202,7 @@ function writeCache(data, sourceSchemaVersions) {
       JSON.stringify({
         schemaVersion: CURRENT_SCHEMA_VERSION,
         sourceSchemaVersions,
+        catalogRevision: catalogRevision(data.modelsMeta),
         timestamp: Date.now(),
         data,
       })
@@ -218,8 +218,8 @@ function writeCache(data, sourceSchemaVersions) {
  * @param {string} path - relative URL or absolute path
  * @returns {Promise<any>}
  */
-async function fetchJson(path) {
-  const response = await fetch(path);
+async function fetchJson(path, init) {
+  const response = await fetch(path, init);
   if (!response.ok) {
     throw new Error(`Failed to fetch ${path}: ${response.status} ${response.statusText}`);
   }
@@ -257,9 +257,9 @@ let inMemory = null;
 let loadGeneration = 0;
 
 /**
- * Load the 6 data files. Cache hit returns synchronously-after-await
- * (no fetch). Cache miss / schema mismatch triggers a single round of
- * parallel fetches.
+ * Load the 6 data files. A revision-matching cache hit returns after a
+ * single models.json revalidation. Cache miss / schema mismatch /
+ * revision change triggers a single round of parallel fetches.
  *
  * The returned shape is the composed payload:
  *   { models: {...}, providers: [...], availability: {...},
@@ -281,13 +281,31 @@ let loadGeneration = 0;
 export async function loadAll() {
   if (inMemory) return inMemory;
   const myGeneration = loadGeneration;
-  const cached = readCache();
-  if (cached) {
-    // An invalidation between readCache() and the inMemory write would
-    // re-promote stale data — guard with the generation check.
-    if (myGeneration !== loadGeneration) return cached;
-    inMemory = cached;
-    return cached;
+  const envelope = readCacheEnvelope();
+  const cached = envelope ? envelope.data : null;
+  if (cached && typeof envelope.catalogRevision === 'string') {
+    // S3b-5.8 (S3d F4): same-schema revision gate. Revalidate
+    // data/models.json with cache:'no-store': equal revision reuses the
+    // cached payload; a different revision falls through to a full refetch
+    // below; revalidation failure reuses the cache with a warning
+    // (fail-soft). An old envelope without a revision always refetches.
+    try {
+      const freshModels = await fetchJson(DATA_FILES[0][0], { cache: 'no-store' });
+      if (catalogRevision(freshModels && freshModels._meta) === envelope.catalogRevision) {
+        // An invalidation between readCache() and the inMemory write would
+        // re-promote stale data — guard with the generation check.
+        if (myGeneration !== loadGeneration) return cached;
+        inMemory = cached;
+        return cached;
+      }
+    } catch (err) {
+      if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+        console.warn('data-loader: revision revalidation failed, reusing cache', err);
+      }
+      if (myGeneration !== loadGeneration) return cached;
+      inMemory = cached;
+      return cached;
+    }
   }
   const legacyFallback = readLegacyFallback();
   if (inflight) {

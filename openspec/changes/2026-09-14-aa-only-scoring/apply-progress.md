@@ -425,6 +425,21 @@ Fecha: 2026-09-14 · Rama: `feat/aa-only-s3b-activation` · Modo: worker-fallbac
 - **Bug real hallado por el padre en re-verificación**: `renderAll()` referenciaba `rankingContext` no declarado → ReferenceError que vaciaba todos los mounts (los unitarios pasaban porque no cruzan app.js). Fix: import + 2 líneas. Luego 2 tests config-selector alineados por inyección II (cero expects tocados). El worker lo había diagnosticado como test-side; era producto + resto test-side.
 - **Evidencia**: RED por flips → GREEN; focused S3b 252/252 ejecutados en verde (único collect-fail pre-existente data-integrity/Node24); regresión 125/125; rollback S3b probado en ida (coherencia benchlm) y restaurado.
 - **Budget**: ~673 líneas review vs cap 400 → size:exception explícita de maintainer (el corte atómico no admite split sin shipear híbrido). Rollback: revertir activación + tests en un commit; nunca borrar II backfilleado.
+- **TDD Cycle Evidence — reconstructed at S3d remediation from worker handoffs** (S3b shipped prose instead of the task-level table; per-task RED failure text was not preserved and is NOT invented — RED cells restate tasks.md intent, GREEN cells quote only on-record observed evidence):
+| Task | RED (tasks.md intent) | GREEN (on-record observed) | TRIANGULATE |
+|---|---|---|---|
+| 5.1 | scorer + integrity `:740` expects flipped to II authority | flips landed (S3b summary) | — |
+| 5.2 | implements 5.1 | scorer delegates ii-score; finite-II guards on fallbacks/alternatives | shared `hasFiniteIi` predicate |
+| 5.3 | benchlm-only leaks via cost-only fallback/alternatives | guard landed | benchlm-only leakage case |
+| 5.4 | ii-ranking RED first (freshness/context/note) | module + suite landed | full-catalog scope builds own context |
+| 5.5 | ref-table/chart Score-II, null-II removed, shared note | components landed | removed-not-dimmed + N=0-no-note |
+| 5.6 | cli-mirror/justification RED (18 rows/cards, unassigned) | both landed | critical-warning empty-set case |
+| 5.7 | exporter RED (II bodies, line-two note, no appendix/tier) | exporter landed | no-appendix + providers-line-one |
+| 5.8 | freshness/staleness RED (AA lastRun, II warning, fail-soft) | badge/sync/loader/app landed | benchlm-timestamp-irrelevant case |
+| 5.9 | gate | focused S3b 252/252; regression 125/125; no II-less row, no benchlm ordering | 18/9/5 counts + DATA_FILES 6 |
+| 5.10 | gate | smoke (scopes, 5 strategies, twin-judge equality, refresh, shared counts) | filtered x full-catalog scopes |
+| 5.11 | gate | rollback to benchlm coherence + restore | — |
+| fix | — | parent-found `rankingContext` ReferenceError in `renderAll()` → import + 2 lines; 2 config-selector tests II-injected (cero expects tocados) | app.js transaction case unit suites could not see |
 - **Notas de review**: model-card conserva display benchlm como dato inerte (fuera de superficies del slice); comentarios dark en ii-score.js intactos a propósito.
 
 ---
@@ -534,3 +549,14 @@ Alcance: 4 suites verdes en base `7674ae6` y rojas en el tip S3b — `aa-signal`
 
 - Superficies review código/tests: **344 líneas (184+/160−) ≤ 400** — sin `size:exception`. Esta bitácora es artefacto SDD fuera de budget (precedente S1).
 - Commit S3c: solo las 6 superficies código/tests + esta bitácora. `tasks.md` sin cambios; `spec.md` y dirt humano fuera del commit.
+
+## S3d — Verify remediation (5 parent-adjudicated findings) — rama `feat/aa-only-s3d-verify-fixes` (base `33b061c`)
+
+Fecha: 2026-09-14 · Strict TDD activo · pnpm only · budget TOTAL ≤300 líneas (`git diff --stat`, docs incluidas).
+
+- **F1 (test-only):** dark assert `no importer` contradecía el wiring S3b correcto → reemplazado por `ii-score has exactly one production importer: the public scorer`; el assert II-only del scorer ya existía (sin duplicar). Espejo node ALL PASS (la suite no colecta local; CI gobierna).
+- **F2 (producto + tests):** `render` muestra solo `rankedActive` (diseño §6); columnas a Modelo/Esfuerzo/Score/Arena/SWE-Pro/SWE-Ver/Term/Input/Output/Sources (convención fase-1, informativas, nunca sort keys); fuera Lifecycle/BenchLM-sección non-active; `rowsFor`/`orderRows`/exports intactos (load-bearing). Chart sin el defecto (solo-active + sin columnas; badges/dots fuera del hallazgo) → sin cambio.
+- **F3 (producto + test):** empty-state con N>0 lleva la nota compartida; N=0 sin nota; chart sin defecto (all-II-less cae en barras+nota, `{}` en N=0). DISMISSED: export-full-catalog sin nota — no oculta nada (N/A por spec); rationale aquí contra re-litigio.
+- **F4 (producto + tests):** envelope guarda `catalogRevision(modelsMeta)`; boot revalida `models.json` (`cache:no-store`): equal→reuse (1 fetch), different/old-envelope→refetch, fallo→fail-soft+warn. `data-sync.js` fuera de superficies: sus envelopes sin revisión refetchean una vez (sin loop) — follow-up del parent.
+- **F5 (docs):** tabla RED/GREEN/TRIANGULATE S3b reconstruida en su sección desde handoffs, rotulada como reconstruida (sin detalle inventado).
+- **TDD:** F1 espejo RED→GREEN; F2 7 RED→GREEN (+triangulación por variantes); F3 stash-RED→GREEN; F4 5 RED→GREEN (+matriz equal/different/old/fail-soft); F5 docs-only.
