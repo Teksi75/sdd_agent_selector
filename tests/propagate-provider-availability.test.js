@@ -88,6 +88,39 @@ describe('propagate — deterministic inheritance and override reporting', () =>
     expect(nonVariant.some((e) => e.kind === 'stale-override' && e.id === 'foo')).toBe(true);
   });
 
+  test('a registry grown with a new provider re-materializes stale variant maps (not an override)', () => {
+    // Follow-up v5-fup-acquire-003: after a registry growth the variant maps
+    // written by the previous run no longer cover the registry key set. They
+    // are stale derived data — propagate must re-clone the curated base map,
+    // not misread the missing key as an undeclared exact-id override.
+    const three = ['p1', 'p2', 'p3'];
+    const grownBase = { p1: true, p2: false, p3: false };
+    const models = {
+      foo: rec(grownBase),
+      fooHigh: rec(BASE_MAP), // materialized before `p3` was registered
+    };
+    const { models: next, errors, honored } = propagate(models, three, []);
+    expect(errors).toEqual([]);
+    expect(honored).toEqual([]);
+    expect(next.fooHigh.availability).toEqual(grownBase);
+  });
+
+  test('a valid variant map that differs from the base still requires an override declaration', () => {
+    const three = ['p1', 'p2', 'p3'];
+    const base = { p1: true, p2: false, p3: false };
+    const variant = { p1: false, p2: true, p3: false };
+    const models = { foo: rec(base), fooHigh: rec(variant) };
+    const { errors } = propagate(models, three, []);
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toMatchObject({ kind: 'undeclared-override', id: 'fooHigh' });
+  });
+
+  test('a declared override with an invalid map fails even when it differs from the base', () => {
+    const models = { foo: rec(BASE_MAP), fooHigh: rec({ p1: true }) };
+    const { errors } = propagate(models, P, ['fooHigh']);
+    expect(errors.some((e) => e.kind === 'override-invalid-map' && e.id === 'fooHigh')).toBe(true);
+  });
+
   test('a variant whose base family has no valid map fails naming the variant', () => {
     const models = { foo: { name: 'foo' }, fooHigh: rec(BASE_MAP) };
     const { errors } = propagate(models, P, []);

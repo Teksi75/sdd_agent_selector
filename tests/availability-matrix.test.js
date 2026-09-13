@@ -52,6 +52,21 @@ describe('availability matrix gate — curated catalog (schema 5)', () => {
     expect(unconfirmed, 'active families without a single confirmed provider').toEqual([]);
   });
 
+  test('meta curation: only the Muse Spark base families are available on Meta', () => {
+    const bases = Object.keys(models).filter((id) => familyKey(id, models) === id);
+    expect(bases.length).toBeGreaterThan(0);
+    // Fail-closed: every base declares the column explicitly, and exactly the
+    // two curated Muse Spark families are `true`.
+    const metaTrue = bases.filter((base) => models[base].availability?.meta === true);
+    expect(metaTrue.sort()).toEqual(['musespark12contributor', 'musespark13contributor']);
+    const nonBoolean = bases.filter(
+      (base) => typeof models[base].availability?.meta !== 'boolean'
+    );
+    expect(nonBoolean, 'base families without an explicit meta boolean').toEqual([]);
+    const metaFalse = bases.filter((base) => models[base].availability?.meta === false);
+    expect(metaFalse.length).toBe(bases.length - metaTrue.length);
+  });
+
   test('effort variants resolve the identical base-family map (no overrides declared)', () => {
     expect(doc._meta.availabilityOverrides ?? []).toEqual([]);
     let variants = 0;
