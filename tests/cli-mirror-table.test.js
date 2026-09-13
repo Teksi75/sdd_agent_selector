@@ -62,8 +62,10 @@ describe('cli-mirror-table — render() contract (spec.md)', () => {
     expect(archiveRow).toBeDefined();
     expect(archiveRow.querySelectorAll('td').length).toBe(3);
     expect(archiveRow.textContent).toMatch(/archive/i);
-    // tier badge is rendered for non-null assignments
-    expect(archiveRow.querySelector('.tier-tag')).toBeDefined();
+    // Effort-only: no tier badge/data attribute survives in any assigned cell.
+    expect(archiveRow.querySelector('.tier-tag')).toBeNull();
+    expect(archiveRow.querySelectorAll('[data-tier]').length).toBe(0);
+    expect(target.querySelectorAll('.tier-tag').length).toBe(0);
   });
 
   test('null assignment renders "Sin modelo elegible" warning cell', async () => {
@@ -94,7 +96,7 @@ describe('cli-mirror-table — render() contract (spec.md)', () => {
     expect(() => render({}, {}, ROLE_MATRIX)).toThrow(TypeError);
   });
 
-  test('soft-fallback assignment renders the "soft" badge in the assigned cell', async () => {
+  test('soft-fallback assignment renders the model name only (no badges)', async () => {
     ({ render } = await import('../js/components/cli-mirror-table.js'));
 
     // Build a fake assignment set where one agent has a soft-fallback
@@ -125,19 +127,25 @@ describe('cli-mirror-table — render() contract (spec.md)', () => {
       }
     }
 
-    render(target, assignments, ROLE_MATRIX);
+    const summary = render(target, assignments, ROLE_MATRIX);
 
-    // The "soft" badge must exist exactly once and live on the sdd-propose row.
-    const softBadges = target.querySelectorAll('[data-soft-fallback="true"]');
-    expect(softBadges.length).toBe(1);
+    // Effort-only fallback: the model name renders as plain text — no
+    // soft badge, no tier markup and no effort badge on that cell.
     const proposeRow = target.querySelector('tr[data-agent="sdd-propose"]');
     expect(proposeRow).toBeDefined();
-    expect(proposeRow.querySelector('[data-soft-fallback="true"]')).toBeDefined();
-    // The badge should carry the reason as a title for hover-tooltip.
-    const badge = proposeRow.querySelector('[data-soft-fallback="true"]');
-    expect(badge.getAttribute('title')).toMatch(/minReasoning=95/);
+    expect(proposeRow.textContent).toContain(MODELS.kimik25.name);
+    expect(proposeRow.querySelector('[data-soft-fallback="true"]')).toBeNull();
+    expect(proposeRow.querySelector('[data-effort]')).toBeNull();
+    expect(proposeRow.querySelector('.tier-tag')).toBeNull();
+    expect(proposeRow.querySelectorAll('[data-tier]').length).toBe(0);
+    expect(target.querySelectorAll('.soft-badge').length).toBe(0);
+    expect(target.querySelectorAll('[data-soft-fallback="true"]').length).toBe(0);
+    expect(proposeRow.textContent).not.toMatch(/~/);
+    // A normal (non-fallback) row also carries zero tier/soft markup.
+    const initRow = target.querySelector('tr[data-agent="sdd-init"]');
+    expect(initRow.querySelectorAll('.tier-tag, [data-tier], .soft-badge, [data-soft-fallback]').length).toBe(0);
     // Soft-fallback still counts as with-assignment.
-    const summary = { withAssignment: 18, withoutAssignment: 0 };
+    expect(summary.withAssignment).toBe(18);
     expect(summary.withoutAssignment).toBe(0);
   });
 

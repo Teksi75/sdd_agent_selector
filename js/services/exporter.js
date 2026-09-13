@@ -116,8 +116,12 @@ export function markdownTable(headers, rows) {
  *
  * Format per agent:
  *   ### sdd-apply
- *   **Claude Opus 4.8** (`reference` · 78.3 · $0.000113/req)
+ *   **Claude Opus 4.8** (78.3 · $0.000113/req)
  *   _role:_ implementador  ·  _score:_ 78.3 ≥ 70 ✓  ·  _cost:_ $0.000113 ≤ $0.000150 ✓
+ *
+ * Effort-only (PR-B): the model line carries score + cost only — no tier
+ * fragment and no soft-fallback marker, even when `softFallback` is true
+ * (the flag remains a machine-readable assignment/JSON field).
  *
  * @param {Array<{key: string, role?: string, model?: {name?: string, tier?: string, benchlm?: {score?: number}}, score?: number, cost?: number, effectiveMaxCost?: number, softFallback?: boolean}>} assignments
  * @param {{ now?: Date }} [options]
@@ -131,7 +135,6 @@ export function agentsMarkdown(assignments, options) {
   for (const a of assignments || []) {
     const m = a.model || {};
     const name = m.name || (a.key ? `(sin modelo: ${a.key})` : '(sin modelo)');
-    const tier = m.tier || '—';
     const score = a.score;
     const cost = a.cost;
     const max = a.effectiveMaxCost;
@@ -141,11 +144,10 @@ export function agentsMarkdown(assignments, options) {
     const maxStr = Number.isFinite(max) ? `$${max.toFixed(6)}`.replace(/0+$/, '').replace(/\.$/, '') : '—';
     const scoreCheck = Number.isFinite(score) ? `${scoreStr} ✓` : '—';
     const costCheck = Number.isFinite(cost) && Number.isFinite(max) ? `${costStr} ≤ ${maxStr} ✓` : '—';
-    const fallback = a.softFallback ? '  ·  _soft fallback_' : '';
     blocks.push(
       `### ${a.key}\n` +
-      `**${name}** (${tier} · ${scoreStr} · ${costStr}/req)\n` +
-      `_role:_ ${role}  ·  _score:_ ${scoreCheck}  ·  _cost:_ ${costCheck}${fallback}`
+      `**${name}** (${scoreStr} · ${costStr}/req)\n` +
+      `_role:_ ${role}  ·  _score:_ ${scoreCheck}  ·  _cost:_ ${costCheck}`
     );
   }
   return `${header}\n# SDD Agent Assignments (${today})\n\n${blocks.join('\n\n')}\n`;
