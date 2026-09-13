@@ -998,3 +998,57 @@ describe('scrape-artificialanalysis — S2a live-exact (astra/fable fixture)', (
     expect(twice.models.gpt54proProbe.notes.match(/AA sync \d{4}-\d{2}-\d{2}: omitted/g).length).toBe(1);
   });
 });
+
+describe('scrape-artificialanalysis — S2b remainder (pending stubs + live-absent)', () => {
+  // REAL S2b live slices (capture 2026-09-13T17:14:07.096Z, 646 items): stable
+  // slug identity, exact II, required pricing. UUIDs are unstable, ignored.
+  const S2B_SOURCE = () => {
+    const p = join(tmpDir, 's2b-source.json');
+    fsImpl.writeFileSync(p, JSON.stringify({ data: [
+      { id: 'u-glm53', name: 'GLM-5.3 (max)', slug: 'glm-5-3', evaluations: { artificial_analysis_intelligence_index: 44.9 }, pricing: { price_1m_input_tokens: 1.4, price_1m_output_tokens: 4.4 } },
+      { id: 'u-grok46', name: 'Grok 4.6 (high)', slug: 'grok-4-6', evaluations: { artificial_analysis_intelligence_index: 44.4 }, pricing: { price_1m_input_tokens: 2, price_1m_output_tokens: 6 } },
+    ] }), 'utf-8');
+    return p;
+  };
+  test('S2b pending stubs land verbatim with ownership: exact II, effort, local blended, benchlm untouched', async () => {
+    fsImpl.writeFileSync(aliasesPath, JSON.stringify({ _meta: { version: 2, notes: 'S2b probe.' },
+      aliases: [{ slug: 'glm-5-3', to: 'glm53Probe', effort: 'max' }, { slug: 'grok-4-6', to: 'grok46Probe', effort: 'high' }] }), 'utf-8');
+    const mkStub = (key) => ({ name: key, availability: { 'opencode-go': true },
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} }, notes: 'stub', sources: [] });
+    fsImpl.writeFileSync(modelsPath, JSON.stringify({ _meta: { schemaVersion: 5, sources: [] },
+      models: { glm53Probe: mkStub('glm53Probe'), grok46Probe: mkStub('grok46Probe') } }, null, 2), 'utf-8');
+    const fetchText = vi.fn(async () => { throw new Error('fixture source must be local'); });
+    const r = await runScrape({ ...BASE_ARGS(), source: S2B_SOURCE() }, { fetchText });
+    expect(r.ok).toBe(true);
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(after.models.glm53Probe.intelligenceIndex).toBe(44.9);
+    expect(after.models.grok46Probe.intelligenceIndex).toBe(44.4);
+    expect(after.models.glm53Probe.effort).toBe('max');
+    expect(after.models.grok46Probe.effort).toBe('high');
+    expect(after.models.glm53Probe.pricingSource).toBe('artificialanalysis');
+    expect(after.models.glm53Probe.blended).toBeCloseTo((3 * 1.4 + 4.4) / 4, 10);
+    expect(after.models.grok46Probe.blended).toBeCloseTo((3 * 2 + 6) / 4, 10);
+    for (const key of ['glm53Probe', 'grok46Probe']) {
+      const aa = after.models[key].sources.filter((s) => s.scraper === 'scrape-artificialanalysis');
+      expect(aa.every((s) => s.url === 'https://artificialanalysis.ai/')).toBe(true);
+      const today = new Date().toISOString().slice(0, 10);
+      expect(aa.filter((s) => s.date === today)).toHaveLength(1);
+      expect(after.models[key].benchlm).toEqual({ score: null, verified: false, reliability: 0, categories: {} });
+      expect(after.models[key].availability).toEqual({ 'opencode-go': true });
+    }
+  });
+  test('S2b covered-but-live-absent probe stays byte-identical: key stays absent, no synthesized null', async () => {
+    fsImpl.writeFileSync(aliasesPath, JSON.stringify({ _meta: { version: 2, notes: 'S2b absent probe.' },
+      aliases: [{ slug: 'deepseek-v4-flash-non-reasoning', to: 'absentProbe', effort: 'non-reasoning' }] }), 'utf-8');
+    const record = { name: 'absentProbe', effort: 'non-reasoning', availability: {}, benchlm: { score: null, verified: false, reliability: 0, categories: {} }, input: 0.14, output: 0.28, blended: 0.175, pricingSource: 'artificialanalysis', notes: 'curated', sources: [] };
+    fsImpl.writeFileSync(modelsPath, JSON.stringify({ _meta: { schemaVersion: 5, sources: [] }, models: { absentProbe: record } }, null, 2), 'utf-8');
+    const before = fsImpl.readFileSync(modelsPath, 'utf-8');
+    const fetchText = vi.fn(async () => { throw new Error('fixture source must be local'); });
+    const r = await runScrape({ ...BASE_ARGS(), source: S2B_SOURCE() }, { fetchText });
+    expect(r.ok).toBe(true);
+    expect(r.missing).toContain('absentProbe');
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(after.models.absentProbe).toEqual(record);
+    expect('intelligenceIndex' in after.models.absentProbe).toBe(false);
+  });
+});

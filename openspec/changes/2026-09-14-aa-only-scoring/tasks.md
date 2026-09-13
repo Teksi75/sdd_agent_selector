@@ -85,12 +85,12 @@ Depends on: S1 (blocking). **Blocks:** S3a (hard gate), S2b. Est. 180–340 line
 
 Depends on: S2a (blocking). **Blocks:** S3a. Est. 160–340 lines · risk Medium.
 
-- [ ] **3.1 — Temporary candidate for remaining ids.** Build the S2b projection (all remaining curated catalog ∩ live-AA ids) and run the scraper on a temp `models.json` copy exactly as in 2.3. <!-- sdd-owner: implementation -->
-- [ ] **3.2 — RED: remaining-rows assertions.** Extend `tests/scrape-artificialanalysis.test.js`, `tests/aa-effort.test.js`, and `tests/data-integrity.test.js` with the S2b manifest rows (exact II, source tuple, omission/note idempotence, `documentAbsent` once per day). Confirm red. <!-- sdd-owner: implementation -->
-- [ ] **3.3 — GREEN: materialize S2b** into `data/models.json` with the same merge/attribution/`lastRun` discipline as 2.7. Re-run the focused command until green. <!-- sdd-owner: implementation -->
-- [ ] **3.4 — TRIANGULATE: nullable + omission edges.** Add cases for a covered row that is absent upstream (`null` + note, key never deleted) and an uncovered row (key stays absent, no synthesized null); REFACTOR shared fixture builders. <!-- sdd-owner: implementation -->
-- [ ] **3.5 — Gate: final recount + matrix.** Final three-bucket recount recorded in the manifest; availability matrix green; `benchlm` byte-identical; `providers.json` untouched; schema 5. No scorer or UI assertion flips in this slice. <!-- sdd-owner: implementation -->
-- [ ] **3.6 — Rollback check (S2b).** Exact JSON restore of `data/models.json` to the S2b base + evidence restore, then re-run the S2b focused command and the matrix suites. <!-- sdd-owner: implementation -->
+- [x] **3.1 — Temporary candidate for remaining ids.** Build the S2b projection (all remaining curated catalog ∩ live-AA ids) and run the scraper on a temp `models.json` copy exactly as in 2.3. <!-- sdd-owner: implementation -->
+- [x] **3.2 — RED: remaining-rows assertions.** Extend `tests/scrape-artificialanalysis.test.js`, `tests/aa-effort.test.js`, and `tests/data-integrity.test.js` with the S2b manifest rows (exact II, source tuple, omission/note idempotence, `documentAbsent` once per day). Confirm red. <!-- sdd-owner: implementation -->
+- [x] **3.3 — GREEN: materialize S2b** into `data/models.json` with the same merge/attribution/`lastRun` discipline as 2.7. Re-run the focused command until green. <!-- sdd-owner: implementation -->
+- [x] **3.4 — TRIANGULATE: nullable + omission edges.** Add cases for a covered row that is absent upstream (`null` + note, key never deleted) and an uncovered row (key stays absent, no synthesized null); REFACTOR shared fixture builders. <!-- sdd-owner: implementation -->
+- [x] **3.5 — Gate: final recount + matrix.** Final three-bucket recount recorded in the manifest; availability matrix green; `benchlm` byte-identical; `providers.json` untouched; schema 5. No scorer or UI assertion flips in this slice. <!-- sdd-owner: implementation -->
+- [x] **3.6 — Rollback check (S2b).** Exact JSON restore of `data/models.json` to the S2b base + evidence restore, then re-run the S2b focused command and the matrix suites. <!-- sdd-owner: implementation -->
 
 **S2b focused command:** `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js tests/data-integrity.test.js tests/availability-matrix.test.js tests/propagate-provider-availability.test.js`
 

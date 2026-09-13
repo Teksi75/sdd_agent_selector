@@ -282,3 +282,77 @@ Sustitución data-only (regla global tasks.md): 2.1–2.5 usan manifiesto + gate
 - **Producido:** backfill 36 II + ownership + lastRun (sin commitear), fixture +3, 12 tests nuevos, role-outcomes.md, manifest S2a/2.10/2.11, tasks 11x[x], esta bitácora.
 - **Warnings respetados:** 4 archivos dirty intactos; archive/.pi/PRs intactos; pnpm only; key solo en memoria (reuse, sin re-fetch, nunca impresa); 3 fallos colección como evidencia; model-scorer intacto; sin verify-report.md top-level.
 - **Gate ask-on-risk:** budget trip a NO commit, split S2a-1/S2a-2 propuesto, reporte al parent (este archivo + handoff).
+
+---
+
+## S2b — Remaining II backfill — PR 3 (commit: budget 371/400 OK)
+
+- **Implementation status: complete (6/6 tareas S2b 3.1–3.6 ejecutadas).** Re-fetch live (S2b slugs ausentes del manifiesto S1), candidato temporal con gates de preservación, asserts RED/GREEN/TRIANGULATE, materialización canónica quirúrgica vía `serializeModels`, recount final, rollback check.
+- **Delivery status: listo para commit en `feat/aa-only-s2b-remainder`** (base `406b2da`). Superficies de review = **371 líneas** (models 240, aa-effort 63, data-integrity 14, scrape 54; fixture intacto) → **bajo el budget de 400, sin pre-split S2b-1/S2b-2**.
+- **Gates: todos PASS.** Buckets finales **73/0/15=88**; benchlm 0 diffs (88/88); availability 0 diffs (88/88); providers git-clean; schema 5; matriz 0 problemas (espejo); pending sets **vacíos** (glm53+grok46 backfilled con ownership); dark invariant (scorer intacto, 0 II bajo `js/`).
+- **Archivos pre-existentes intactos:** `.atl/*`, `.gitignore`, `spec.md` con el mismo diff que al inicio; `archive/`, `.pi/`, PRs no tocados; índice git intacto hasta el commit S2b.
+
+### Completed tasks (persisted checkboxes [x] in tasks.md)
+
+| Task | Summary | Persisted |
+|---|---|---|
+| 3.1 | Proyección 30 rows fuera del worktree; scraper dry-run ok:true 156 changes + run real ok:true 156/missing 59; gates solo-candidato (benchlm 0, availability 0, dedupe 0, no-S2b 58/58 byte-idénticos) | [x] |
+| 3.2 | RED: S2B_II 29 + pending-empty + buckets 73/0/15 + fixture-probe scraper (inline source real) → 8 failed missing-II / 52 passed; mirror data-integrity RED | [x] |
+| 3.3 | GREEN: 29 II + 29 tuples + ownership glm53/grok46 con `serializeModels` (lastSynced/lastRun preservados); 60/60 | [x] |
+| 3.4 | TRIANGULATE: covered-but-live-absent (`deepseekv4fNonReasoning` byte-idéntico, key ausente) + uncovered (`omenalpha`, `hy4preview`) + rounding (44.9≠45, 43.8≠44); sin refactor adicional (builders S2a intactos) | [x] |
+| 3.5 | Gate 3.5: recount 73/0/15 en manifiesto; focused 2 passed/3 pre-existente 60 tests; espejos integrity/matrix/benchlm/providers/schema/dark | [x] |
+| 3.6 | Rollback: base a 44/18/26 + 8 failed missing-II; S2b a 73/0/15 + 60 passed + matriz 0; sin scraper reversa | [x] |
+
+### Files changed (slice scope)
+
+| Path | numstat vs 406b2da |
+|---|---|
+| data/models.json | +211 / −29 (29 II + 29 sources + ownership glm53/grok46, serializeModels canónico) |
+| tests/aa-effort.test.js | +46 / −17 (S2B_II 29 + pending-empty + S1-stubs ownership + triangulaciones) |
+| tests/data-integrity.test.js | +7 / −7 (buckets 73/0/15, kimik3 43.8, finite 73, pending []) |
+| tests/scrape-artificialanalysis.test.js | +54 / −0 (S2b verbatim-ownership probe + live-absent probe, inline source real) |
+| evidence/aa-live-manifest.md | sección S2b (docs, fuera de budget) |
+| apply-progress.md (este archivo) | esta sección (docs) |
+| tasks.md | 6 checkboxes (docs) |
+
+**Review-surface total: 371 líneas ≤ 400: COMMIT SÍ.** tests/availability-matrix + propagate + fixture sin cambios (0/0/0).
+
+### Test commands run (evidence)
+
+| Command | Result |
+|---|---|
+| Safety net pre-RED (scrape + aa-effort) | 2 passed, 56/56 |
+| S2b RED: `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js` | 8 failed missing-II / 52 passed (scrape 29/29 documentary) |
+| S2b RED mirror data-integrity (node) | buckets 44/18/26 vs 73/0/15 FAIL, kimik3 undefined vs 43.8 FAIL |
+| S2b GREEN (misma corrida) | 2 passed, 60/60 |
+| S2b focused (3.5): 5 suites | 2 passed / 3 failed-to-collect (pre-existente SyntaxError `node:vm`) — 60 tests passed |
+| Espejos node (integrity/matrix/benchlm/avail/providers/schema) | ALL PASS (matriz 0, benchlm 0/88, availability 0/88, providers git-clean, schema 5) |
+| Rollback 3.6: base restaurada | buckets 44/18/26; aa-effort 8 failed / 23 passed (sensibilidad) |
+| Rollback 3.6: S2b restaurada | buckets 73/0/15; scrape+aa-effort 60 passed; matriz 0 |
+| Dark invariant | model-scorer.js untouched (git-clean); intelligenceIndex bajo js/ = 0 |
+
+### TDD Cycle Evidence (strict TDD activo; data-only usa manifest+gate)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 3.1 | temp candidate fuera del worktree | Gate (no test unitario) | baseline 56 | dry-run + real sobre copia (156 changes) | — | 30 rows + 1 veredicto ausencia | Doc-only |
+| 3.2 | tests/aa-effort + integrity + scrape | Unit | 56 pre-edit | 8 failed missing-II + mirror FAIL | — (lo cierra 3.3) | — | — |
+| 3.3 | data/models.json + 2 suites | Unit (datos) | RED registrado | — | 60/60 via serializeModels | — | pending [] + ownership mínima |
+| 3.4 | tests/aa-effort + scrape | Unit | 60 | — | — | absent-preserve + uncovered + rounding → 60/60 | ➖ builders S2a intactos |
+| 3.5 | S2b focused + espejos + diff base | Gate | 60 | recount 73/0/15 + 0/0 + providers clean | 2 passed/3 pre-existente 60 tests | — | — |
+| 3.6 | Rollback backup/show/restore | Gate rollback | 60 | base a 8 failed missing-II (sensibilidad) | S2b a 60 passed + matriz 0 | — | — |
+
+### Test Summary
+
+- **Tests escritos en S2b: 4 nuevos** (scrape 2: verbatim-ownership + live-absent; aa-effort 2: S2B map + rounding) + 5 reescrituras (pending-empty ×3, S1-stubs ownership, buckets integrity ×2).
+- **Tests pasando: 60/60** en las dos suites colectables (baseline 56 → +4). 3 suites con fallo de colección pre-existente (evidencia, no bloqueador; CI Node 20 gobierna).
+- **Capas**: Unit/data 4; sin integración/E2E (slice de datos).
+- **Approval tests**: baseline 56 como red de seguridad; rollback base a 8 failed demuestra sensibilidad.
+- **Funciones puras creadas**: 0 (producción JSON-only; helpers de test inline).
+
+### Deviations from design / tasks
+
+1. **Re-fetch S2b en vez de reuse S1** (autorizado: tasks.md "re-fetch ONLY if a needed slug is missing" — los 30 slugs S2b faltan del manifiesto S1). Misma fecha UTC (2026-09-13), 646 items, valores S1 coincidentes (glm53 44.9, grok46 44.4) → sin drift.
+2. **Delta canónico quirúrgico** (II+sources+ownership glm53/grok46, `serializeModels`), igual que S2a: no se copian pricing/speed/notes del candidato (`may refresh` es opcional por diseño §3.1-p8). `lastSynced`/`lastRun` preservados.
+3. **Sin filas nuevas en `tests/fixtures/aa-sample.json`** (0/0): las probes S2b usan inline source con valores live reales — más barato en budget y misma autenticidad. El fixture S2a (`kimi-k3` 43.8) se reutiliza por coincidencia verificada.
+4. **benchlm-only llega a 0.** Ningún test exigía el bucket no-vacío; `kimik3` deja de ser el precedente vivo y pasa a II-covered con `benchlm.score` 80.96 intacto (assert conservado como triangulación).

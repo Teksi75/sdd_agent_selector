@@ -94,6 +94,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 880,
@@ -104,7 +109,8 @@
       "timeToFirstTokenSeconds": 0.898,
       "timeToFirstAnswerTokenSeconds": 15.93,
       "blended": 2.15,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 34
     },
     "glm52NonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -137,8 +143,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 22.4
     },
     "qwen37max": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
@@ -185,9 +197,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 29.9
     },
     "glm51": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -233,9 +251,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 26.4
     },
     "glm51NonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -266,8 +290,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 24.2
     },
     "minimaxm3": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": true, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -313,9 +343,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 29.6
     },
     "kimik27c": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -365,6 +401,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 1350,
@@ -375,7 +416,8 @@
       "timeToFirstTokenSeconds": 1.199,
       "timeToFirstAnswerTokenSeconds": 61.325,
       "blended": 1.7125,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 26.3
     },
     "kimik3": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -434,6 +476,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 110,
@@ -444,7 +491,8 @@
       "timeToFirstTokenSeconds": 2.141,
       "timeToFirstAnswerTokenSeconds": 52.19,
       "blended": 6,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 43.8
     },
     "kimik3Low": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -477,8 +525,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 30.5
     },
     "kimik25": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -524,6 +578,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "codingIndex": 46.8,
@@ -531,7 +590,8 @@
       "timeToFirstTokenSeconds": 0,
       "timeToFirstAnswerTokenSeconds": 0,
       "blended": 1.2,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 23.5
     },
     "kimik25NonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -562,8 +622,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 19.4
     },
     "kimik26": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -609,9 +675,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 31.3
     },
     "kimik26NonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -642,8 +714,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 23.6
     },
     "deepseekv4p": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
@@ -689,9 +767,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 36.3
     },
     "mimo25pro": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -737,9 +821,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 26.4
     },
     "mimo25proNonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -770,8 +860,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 18.3
     },
     "qwen37plus": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
@@ -818,9 +914,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 25.8
     },
     "qwen36plus": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
@@ -867,9 +969,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 27
     },
     "minimaxm27": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": true, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -916,9 +1024,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 23.2
     },
     "mimo25": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -964,9 +1078,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 22.3
     },
     "minimaxm25": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": true, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1008,9 +1128,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 22.8
     },
     "deepseekv4f": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
@@ -1056,9 +1182,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 34.5
     },
     "deepseekv4fNonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
@@ -1130,9 +1262,15 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
-      "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)"
+      "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)",
+      "intelligenceIndex": 27.9
     },
     "glm5NonReasoning": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1163,8 +1301,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 21.8
     },
     "opus48": {
       "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -3061,6 +3205,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 4300,
@@ -3071,7 +3220,8 @@
       "timeToFirstTokenSeconds": 1.791,
       "timeToFirstAnswerTokenSeconds": 29.196,
       "blended": 0.24125000000000002,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 25.8
     },
     "grok45": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": true, "deepseek": false, "meta": false },
@@ -3103,6 +3253,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "term": 81.6479400749064,
@@ -3111,7 +3266,8 @@
       "timeToFirstTokenSeconds": 11.932,
       "timeToFirstAnswerTokenSeconds": 11.932,
       "blended": 3,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 39.1
     },
     "qwen38max": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
@@ -3144,6 +3300,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "term": 81.2734082397004,
@@ -3152,7 +3313,8 @@
       "timeToFirstTokenSeconds": 1.806,
       "timeToFirstAnswerTokenSeconds": 44.31,
       "blended": 3,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 40.3
     },
     "glm53": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -3178,8 +3340,17 @@
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-08-17",
           "scraper": "scrape-opencode-prices"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 44.9,
+      "effort": "max",
+      "pricingSource": "artificialanalysis",
+      "blended": 2.15
     },
     "deepseekv4prooffpeak": {
       "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
@@ -3562,8 +3733,19 @@
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-09-10",
           "scraper": "scrape-opencode-prices"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 44.4,
+      "effort": "high",
+      "pricingSource": "artificialanalysis",
+      "input": 2,
+      "output": 6,
+      "blended": 3
     },
     "musespark13": {
       "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },

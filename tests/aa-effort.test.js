@@ -34,8 +34,8 @@ const NO_BENCHLM_NOTE =
 // slugs. The S2 II backfill materializes their `effort`/`pricingSource`; until
 // then these transitional lists MUST stay explicit so the strict invariants
 // below cannot silently weaken. S2 MUST shrink both to [] when it lands.
-const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'grok46']); // S2a shrinks gpt6astraLow (covered); S2b remainder stays explicit
-const AA_PENDING_EFFORT = new Set(['glm53', 'grok46']);
+const AA_MAPPED_PENDING_BACKFILL = new Set([]); // S2b empties the S1 transitional set (glm53 + grok46 backfilled with ownership)
+const AA_PENDING_EFFORT = new Set([]); // S2b materializes alias effort on every target
 
 // Pre-variant curated records: they existed (or land via one-shot curation)
 // outside the PR3A variant materialization, so the PR3B variant contract
@@ -463,17 +463,19 @@ describe('AA alias mass-mapping (S1)', () => {
     expect(alias.effort).not.toBe('max');
   });
 
-  test('S1 targets exist with a full boolean availability map and no synthesized II', () => {
-    for (const id of ['grok46', 'glm53']) { // S2a: gpt6astraLow covered (II 46); S2b remainder stays II-absent
+  test('S2b covers S1 stubs: exact II + AA ownership, availability stays fail-closed booleans', () => {
+    for (const [id, value, effort] of [['grok46', 44.4, 'high'], ['glm53', 44.9, 'max']]) { // S2b backfills both pending stubs
       const model = models[id];
       expect(model, `${id} must exist`).toBeDefined();
-      expect(model.intelligenceIndex, `${id} II must not be synthesized in S1`).toBeUndefined();
+      expect(model.intelligenceIndex, `${id} II backfilled in S2b`).toBe(value);
+      expect(model.effort, `${id} effort materialized`).toBe(effort);
+      expect(model.pricingSource, `${id} AA-owned`).toBe('artificialanalysis');
+      expect(Number.isFinite(model.input) && Number.isFinite(model.output), `${id} pricing finite`).toBe(true);
+      expect(model.blended, `${id} blended`).toBeCloseTo((3 * model.input + model.output) / 4, 10);
+      expect(model.sources).toEqual(expect.arrayContaining([expect.objectContaining(S2A_SOURCE)]));
       const values = Object.values(model.availability || {});
       expect(values.length, `${id} availability map`).toBeGreaterThan(0);
-      expect(
-        values.every((value) => typeof value === 'boolean'),
-        `${id} availability must stay fail-closed booleans`
-      ).toBe(true);
+      expect(values.every((value) => typeof value === 'boolean'), `${id} availability stays booleans`).toBe(true);
     }
   });
   test('S2a covers gpt6astraLow: exact II 46 with AA provenance (S1 no-synthesis lifted for this id)', () => {
@@ -556,13 +558,12 @@ describe('S2a II backfill — chatgpt-plus + anthropic (live-exact)', () => {
     expect(fable.benchlm.score).toBe(83.68);
     expect(fable.sources).toEqual(expect.arrayContaining([expect.objectContaining(S2A_SOURCE)]));
   });
-  test('S2a shrinks pending backfill: gpt6astraLow covered, S2b remainder stays explicit', () => {
+  test('S2b empties pending backfill: glm53 + grok46 covered, gpt6astraLow stays covered', () => {
     expect(models.gpt6astraLow.intelligenceIndex).toBe(46);
     expect(models.gpt6astraLow.pricingSource).toBe('artificialanalysis');
-    for (const id of ['glm53', 'grok46']) {
-      expect(models[id], `${id} stays pending for S2b`).toBeDefined();
-      expect(models[id].intelligenceIndex, `${id} II stays absent until S2b`).toBeUndefined();
-    }
+    expect(models.glm53.intelligenceIndex).toBe(44.9);
+    expect(models.grok46.intelligenceIndex).toBe(44.4);
+    expect([...AA_MAPPED_PENDING_BACKFILL]).toEqual([]);
   });
   test('TRIANGULATE — live-exact beats chart rounding (52.8 not 53, 49.7 not 50)', () => {
     expect(models.gpt6astra.intelligenceIndex).toBe(52.8);
@@ -572,13 +573,41 @@ describe('S2a II backfill — chatgpt-plus + anthropic (live-exact)', () => {
     expect(models.gpt56sol.intelligenceIndex).toBe(47.1);
     expect(models.gpt56sol.intelligenceIndex).not.toBe(47);
   });
-  test('TRIANGULATE — uncovered rows keep the key absent, never a synthesized null', () => {
-    for (const id of ['glm53', 'grok46']) {
+  test('TRIANGULATE — covered-but-live-absent keeps the key absent, never a synthesized null', () => {
+    for (const id of ['deepseekv4fNonReasoning', 'omenalpha', 'hy4preview']) { // S2b: live-absent + uncovered stay key-absent
       expect(Object.hasOwn(models[id], 'intelligenceIndex'), `${id} key stays absent`).toBe(false);
       expect(models[id].intelligenceIndex).toBeUndefined();
       expect(models[id].intelligenceIndex).not.toBeNull();
     }
-    expect(Number.isFinite(models.gpt6astraLow.intelligenceIndex)).toBe(true);
+    expect(Number.isFinite(models.glm53.intelligenceIndex)).toBe(true);
+    expect(Number.isFinite(models.grok46.intelligenceIndex)).toBe(true);
+  });
+});
+
+// --- S2b (2026-09-14): remaining II backfill (live-exact) ---
+//
+// Live capture 2026-09-13T17:14:07.096Z (646 items, HTTP 200; re-fetch per
+// tasks.md — S2b slugs missing from the S1 manifest). Exact payload II.
+// deepseekv4fNonReasoning is covered-but-live-absent → preserved, key absent.
+const S2B_II = Object.freeze({ glm52: 34, glm52NonReasoning: 22.4, qwen37max: 29.9, glm51: 26.4, glm51NonReasoning: 24.2, minimaxm3: 29.6, kimik27c: 26.3, kimik3: 43.8, kimik3Low: 30.5, kimik25: 23.5, kimik25NonReasoning: 19.4, kimik26: 31.3, kimik26NonReasoning: 23.6, deepseekv4p: 36.3, mimo25pro: 26.4, mimo25proNonReasoning: 18.3, qwen37plus: 25.8, qwen36plus: 27, minimaxm27: 23.2, mimo25: 22.3, minimaxm25: 22.8, deepseekv4f: 34.5, glm5: 27.9, glm5NonReasoning: 21.8, opencodeHy3: 25.8, grok45: 39.1, qwen38max: 40.3, grok46: 44.4, glm53: 44.9 });
+describe('S2b II backfill — remaining catalog (live-exact)', () => {
+  test('S2b live-exact values land verbatim with exactly one dated AA source tuple', () => {
+    expect(Object.keys(S2B_II)).toHaveLength(29);
+    for (const [id, value] of Object.entries(S2B_II)) {
+      const model = models[id];
+      expect(model, `${id} must exist`).toBeDefined();
+      expect(model.intelligenceIndex, `${id}.intelligenceIndex`).toBe(value);
+      expect(model.sources, `${id}.sources`).toEqual(expect.arrayContaining([expect.objectContaining(S2A_SOURCE)]));
+      expect(model.sources.filter((s) => s.url === S2A_SOURCE.url && s.date === S2A_SOURCE.date && s.scraper === S2A_SOURCE.scraper), `${id} AA tuple once`).toHaveLength(1);
+    }
+  });
+  test('TRIANGULATE — live-exact beats chart rounding (44.9 not 45, 43.8 not 44)', () => {
+    expect(models.glm53.intelligenceIndex).toBe(44.9);
+    expect(models.glm53.intelligenceIndex).not.toBe(45);
+    expect(models.kimik3.intelligenceIndex).toBe(43.8);
+    expect(models.kimik3.intelligenceIndex).not.toBe(44);
+    expect(models.grok46.intelligenceIndex).toBe(44.4);
+    expect(models.kimik3.benchlm.score).toBe(80.96);
   });
 });
 

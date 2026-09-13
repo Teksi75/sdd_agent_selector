@@ -246,3 +246,78 @@ Procedimiento con backup (sin scraper de reversa, nunca compensar):
 - `cp /tmp/s2a-rollback-backup-models.json data/models.json` → S2a restaurada: **II-covered 44**; `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js` → **56 passed**.
 - Rollback completo (datos + expectativas base) = baseline registrado al inicio del slice: **2 passed / 3 failed-to-collect, 45 tests passed** (scrape 25 + aa-effort 20). El restore es JSON exacto + expectativas exactas, nunca migración reversa ni scores inventados.
 - **Budget trip (bloqueante para commit):** superficies de review `models.json`+tests = **660 líneas cambiadas** (numstat vs `cc1cab2`: models 257+36=293, aa-effort 157+3=160, data-integrity 43+1=44, fixture 58+1=59, scrape 104+0=104) — **excede el budget de 400**. **NO se commitea.** Pre-split plan (tasks.md): dividir en **S2a-1 (`chatgpt-plus` incl. Astra/Astra-Low, ~22 II nuevos)** y **S2a-2 (`anthropic` incl. Fable, ~14 II nuevos)** como dos PRs apilados; nunca inferir `size:exception`. Trabajo dejado sin commitear en `feat/aa-only-s2a-backfill` para revisión del parent.
+
+---
+
+# S2b — Remaining II backfill (tareas 3.1–3.6)
+
+Slice: **S2b (PR 3/6)** · Rama: `feat/aa-only-s2b-remainder` (base `406b2da`, tip S2a-2) · Captura: **re-fetch 2026-09-13T17:14:07.096Z (UTC), HTTP 200, 646 items** (re-fetch autorizado por tasks.md: los slugs S2b faltan del manifiesto S1; mismo día UTC que la captura S1 `03:53:18.345Z`, sin stale; key solo en memoria, payload fuera del repo en `%TEMP%/aa-s2b-capture-*/aa-live-payload.json`, nunca commiteado).
+Reglas: pnpm only, strict TDD (data JSON usa manifest+gate), sin tocar `providers.json`/`benchlm`/`minReasoning`/counts, `model-scorer.js` intacto, cero `intelligenceIndex` bajo `js/`, sin flips de scorer/UI.
+
+## 3.1 — Temporary candidate (sin mutación canónica)
+
+Proyección S2b generada fuera del worktree (`s2b-projection.json`, **30 rows**: todos los alias cuyo `to` está en los 44 ids sin II — 18 benchlm-only + 12 scoreless con alias, incl. los pendientes S1 `glm53`, `grok46`) desde la tabla comprometida. Payload: re-fetch S2b (646 items). Copia: `models-copy.json` de `data/models.json` base.
+
+- `node scripts/scrape-artificialanalysis.js --alias <temp-projection> --source <temp-payload> --file <temp-models-copy> --dry-run` → **ok:true, dryRun:true, changes:156** (missing = 58 ids no-S2b + `deepseekv4fNonReasoning` covered-but-live-absent, WARN+preserve).
+- Mismo comando sin `--dry-run` sobre la copia → **ok:true, changes:156, missing:59**. Gates evalúan SOLO sobre este candidato.
+- Preservation sobre el candidato (30/30): **benchlm 0 diffs, availability 0 diffs, sources dedupe 0 duplicados, schema 5, ids no-S2b byte-idénticos (58/58)**. `lastRun` candidato = base (`2026-09-13T03:53:18.345Z`, sin avance: misma fecha); `lastSynced` candidato 2026-09-13 (bump del write path, NO aplicado al canónico — disciplina S2a).
+- Nota de formato: el delta canónico (3.3) es quirúrgico II+sources+ownership con `serializeModels` canónico, no copia del candidato (su writer plano expande availability).
+
+## S2b live-exact rows (29/30 finite + 1 veredicto de ausencia)
+
+| Catalog id | Live slug | II exacto / veredicto |
+|---|---|---|
+| `glm52` | `glm-5-2` | 34 |
+| `glm52NonReasoning` | `glm-5-2-non-reasoning` | 22.4 |
+| `qwen37max` | `qwen3-7-max` | 29.9 |
+| `glm51` | `glm-5-1` | 26.4 |
+| `glm51NonReasoning` | `glm-5-1-non-reasoning` | 24.2 |
+| `minimaxm3` | `minimax-m3` | 29.6 |
+| `kimik27c` | `kimi-k2-7-code` | 26.3 |
+| `kimik3` | `kimi-k3` | 43.8 |
+| `kimik3Low` | `kimi-k3-low` | 30.5 |
+| `kimik25` | `kimi-k2-5` | 23.5 |
+| `kimik25NonReasoning` | `kimi-k2-5-non-reasoning` | 19.4 |
+| `kimik26` | `kimi-k2-6` | 31.3 |
+| `kimik26NonReasoning` | `kimi-k2-6-non-reasoning` | 23.6 |
+| `deepseekv4p` | `deepseek-v4-pro` | 36.3 |
+| `mimo25pro` | `mimo-v2-5-pro` | 26.4 |
+| `mimo25proNonReasoning` | `mimo-v2-5-pro-non-reasoning` | 18.3 |
+| `qwen37plus` | `qwen3-7-plus` | 25.8 |
+| `qwen36plus` | `qwen3-6-plus` | 27 |
+| `minimaxm27` | `minimax-m2-7` | 23.2 |
+| `mimo25` | `mimo-v2-5-0424` | 22.3 |
+| `minimaxm25` | `minimax-m2-5` | 22.8 |
+| `deepseekv4f` | `deepseek-v4-flash` | 34.5 |
+| `deepseekv4fNonReasoning` | `deepseek-v4-flash-non-reasoning` | **AUSENTE del payload live → preservado byte-idéntico, key II ausente (fail-closed)** |
+| `glm5` | `glm-5` | 27.9 |
+| `glm5NonReasoning` | `glm-5-non-reasoning` | 21.8 |
+| `opencodeHy3` | `hy3` | 25.8 |
+| `grok45` | `grok-4-5` | 39.1 |
+| `qwen38max` | `qwen3-8-max` | 40.3 |
+| `grok46` | `grok-4-6` | 44.4 (display "Grok 4.6 (high)" — coincide §2 S1) |
+| `glm53` | `glm-5-3` | 44.9 (display "GLM-5.3 (max)" — coincide §2 S1) |
+
+29 finite → copia verbatim, sin clamp/round. Consistencia: `kimik3` 43.8 coincide con el slice real del fixture S2a; `glm53`/`grok46` coinciden con §2 S1.
+
+## Pending-set disposition (S1 transitional sets — VACÍOS tras S2b)
+
+- `glm53` → **backfilled** (II 44.9 + `effort: max` + `pricingSource: artificialanalysis` + `blended: 2.15` + source tuple). Vive en II-covered.
+- `grok46` → **backfilled** (II 44.4 + `effort: high` + `pricingSource: artificialanalysis` + `input: 2, output: 6, blended: 3` + source tuple). Vive en II-covered.
+- `AA_MAPPED_PENDING_BACKFILL` y `AA_PENDING_EFFORT` → `[]` en `tests/aa-effort.test.js` y `tests/data-integrity.test.js` (igualdad estricta restaurada: AA-owned == alias targets, 74/74).
+- `deepseekv4fNonReasoning` → **no-live-slug** (slug ausente del payload 646; WARN+preserve del scraper, registro byte-idéntico). Vive en fully-scoreless con key II ausente — NUNCA null sintetizado. Nunca estuvo en pending (ya era AA-owned).
+- Sin-alias (14 ids: `omenalpha`, `hy4preview`, peaks/opencode `deepseekv4*peak/*offpeak`, `deepseekv4flashvisionexp*`, `musespark13contributor`, `musespark12contributor`, `glm53flash`, `longcat20`, `qwen38flash`) → **unmapped (fail-closed)**, keys II ausentes, fuera de la proyección. Viven en fully-scoreless.
+
+## 3.5 — Gate: final recount + matrix + benchlm hands-off (sobre datos canónicos)
+
+- Recount post-S2b sobre `data/models.json`: **II-covered 73 / benchlm-only 0 / fully-scoreless 15 = 88**. Movimiento desde S2a: **44→73 (+29 backfill), 18→0 (−18: todo benchlm-only tenía alias live), 26→15 (−11 backfilled con alias; quedan 14 sin-alias + `deepseekv4fNonReasoning`)**. `kimik3` ahora II-covered (43.8, `benchlm.score` 80.96 intacto). Suma 88 = catálogo.
+- S2b focused command: `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js tests/data-integrity.test.js tests/availability-matrix.test.js tests/propagate-provider-availability.test.js` → **2 passed / 3 failed-to-collect (pre-existente) — 60 tests passed** (scrape 29 + aa-effort 31). Mismo fallo pre-existente de vitest 1.6.1 (`SyntaxError` en `node:vm` al importar `scripts/propagate-provider-availability.mjs`, idéntico pre/post slice); invariantes re-verificados por espejos standalone: buckets 73/0/15, 73 finite-II con tuple AA 2026-09-13 exactamente-uno, Fable 49.7/benchlm 83.68 intactos, matriz 0 problemas, AA-owned == alias targets 74/74.
+- Re-verificación sobre canónico vs base `406b2da`: **benchlm 0 diffs (88/88), availability 0 diffs (88/88), `providers.json` git-clean (idéntico módulo CRLF), `schemaVersion` 5, sources dedupe 0 duplicados**. `lastSynced` 2026-09-10 y `lastRun` S1 preservados (disciplina S2a). Dark invariant: `model-scorer.js` untouched, 0 `intelligenceIndex` bajo `js/`, cero flips de scorer/UI.
+- Review-surface total: **371 líneas** (models 211+29=240, aa-effort 46+17=63, data-integrity 7+7=14, scrape 54+0=54) — **bajo el budget de 400, sin pre-split**.
+
+## 3.6 — Rollback check (S2b)
+
+Procedimiento con backup (sin scraper de reversa, nunca compensar):
+
+- `cp data/models.json /tmp/s2b-rollback-backup-models.json` → `git show 406b2da:data/models.json > data/models.json` → base restaurada: **buckets 44/18/26**; `pnpm vitest run tests/aa-effort.test.js` → **8 failed / 23 passed** — los 8 fallos son exactamente las aserciones S2b en modo "missing II" (live-exact 29, pending-empty, S1-stubs, triangulaciones); registros curados preservados, slugs siguen mapeados.
+- `cp /tmp/s2b-rollback-backup-models.json data/models.json` → S2b restaurada: **buckets 73/0/15**; `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js` → **60 passed**; espejo matriz → **0 problemas**. Índice git intacto (solo modificaciones worktree en superficies permitidas).

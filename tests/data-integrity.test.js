@@ -49,7 +49,7 @@ const AA_ALIAS_TARGETS = new Set(
 // backfill lands they are alias targets that do not yet claim AA pricing; S2
 // MUST shrink this set to empty and the strict equality checks below are the
 // review grip that forces the update.
-const AA_MAPPED_PENDING_BACKFILL = new Set(['glm53', 'grok46']); // S2a shrinks gpt6astraLow (covered); S2b remainder stays explicit
+const AA_MAPPED_PENDING_BACKFILL = new Set([]); // S2b empties the S1 transitional set (glm53 + grok46 backfilled)
 
 // --- V5 gate aggregate (replaces the retired V3 checksum/drift contracts) ----
 //
@@ -768,23 +768,23 @@ describe('data-integrity: S2a three-bucket + provenance (chatgpt-plus + anthropi
   const s2aDoc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
   const s2aModels = s2aDoc.models;
   const S2A_SRC = { url: 'https://artificialanalysis.ai/', date: '2026-09-13', scraper: 'scrape-artificialanalysis' };
-  test('three-bucket recount after S2a: 44 II-covered / 18 benchlm-only / 26 scoreless = 88', () => {
+  test('three-bucket recount after S2b: 73 II-covered / 0 benchlm-only / 15 scoreless = 88', () => {
     let ii = 0, bench = 0, none = 0;
     for (const mo of Object.values(s2aModels)) {
       if (Number.isFinite(mo.intelligenceIndex)) ii++;
       else if (mo.benchlm && Number.isFinite(mo.benchlm.score)) bench++;
       else none++;
     }
-    expect(ii).toBe(44);
-    expect(bench).toBe(18);
-    expect(none).toBe(26);
+    expect(ii).toBe(73);
+    expect(bench).toBe(0);
+    expect(none).toBe(15);
     expect(ii + bench + none).toBe(Object.keys(s2aModels).length);
-    expect(s2aModels.kimik3.intelligenceIndex).toBeUndefined();
+    expect(s2aModels.kimik3.intelligenceIndex).toBe(43.8);
     expect(s2aModels.kimik3.benchlm.score).toBe(80.96);
   });
   test('every finite II carries its own AA 2026-09-13 source tuple', () => {
     const finite = Object.entries(s2aModels).filter(([, mo]) => Number.isFinite(mo.intelligenceIndex));
-    expect(finite.length).toBe(44);
+    expect(finite.length).toBe(73);
     for (const [id, mo] of finite) {
       expect(mo.sources, `${id}.sources`).toEqual(
         expect.arrayContaining([expect.objectContaining(S2A_SRC)])
