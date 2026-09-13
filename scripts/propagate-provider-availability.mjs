@@ -11,6 +11,9 @@
 // `models._meta.availabilityOverrides`, and every honored override is
 // reported. Any undeclared override, stale override, or variant whose base
 // family has no valid map fails with the offending id (non-zero exit).
+// A variant map that no longer covers the full registry (e.g. written before a
+// provider was added) is stale derived data: it is re-materialized from the
+// curated base family instead of being misread as an undeclared override.
 //
 // Usage: node scripts/propagate-provider-availability.mjs [--dry-run] [--file <path>]
 
@@ -227,15 +230,23 @@ export function propagate(models, providerIds, overrides = []) {
     }
 
     const hasOwnMap = own !== undefined;
-    const differs = hasOwnMap && JSON.stringify(own) !== JSON.stringify(baseMap);
+    const ownIsValidMap = hasOwnMap && isValidAvailabilityMap(own, providerIds);
+
+    // A declared override MUST be a valid full map; anything less is a hard
+    // error (the declaration would otherwise hide a corrupt map).
+    if (declared.has(id) && hasOwnMap && !ownIsValidMap) {
+      errors.push({ kind: 'override-invalid-map', id, family });
+      continue;
+    }
+
+    // A map that no longer covers the registry (e.g. written before a provider
+    // was added) is stale derived data, not an exact-id override: fall through
+    // and re-materialize it from the curated base family.
+    const differs = ownIsValidMap && JSON.stringify(own) !== JSON.stringify(baseMap);
 
     if (differs) {
       if (!declared.has(id)) {
         errors.push({ kind: 'undeclared-override', id, family });
-        continue;
-      }
-      if (!isValidAvailabilityMap(own, providerIds)) {
-        errors.push({ kind: 'override-invalid-map', id, family });
         continue;
       }
       honored.push(id);

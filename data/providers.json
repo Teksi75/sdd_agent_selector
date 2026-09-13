@@ -9,6 +9,7 @@
     { "id": "zai-glm", "name": "Z.ai GLM", "tier": "GLM Coding Plan", "url": "https://z.ai/", "updated": "2026-09-12" },
     { "id": "qwen", "name": "Qwen", "tier": "Qwen Chat", "url": "https://chat.qwen.ai/", "updated": "2026-09-12" },
     { "id": "xai", "name": "xAI Grok", "tier": "SuperGrok", "url": "https://x.ai/grok", "updated": "2026-09-12" },
-    { "id": "deepseek", "name": "DeepSeek", "tier": "Platform", "url": "https://platform.deepseek.com/", "updated": "2026-09-12" }
+    { "id": "deepseek", "name": "DeepSeek", "tier": "Platform", "url": "https://platform.deepseek.com/", "updated": "2026-09-12" },
+    { "id": "meta", "name": "Meta", "tier": "Meta AI", "url": "https://www.meta.ai/", "updated": "2026-09-12" }
   ]
 }
