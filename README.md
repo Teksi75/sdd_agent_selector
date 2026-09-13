@@ -1,6 +1,6 @@
-# SDD Agent Selector V4
+# SDD Agent Selector V5
 
-Refactor modular del selector de modelos SDD — monolito V3 → módulos V4 con live data sync.
+Selector de modelos SDD — app modular V5 con live data sync y filtro por suscripciones (el monolito V3 quedó archivado como rollback).
 
 **Live:** [https://Teksi75.github.io/sdd_agent_selector/](https://Teksi75.github.io/sdd_agent_selector/) ✅ (deploy automático por GitHub Actions en cada push a `main`)
 
@@ -14,19 +14,11 @@ Refactor modular del selector de modelos SDD — monolito V3 → módulos V4 con
 - **Distribución:** HTML self-contained via esbuild bundle + GitHub Pages
 - **Branch:** `main`
 
-## V3 snapshot (referencia visual)
+## V3 archivado (rollback)
 
-`v3-monolith-backup.html` es la **fuente de verdad visual** de V3. NO se modifica durante el desarrollo de V4 — solo se usa para comparar paridad visual. La fuente original de V3 vive en `../SDD/Modelos SDD - V3 - Lucide.html` (carpeta padre). El snapshot en este repo es byte-identical al original (SHA-256 capturado en `index.html` comment block).
+`docs/legacy/v3-monolith-backup.html` es el snapshot histórico del monolito V3, archivado como documentación de rollback (change `2026-09-12-v5-subscription-selector`). Ya no es fuente de verdad visual ni input de build, tests o runtime: V5 no mantiene paridad pixel a pixel con V3.
 
-Si necesitás verificar visualmente que V4 mantiene paridad con V3:
-
-```bash
-# 1. Servir el repo localmente (solo pnpm, nada de npx/python)
-pnpm dlx serve . -l 8765
-# 2. Abrir en el browser
-#    V3: http://127.0.0.1:8765/v3-monolith-backup.html
-#    V4: http://127.0.0.1:8765/dist/index.html  (con data/ y assets/ en dist/ para que cargue los JSON)
-```
+Si necesitás consultarlo como referencia histórica, serví el repo localmente (`pnpm dlx serve . -l 8765`) y abrí `http://127.0.0.1:8765/docs/legacy/v3-monolith-backup.html`.
 
 ## Desarrollo local
 
@@ -37,7 +29,7 @@ corepack enable
 # Instalar dependencias
 pnpm install
 
-# Correr los tests (34 files, 503 tests)
+# Correr los tests (44 files, 628 tests)
 pnpm test
 
 # Build de producción — produce dist/index.html (CSS+JS inlined, sin CDN)
@@ -57,14 +49,14 @@ Requisitos: Node.js >= 18 (recomendado 20 LTS), pnpm >= 8.
 ```
 sdd_agent_selector/
 ├─ index.html              # Shell HTML — placeholders inlined at build time
-├─ v3-monolith-backup.html # V3 snapshot (referencia visual, NO modificar)
+├─ docs/legacy/             # V3 archivado (rollback, no input de build)
 ├─ js/
 │  ├─ app.js               # Bootstrap entry (Phase 1+)
 │  ├─ components/          # ref-table, config-selector, workflow-table, etc.
 │  └─ services/            # data-loader, model-scorer, data-sync
-├─ tests/                  # Vitest suite (34 files, 503 tests)
-├─ css/tokens.css          # Tailwind layers + V3 custom classes + CSS tokens
-├─ assets/icons/*.svg      # Lucide icon set (~33) — V3 visual-parity, static
+├─ tests/                  # Vitest suite (44 files, 628 tests)
+├─ css/tokens.css          # Tailwind layers + component classes + design tokens
+├─ assets/icons/*.svg      # Lucide icon set (~33) — static assets, no runtime reader
 ├─ data/                   # JSON con catálogo de modelos, configs, fases, roles
 ├─ dist/                   # Output de esbuild (gitignored, single self-contained HTML)
 ├─ coverage/               # Output de vitest --coverage (gitignored)
@@ -132,7 +124,7 @@ The deploy uploads `dist/` (single self-contained `dist/index.html` plus whateve
 
 What is **not** copied by the build:
 
-- `assets/icons/*.svg` — referenced only by an `index.html` comment block (V3 visual parity prep); no `js/*.js` import or runtime code path reads from `assets/`. No `copyAssets` step exists. If a future component opts into the Lucide icons, wire a new `copyAssets()` in `esbuild.config.js` and add it to `runBuild()`.
+- `assets/icons/*.svg` — referenced only by an `index.html` comment block; no `js/*.js` import or runtime code path reads from `assets/`. No `copyAssets` step exists. If a future component opts into the Lucide icons, wire a new `copyAssets()` in `esbuild.config.js` and add it to `runBuild()`.
 
 ## Convenciones
 

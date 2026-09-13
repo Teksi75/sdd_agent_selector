@@ -11,7 +11,7 @@ context: |
 
 rules:
   proposal:
-    - Include rollback plan: revert by restoring v3-monolith-backup.html
+    - Include rollback plan: revert by restoring docs/legacy/v3-monolith-backup.html
     - Document Tailwind vs CSS-pure decision explicitly
   specs:
     - Use Given/When/Then for scenarios
@@ -26,12 +26,10 @@ rules:
     - Mark "blocking" dependencies between tasks
     - Each task completable in one session
   apply:
-    - Follow existing HTML V3 rendering as source of truth for visual parity
     - Strict TDD: write tests BEFORE implementation for `model-scorer.js`
     tdd: true
     test_command: "npm test"
   verify:
-    - Visual parity check: V4 must render same output as V3 for same data
     - All tests passing
     - Build produces valid self-contained HTML
     test_command: "npm test"

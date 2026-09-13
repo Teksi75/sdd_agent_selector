@@ -10,10 +10,6 @@ strategies), the scoring service, the SDD-aware matching algorithm
 twin judge constraint, the justification UI, sync workflow, build
 pipeline, and test contract.
 
-The V4 MUST produce visually identical output to V3 for the same
-input data, while making the data layer, scoring logic, agent role
-matrix, and sync workflow first-class concerns.
-
 The system MUST cover all 18 agents in the gentle-ai SDD ecosystem
 (11 SDD phases + 3 Judgment Day agents + 4 Review agents), not only
 the 10 SDD agents the V3 file showed.
@@ -46,13 +42,6 @@ key per model. Each model MUST have the following fields:
 A `_meta` block at the top level MUST include:
 `lastSynced` (ISO date), `source` (string), `nextSync` (ISO date),
 `schemaVersion` (integer).
-
-#### Scenario: All V3 models present in V4 data file
-
-- GIVEN the V3 HTML defines a `MODELS` constant with N entries
-- WHEN `data/models.json` is loaded
-- THEN it contains exactly N model entries
-- AND each model has at minimum the required fields above
 
 #### Scenario: Reference models excluded from pricing display
 
@@ -751,20 +740,3 @@ fail if any agent is missing, renamed, or has invalid field types.
 - THEN the keys of the loaded object match exactly the canonical
       18-agent list (case-sensitive)
 
----
-
-### Requirement: Testing — Data Integrity
-
-The system MUST have a checksum test that compares the model count
-and key fields (`name`, `arena`, `input`, `output`, `tier`) of
-`data/models.json` against the V3 `MODELS` constant in
-`v3-monolith-backup.html`. The test MUST fail if any field
-mismatches.
-
-#### Scenario: Models data matches V3 source
-
-- GIVEN `v3-monolith-backup.html` exists with V3 `MODELS` constant
-- WHEN the data integrity test runs
-- THEN it parses V3 `MODELS` and `data/models.json`
-- AND asserts equal model count
-- AND asserts equal key fields per model

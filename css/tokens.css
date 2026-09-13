@@ -1,5 +1,5 @@
 /* css/tokens.css
- * V4 SDD Agent Selector — design tokens + Tailwind layers + V3 custom classes.
+ * V5 SDD Agent Selector — design tokens + Tailwind layers + custom component classes.
  *
  * Build (Phase 4): tailwindcss CLI compiles this file (scanning index.html
  * + js/**) into a single minified CSS that esbuild.config.js then inlines
@@ -46,9 +46,9 @@
   --composite-tier-reference: #fb7185;
 }
 
-/* V3 visual-parity classes — DO NOT MODIFY without re-running the
-   visual-diff in Phase 5 (tasks.md 5.4). Transcribed verbatim from
-   v3-monolith-backup.html lines 9-35. */
+/* Shared component classes — styling contract, not a V3 parity freeze.
+   Keep the class names (markup/JS depend on them); adjust values freely
+   when the design changes. */
 *{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .gradient-text{background:linear-gradient(120deg,#a855f7,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .config-btn{transition:all .2s ease;border:2px solid transparent;min-height:2.75rem;padding:.5rem 1rem}

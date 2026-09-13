@@ -2,12 +2,9 @@
 <!--
   SDD Agent Selector - index.html
   ============================================================================
-  Source of truth: openspec/changes/2026-07-04-sdd-model-picker-refactor/
-
-  V3 visual reference (do NOT modify during V4 development):
-    v3-monolith-backup.html
-  SHA256: 8A89DE6C262ED3D1B7EB3DBFAB95E43FA1B6CAD87DFD088DE0C678D5AAB26FBD
-  The V3 source lives at ../SDD/Modelos SDD - V3 - Lucide.html.
+  Source of truth: openspec/changes/2026-09-12-v5-subscription-selector/
+  (V5 cut: the retired V3 monolith is archived as rollback documentation
+  only. It is not a build, runtime, or visual-parity input.)
 
   Build pipeline (Phase 4):
     css/tokens.css  ⇒  tailwindcss CLI  ⇒  dist/_tailwind.css (inlined)
@@ -15,7 +12,7 @@
     index.html      ⇒  read & inject    ⇒  dist/index.html (self-contained)
 
   Placeholders replaced at build time:
-    __INLINE_CSS__  - replaced with minified style block (tailwind+v3 tokens)
+    __INLINE_CSS__  - replaced with minified style block (tailwind + design tokens)
     __INLINE_JS__   - replaced with minified script block (bundle)
 
   Runtime is CDN-free - no remote script src, no remote link href, no remote
