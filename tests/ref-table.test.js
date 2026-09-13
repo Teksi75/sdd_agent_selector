@@ -12,9 +12,11 @@
 //   - Source-badges cell still carries the inputs/outputs and NEW flag.
 //   - Reference-tier models still sink to the bottom; sort still
 //     descending by score; null scores rendered inline with "—".
+//   - V5 follow-up: `isNew === true` rows are pinned to the top of the active
+//     group (score/price tie-break unchanged inside each bucket).
 
-import { describe, test, expect, beforeEach } from 'vitest';
-import { render } from '../js/components/ref-table.js';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
+import { render, rowsFor } from '../js/components/ref-table.js';
 
 // Mixed-fixture: verified + estimated + unavailable + reference. Score
 // ordering is clear: alpha (verified 85) > beta (estimated 65) >
@@ -78,7 +80,8 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
 
     const activeRows = Array.from(target.querySelectorAll('[data-test="active-rows"] tr'));
     const activeKeys = activeRows.map((tr) => tr.getAttribute('data-model-key'));
-    expect(activeKeys).toEqual(['alpha', 'beta', 'pending']);
+    // V5 follow-up: beta carries `isNew`, so it leads the active group.
+    expect(activeKeys).toEqual(['beta', 'alpha', 'pending']);
 
     const nonActiveSection = target.querySelector('[data-test="non-active-rows"]');
     expect(nonActiveSection, 'non-active section missing').toBeDefined();
@@ -88,16 +91,18 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(nonActiveKeys).toEqual(['delta', 'gamma']);
   });
 
-  test('(d) scored rows sort by benchlm.score descending; references last', () => {
+  test('(d) isNew pins first; scored rows sort by benchlm.score descending; references last', () => {
     const summary = render(target, FIXTURE);
     const tbody = target.querySelector('tbody');
     const keys = Array.from(tbody.querySelectorAll('tr')).map(
       (tr) => tr.getAttribute('data-model-key')
     );
-    expect(keys[0]).toBe('alpha');     // 85
-    expect(keys[1]).toBe('beta');      // 65
+    // V5 follow-up: beta (isNew) is pinned above alpha despite the lower score;
+    // score order still holds inside the non-isNew bucket.
+    expect(keys[0]).toBe('beta');      // isNew (65)
+    expect(keys[1]).toBe('alpha');     // 85
     expect(keys[2]).toBe('pending');   // null (unavailable)
-    expect(summary.topKey).toBe('alpha');
+    expect(summary.topKey).toBe('beta');
   });
 
   test('(a) row shows benchlm score column; NO legacy 4-benchmark columns', () => {
@@ -173,7 +178,8 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(summary.rows).toBe(0);
     expect(summary.topKey).toBeNull();
     expect(target.querySelector('tbody')).toBeNull();
-    expect(target.textContent).toMatch(/No non-reference models|No model data/i);
+    expect(target.querySelector('[data-test="empty-state"]')).not.toBeNull();
+    expect(target.textContent).toMatch(/No hay modelos elegibles/i);
   });
 
   test('renders an empty-state card when models is null', () => {
@@ -379,5 +385,213 @@ describe('ref-table — reference display order and legacy filtering', () => {
     const gpt55 = target.querySelector('tr[data-model-key="gpt55"]');
     expect(gpt55.textContent).toMatch(/73\.5/);
     expect(gpt55.textContent).toMatch(/REFERENCE/);
+  });
+});
+
+// V5 Slice 3 — eligible-only rendering + filtered export contract.
+// The component renders exactly the eligible set it receives (app.js feeds
+// applyProviderFilter's output) and exports that same view by default; the
+// full catalog is an explicit opt-in action, never inferred.
+describe('ref-table — V5 Slice 3 eligible-only + filtered export', () => {
+  const CTX = {
+    providerIds: ['alpha', 'beta'],
+    providerNames: ['Alpha', 'Beta'],
+    timestamp: '2026-09-12T00:00:00.000Z',
+  };
+  const CATALOG = {
+    ...FIXTURE,
+    catalogOnly: {
+      name: 'Catalog Only',
+      tier: 'balanced',
+      benchlm: { score: 50, verified: true, reliability: 0.5, categories: {} },
+      input: 1,
+      output: 2,
+    },
+  };
+
+  function mockClipboard() {
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    return writeText;
+  }
+
+  async function clickFormat(mount, id) {
+    const toggle = mount.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    const btn = mount.querySelector(`[data-format-id="${id}"]`);
+    expect(btn).not.toBeNull();
+    btn.click();
+    await new Promise((r) => setTimeout(r, 0));
+  }
+
+  test('rinde solo el set elegible recibido: ninguna fila fuera del set', () => {
+    const summary = render(target, { alpha: FIXTURE.alpha, beta: FIXTURE.beta });
+    expect(summary.rows).toBe(2);
+    const keys = Array.from(target.querySelectorAll('tr[data-model-key]')).map((tr) =>
+      tr.getAttribute('data-model-key')
+    );
+    expect(keys.sort()).toEqual(['alpha', 'beta']);
+    expect(target.querySelector('[data-model-key="pending"]')).toBeNull();
+    expect(target.querySelector('[data-model-key="gamma"]')).toBeNull();
+  });
+
+  test('set elegible vacío: empty-state label dedicado, cero filas', () => {
+    const summary = render(target, {});
+    expect(summary.rows).toBe(0);
+    expect(target.querySelectorAll('tr[data-model-key]').length).toBe(0);
+    const empty = target.querySelector('[data-test="empty-state"]');
+    expect(empty).not.toBeNull();
+    expect(empty.textContent).toMatch(/No hay modelos elegibles/i);
+  });
+
+  test('export default (filtered): header con scope + providers activos y solo el set visible', async () => {
+    const writeText = mockClipboard();
+    render(target, { alpha: FIXTURE.alpha }, { exportContext: CTX, fullCatalogModels: CATALOG });
+    await clickFormat(target, 'copy-md');
+    expect(writeText).toHaveBeenCalledTimes(1);
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
+    expect(captured).toContain('Alpha-1');
+    expect(captured).not.toContain('Catalog Only');
+    expect(captured).not.toContain('Beta-2');
+  });
+
+  test('full-catalog explícito: scope=full-catalog, catálogo completo y providers activos registrados', async () => {
+    const writeText = mockClipboard();
+    render(target, { alpha: FIXTURE.alpha }, { exportContext: CTX, fullCatalogModels: CATALOG });
+    await clickFormat(target, 'copy-md-full-catalog');
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=full-catalog providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
+    expect(captured).toContain('Catalog Only');
+  });
+
+  test('set elegible vacío NO cambia el default a full-catalog', async () => {
+    const writeText = mockClipboard();
+    render(target, {}, { exportContext: CTX, fullCatalogModels: CATALOG });
+    await clickFormat(target, 'copy-md');
+    const captured = writeText.mock.calls[0][0];
+    expect(captured).toContain('scope=filtered');
+    expect(captured).not.toContain('Catalog Only');
+  });
+
+  test('la acción full-catalog aparece marcada en el menú', () => {
+    render(target, { alpha: FIXTURE.alpha }, { exportContext: CTX, fullCatalogModels: CATALOG });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    const full = target.querySelector('[data-format-id="copy-md-full-catalog"]');
+    expect(full).not.toBeNull();
+    expect(full.getAttribute('data-export-scope')).toBe('full-catalog');
+    const filtered = target.querySelector('[data-format-id="copy-md"]');
+    expect(filtered.getAttribute('data-export-scope')).toBe('filtered');
+  });
+});
+
+// V5 follow-up (v5-fup-acquire-003) — `isNew === true` active models are pinned
+// to the top of the active group. The pin is scoped to the active lifecycle
+// group: every isNew row (including null-score newcomers such as GPT-6 Astra)
+// ranks above every non-isNew active row, while score desc / cheaper-input
+// tie-break stays untouched inside each bucket and non-active rows keep their
+// reference ordering.
+describe('ref-table — isNew pin inside the active group (V5 follow-up)', () => {
+  const PIN_FIXTURE = {
+    scoredOld: {
+      name: 'Scored Old',
+      tier: 'high',
+      benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} },
+      input: 1,
+      output: 2,
+    },
+    newScored: {
+      name: 'New Scored',
+      tier: 'high',
+      benchlm: { score: 70, verified: true, reliability: 0.7, categories: {} },
+      input: 1,
+      output: 2,
+      isNew: true,
+    },
+    newUnscored: {
+      name: 'New Unscored',
+      tier: 'high',
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+      input: 1,
+      output: 2,
+      isNew: true,
+    },
+    oldUnscored: {
+      name: 'Old Unscored',
+      tier: 'high',
+      benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+      input: 1,
+      output: 2,
+    },
+    refNew: {
+      name: 'Reference New',
+      tier: 'reference',
+      lifecycle: 'reference',
+      isReference: true,
+      isNew: true,
+      benchlm: { score: 99, verified: true, reliability: 0.9, categories: {} },
+      input: 5,
+      output: 25,
+    },
+  };
+
+  test('rowsFor: isNew leads the active group; score tie-break unchanged inside each bucket', () => {
+    const { active, nonActive } = rowsFor(PIN_FIXTURE);
+    expect(active.map(([key]) => key)).toEqual([
+      'newScored',   // isNew, 70
+      'newUnscored', // isNew, null score — no longer sinks to the bottom
+      'scoredOld',   // 90 (non-isNew)
+      'oldUnscored', // null score (non-isNew)
+    ]);
+    // The pin never crosses lifecycle groups: refNew stays out of `active`.
+    expect(nonActive.map(([key]) => key)).toEqual(['refNew']);
+  });
+
+  test('render: the visible active rows follow the pinned order', () => {
+    render(target, PIN_FIXTURE);
+    const activeTable = target.querySelector('[data-test="active-rows"]');
+    expect(activeTable).not.toBeNull();
+    const keys = Array.from(activeTable.querySelectorAll('tr')).map((tr) =>
+      tr.getAttribute('data-model-key')
+    );
+    expect(keys).toEqual(['newScored', 'newUnscored', 'scoredOld', 'oldUnscored']);
+  });
+
+  test('inside a bucket, equal scores fall back to the cheaper input (tie-break as today)', () => {
+    const models = {
+      newPricey: {
+        name: 'New Pricey',
+        tier: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+        input: 3,
+        output: 2,
+        isNew: true,
+      },
+      newCheap: {
+        name: 'New Cheap',
+        tier: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+        input: 1,
+        output: 2,
+        isNew: true,
+      },
+      oldCheapest: {
+        name: 'Old Cheapest',
+        tier: 'high',
+        benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
+        input: 0.5,
+        output: 2,
+      },
+    };
+    const { active } = rowsFor(models);
+    expect(active.map(([key]) => key)).toEqual(['newCheap', 'newPricey', 'oldCheapest']);
   });
 });

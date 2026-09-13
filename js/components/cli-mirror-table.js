@@ -167,7 +167,7 @@ function assignedCell(assignment, doc) {
  * @param {Object<string, {minReasoning:number, costRatio:number, role:string}>} agentRoles
  * @returns {{ rows: number, withAssignment: number, withoutAssignment: number }}
  */
-export function render(targetEl, agentsAssignments, agentRoles) {
+export function render(targetEl, agentsAssignments, agentRoles, options) {
   if (!targetEl || !(targetEl instanceof HTMLElement)) {
     throw new TypeError('cli-mirror-table.render: targetEl must be an HTMLElement');
   }
@@ -227,13 +227,16 @@ export function render(targetEl, agentsAssignments, agentRoles) {
         softFallback: a.softFallback,
       };
     });
-  const exportMd = agentsMarkdown(exportAgents);
-  const exportJson = toJSON({
-    timestamp: new Date().toISOString(),
-    withAssignment: withA,
-    withoutAssignment: withoutA,
-    assignments: exportAgents,
-  });
+  const exportContext = (options && options.exportContext) || {};
+  const exportMd = agentsMarkdown(exportAgents, { context: exportContext });
+  const exportJson = toJSON(
+    {
+      withAssignment: withA,
+      withoutAssignment: withoutA,
+      assignments: exportAgents,
+    },
+    exportContext
+  );
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">

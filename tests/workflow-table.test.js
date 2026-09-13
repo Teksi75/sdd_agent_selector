@@ -148,3 +148,54 @@ describe('workflow-table — 9-row contract (spec.md)', () => {
     expect(target.querySelector('tr[data-phase-id="legacy"] [data-effort]')).toBeNull();
   });
 });
+
+// V5 Slice 3 — assignments only resolve inside the eligible set; a missing
+// key (ineligible or filtered out) renders the stable warning state.
+describe('workflow-table — V5 Slice 3 eligible-only', () => {
+  test('assignment a un modelo ausente del set elegible → warning, no nombre filtrado', async () => {
+    ({ render, resetForTests } = await import('../js/components/workflow-table.js'));
+    resetForTests();
+    const phases = [
+      { id: 'init', name: 'Init', desc: '' },
+      { id: 'explore', name: 'Explore', desc: '' },
+      { id: 'propose', name: 'Propose', desc: '' },
+      { id: 'spec', name: 'Spec', desc: '' },
+      { id: 'design', name: 'Design', desc: '' },
+      { id: 'tasks', name: 'Tasks', desc: '' },
+      { id: 'apply', name: 'Apply', desc: '' },
+      { id: 'verify', name: 'Verify', desc: '' },
+      { id: 'archive', name: 'Archive', desc: '' },
+    ];
+    // The assignment references shared, but the eligible set only has other.
+    const assignments = { init: { key: 'shared' } };
+    const summary = render(target, assignments, { other: { name: 'Other', tier: 'high' } }, phases);
+    expect(summary.rows).toBe(9);
+    const initRow = target.querySelector('tr[data-phase-id="init"]');
+    expect(initRow.textContent).toMatch(/Sin modelo elegible/);
+    expect(target.textContent).not.toMatch(/Shared Model/);
+  });
+
+  test('assignments todos null → 9 filas warning (sin modelo elegible)', async () => {
+    ({ render, resetForTests } = await import('../js/components/workflow-table.js'));
+    resetForTests();
+    const phases = FIXTURE_PHASES_MIN;
+    const assignments = {};
+    for (const p of phases) assignments[p.id] = { key: null, reason: 'No model meets minReasoning=40' };
+    const summary = render(target, assignments, {}, phases);
+    expect(summary.rows).toBe(9);
+    expect(target.querySelectorAll('[data-phase-id]').length).toBe(9);
+    expect(target.querySelectorAll('.warn-row').length).toBe(9);
+  });
+});
+
+const FIXTURE_PHASES_MIN = [
+  { id: 'init', name: 'Init', desc: '' },
+  { id: 'explore', name: 'Explore', desc: '' },
+  { id: 'propose', name: 'Propose', desc: '' },
+  { id: 'spec', name: 'Spec', desc: '' },
+  { id: 'design', name: 'Design', desc: '' },
+  { id: 'tasks', name: 'Tasks', desc: '' },
+  { id: 'apply', name: 'Apply', desc: '' },
+  { id: 'verify', name: 'Verify', desc: '' },
+  { id: 'archive', name: 'Archive', desc: '' },
+];

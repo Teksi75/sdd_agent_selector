@@ -9,6 +9,8 @@ import {
   markdownTable,
   agentsMarkdown,
   exportFilename,
+  exportHeader,
+  exportMetadata,
   copyToClipboard,
   downloadFile,
   showToast,
@@ -16,6 +18,15 @@ import {
   runExport,
   resetForTests,
 } from '../js/services/exporter.js';
+
+// V5 Slice 3 — deterministic export context used by every header assertion.
+const CTX = {
+  providerIds: ['alpha', 'beta'],
+  providerNames: ['Alpha', 'Beta'],
+  timestamp: '2026-09-12T00:00:00.000Z',
+};
+const HEADER =
+  '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->';
 
 afterEach(() => {
   resetForTests();
@@ -26,26 +37,75 @@ afterEach(() => {
 /* ─────────────────────────── pure formatters ─────────────────────────── */
 
 describe('toJSON', () => {
-  test('pretty-prints a flat object with 2-space indent', () => {
-    const out = toJSON({ a: 1, b: 'two', c: null });
-    expect(out).toBe('{\n  "a": 1,\n  "b": "two",\n  "c": null\n}');
+  test('prepends _export as the FIRST property with scope/providers/timestamp', () => {
+    const out = toJSON({ a: 1, b: 'two', c: null }, CTX);
+    const parsed = JSON.parse(out);
+    expect(parsed._export).toEqual({
+      scope: 'filtered',
+      providerIds: ['alpha', 'beta'],
+      providerNames: ['Alpha', 'Beta'],
+      timestamp: '2026-09-12T00:00:00.000Z',
+    });
+    expect(parsed.a).toBe(1);
+    expect(parsed.b).toBe('two');
+    expect(parsed.c).toBeNull();
+    expect(Object.keys(parsed)[0]).toBe('_export');
+  });
+
+  test('scope=full-catalog is explicit and still records active providers', () => {
+    const out = toJSON({ models: [] }, { ...CTX, scope: 'full-catalog' });
+    const parsed = JSON.parse(out);
+    expect(parsed._export.scope).toBe('full-catalog');
+    expect(parsed._export.providerIds).toEqual(['alpha', 'beta']);
+  });
+
+  test('defaults to scope=filtered with empty provider lists (no context)', () => {
+    const out = toJSON({ a: 1 });
+    const parsed = JSON.parse(out);
+    expect(parsed._export.scope).toBe('filtered');
+    expect(parsed._export.providerIds).toEqual([]);
+    expect(parsed._export.providerNames).toEqual([]);
+    expect(typeof parsed._export.timestamp).toBe('string');
   });
 
   test('handles circular references with a [Circular] sentinel', () => {
     const a = { name: 'a' };
     a.self = a;
-    const out = toJSON(a);
+    const out = toJSON(a, CTX);
     expect(out).toContain('[Circular]');
   });
 
   test('handles arrays of objects', () => {
-    const out = toJSON([{ x: 1 }, { x: 2 }]);
+    const out = toJSON([{ x: 1 }, { x: 2 }], CTX);
     expect(out).toContain('"x": 1');
     expect(out).toContain('"x": 2');
   });
 });
 
-describe('markdownTable', () => {
+describe('exportMetadata / exportHeader (V5 Slice 3)', () => {
+      test('exportMetadata normalizes the context with scope default filtered', () => {
+        expect(exportMetadata(CTX)).toEqual({
+          scope: 'filtered',
+          providerIds: ['alpha', 'beta'],
+          providerNames: ['Alpha', 'Beta'],
+          timestamp: '2026-09-12T00:00:00.000Z',
+        });
+        expect(exportMetadata().providerIds).toEqual([]);
+        expect(exportMetadata().scope).toBe('filtered');
+      });
+
+      test('exportHeader renders the canonical first line', () => {
+        expect(exportHeader(CTX)).toBe(HEADER);
+      });
+
+      test('exportHeader with zero providers renders providers=""', () => {
+        expect(exportHeader({ timestamp: CTX.timestamp })).toBe(
+          '<!-- sdd-export scope=filtered providers="" timestamp="2026-09-12T00:00:00.000Z" -->'
+        );
+      });
+    });
+
+    describe('markdownTable', () => {
   test('builds a valid table with headers + rows', () => {
     const out = markdownTable(['A', 'B'], [['1', '2'], ['3', '4']]);
     const lines = out.split('\n');
@@ -74,17 +134,21 @@ describe('markdownTable', () => {
 
 describe('agentsMarkdown', () => {
   test('produces a per-agent block with model + score + cost + checks', () => {
-    const md = agentsMarkdown([
-      {
-        key: 'sdd-apply',
-        role: 'implementador',
-        model: { name: 'GPT-5.6 Sol', tier: 'high' },
-        score: 87.2,
-        cost: 0.000023,
-        effectiveMaxCost: 0.000030,
-      },
-    ]);
-    expect(md).toContain('# SDD Agent Assignments');
+    const md = agentsMarkdown(
+      [
+        {
+          key: 'sdd-apply',
+          role: 'implementador',
+          model: { name: 'GPT-5.6 Sol', tier: 'high' },
+          score: 87.2,
+          cost: 0.000023,
+          effectiveMaxCost: 0.000030,
+        },
+      ],
+      { context: CTX }
+    );
+    expect(md.split('\n')[0]).toBe(HEADER);
+        expect(md).toContain('# SDD Agent Assignments');
     expect(md).toContain('### sdd-apply');
     expect(md).toContain('**GPT-5.6 Sol**');
     expect(md).toContain('implementador');
@@ -92,17 +156,20 @@ describe('agentsMarkdown', () => {
   });
 
   test('marks soft fallback assignments', () => {
-    const md = agentsMarkdown([
-      {
-        key: 'sdd-design',
-        role: 'designer',
-        model: { name: 'GPT-5.6 Luna', tier: 'budget' },
-        score: 60,
-        cost: 0.000001,
-        effectiveMaxCost: 0.000010,
-        softFallback: true,
-      },
-    ]);
+    const md = agentsMarkdown(
+      [
+        {
+          key: 'sdd-design',
+          role: 'designer',
+          model: { name: 'GPT-5.6 Luna', tier: 'budget' },
+          score: 60,
+          cost: 0.000001,
+          effectiveMaxCost: 0.000010,
+          softFallback: true,
+        },
+      ],
+      { context: CTX }
+    );
     expect(md).toContain('soft fallback');
   });
 

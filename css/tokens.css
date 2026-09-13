@@ -1,5 +1,5 @@
 /* css/tokens.css
- * V4 SDD Agent Selector — design tokens + Tailwind layers + V3 custom classes.
+ * V5 SDD Agent Selector — design tokens + Tailwind layers + custom component classes.
  *
  * Build (Phase 4): tailwindcss CLI compiles this file (scanning index.html
  * + js/**) into a single minified CSS that esbuild.config.js then inlines
@@ -46,9 +46,9 @@
   --composite-tier-reference: #fb7185;
 }
 
-/* V3 visual-parity classes — DO NOT MODIFY without re-running the
-   visual-diff in Phase 5 (tasks.md 5.4). Transcribed verbatim from
-   v3-monolith-backup.html lines 9-35. */
+/* Shared component classes — styling contract, not a V3 parity freeze.
+   Keep the class names (markup/JS depend on them); adjust values freely
+   when the design changes. */
 *{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
 .gradient-text{background:linear-gradient(120deg,#a855f7,#3b82f6);-webkit-background-clip:text;background-clip:text;color:transparent}
 .config-btn{transition:all .2s ease;border:2px solid transparent;min-height:2.75rem;padding:.5rem 1rem}
@@ -194,6 +194,19 @@ a:focus-visible,
   backdrop-filter:blur(10px);
   border-radius:.5rem
 }
+/* V5 — Tier-1 subscription selector (same sticky bar as .config-selector). */
+.provider-selector{display:flex;flex-wrap:wrap;align-items:center;gap:.375rem .75rem;padding:.25rem .5rem 0}
+.provider-selector-chips{display:flex;flex-wrap:wrap;gap:.375rem}
+.provider-chip{display:inline-flex;align-items:center;gap:.375rem;cursor:pointer;font-size:.75rem;line-height:1.4;color:#cbd5e1;border:1px solid #334155;border-radius:9999px;padding:.125rem .55rem}
+.provider-chip:hover{border-color:#475569;color:#e2e8f0}
+.provider-chip input{accent-color:#818cf8;margin:0}
+.provider-selector-actions{display:inline-flex;align-items:center;gap:.375rem;font-size:.75rem;color:#94a3b8}
+.provider-selector-actions button{border:1px solid #334155;background:#1e293b;color:#cbd5e1;border-radius:.375rem;padding:.125rem .5rem;font-size:.75rem;cursor:pointer}
+.provider-selector-actions button:hover{border-color:#475569;color:#e2e8f0}
+.provider-selector [data-role="visible-count"]{color:#94a3b8}
+.provider-selector [data-role="empty-state"]{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;font-size:.75rem;color:#fda4af}
+.provider-selector [data-role="empty-state"][hidden]{display:none}
+.provider-selector [data-action="enable-all"]{border:1px solid #7f1d1d;background:#450a0a;color:#fecaca;border-radius:.375rem;padding:.125rem .5rem;font-size:.75rem;cursor:pointer}
 .flash-card{
   animation:flash-pulse 1.4s ease-out 1;
   outline:2px solid #818cf8;

@@ -103,6 +103,48 @@ export function readModelsJson(path) {
 }
 
 /**
+ * Fields that are authored by humans (data curation) and never by scrapers.
+ * The write-guard restores them from the canonical target on every write.
+ */
+export const MANUAL_MODEL_FIELDS = Object.freeze(['availability']);
+
+/**
+ * Restore the manual fields from the on-disk document into the candidate
+ * document (pure; returns new records, mutates nothing). Rules per model id:
+ *   - existing id: every manual field is restored byte-semantically from
+ *     disk, even when the candidate omitted or replaced it;
+ *   - new id: manual fields are forced to the fail-closed empty map ;
+ *   - id present on disk but missing from the candidate (accidental
+ *     deletion) aborts the write instead of hiding the loss;
+ *   - all other (scraped) fields keep the candidate precedence.
+ *
+ * @param {Object<string, Object>} onDiskModels
+ * @param {Object<string, Object>} candidateModels
+ * @returns {Object<string, Object>}
+ */
+export function preserveManualModelFields(onDiskModels, candidateModels) {
+  const disk = onDiskModels || {};
+  const candidate = candidateModels || {};
+  const deleted = Object.keys(disk).filter((id) => !Object.hasOwn(candidate, id));
+  if (deleted.length > 0) {
+    throw new Error(
+      `models write aborted: candidate is missing ${deleted.length} id(s) present on disk: ${deleted.join(', ')}`
+    );
+  }
+  const next = {};
+  for (const [id, record] of Object.entries(candidate)) {
+    const diskRecord = disk[id];
+    const merged = { ...record };
+    for (const field of MANUAL_MODEL_FIELDS) {
+      merged[field] =
+        diskRecord && Object.hasOwn(diskRecord, field) ? structuredClone(diskRecord[field]) : {};
+    }
+    next[id] = merged;
+  }
+  return next;
+}
+
+/**
  * Write back the updated models.json document.
  *  - Updates `_meta.lastSynced` to today (UTC ISO date).
  *  - Migrates legacy `_meta.source` (string) into `_meta.sources` (array)
@@ -129,6 +171,14 @@ export function readModelsJson(path) {
 export function writeModelsJson(path, doc, sourceTag) {
   const today = new Date().toISOString().slice(0, 10);
   doc._meta = doc._meta || {};
+
+  // V5 write-guard: re-read the canonical target and restore the manual
+  // fields (availability). Scrapers can never create, replace or delete
+  // curated availability; an accidental id deletion aborts the write.
+  if (_fs.existsSync(path)) {
+    const onDisk = readModelsJson(path);
+    doc.models = preserveManualModelFields(onDisk.models, doc.models);
+  }
 
   // --- _meta.sources migration -----------------------------------------
   // Canonical shape is _meta.sources: string[]. We accept (in priority

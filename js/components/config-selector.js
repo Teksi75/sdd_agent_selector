@@ -37,6 +37,12 @@ let _activeKey = null;
 // the next one and scroll to the first changed agent. `null` on first
 // select (no diff to compute → no scroll).
 let _previousAssignments = null;
+// V5 Slice 3 — data revision. `setData` bumps it; `selectConfig` /
+// `recomputeActiveConfig` mark it computed. A recompute over unchanged data
+// is an idempotent no-op; a filter change / refresh always bumps the
+// revision first, so the active config recalculates over the new eligible set.
+let _dataRevision = 0;
+let _computedRevision = -1;
 
 /**
  * Inject the data layer. The component does NOT fetch on its own.
@@ -46,6 +52,9 @@ export function setData(data) {
   _models = data && data.models;
   _roleMatrix = data && data.roleMatrix;
   _profiles = data && data.profiles;
+  // V5 Slice 3 — mark the model revision dirty so the next
+  // recomputeActiveConfig re-runs the assignment pass.
+  _dataRevision += 1;
 }
 
 /** Reset all state — exported for test isolation only. */
@@ -54,6 +63,8 @@ export function resetForTests() {
   _models = _roleMatrix = _profiles = null;
   _activeKey = null;
   _previousAssignments = null;
+  _dataRevision = 0;
+  _computedRevision = -1;
 }
 
 /** Find a config by key. Returns null when no config registered or key missing. */
@@ -196,6 +207,7 @@ export function selectConfig(key, options) {
   const prev = _previousAssignments;
   _activeKey = key;
   _previousAssignments = assignments;
+  _computedRevision = _dataRevision;
   paintActive(key);
   if (typeof _onSelect === 'function') _onSelect(assignments, prev);
   // V5+ P2-2: scroll to the first agent whose assignment changed.
@@ -220,6 +232,60 @@ export function selectConfig(key, options) {
       { kind: 'success' }
     );
   }
+}
+
+/** Current active config key (null before the first selection). */
+export function getActiveKey() {
+  return _activeKey;
+}
+
+/**
+ * Recompute the ACTIVE config over the current data set. This is the
+ * filter-change / refresh entry point (V5 Slice 3): the caller injects the
+ * eligible models with `setData()` (which marks the data revision dirty) and
+ * then calls this function. Steps mirror `selectConfig` but bypass the
+ * same-key idempotence short-circuit:
+ *   1. compute the 18-agent assignments for the active strategy;
+ *   2. run the twin judge gate — on failure NO visible state mutates and the
+ *      previous config/assignments stay in place;
+ *   3. paint `.active` and invoke `onSelect(assignments, prev)`.
+ *
+ * `{ silent: true }` (the app's filter-change/refresh call) suppresses the
+ * scroll-to-impact animation; this path never toasts (it is not a user click).
+ *
+ * @param {{ silent?: boolean }} [options]
+ * @returns {Object|null} assignments, or null when no config is active
+ * @throws {InvalidConfigError}
+ */
+export function recomputeActiveConfig(options) {
+  if (!_activeKey) return null;
+  if (!_models || !_roleMatrix || !_profiles) {
+    throw new InvalidConfigError('config-selector: setData must be called before recomputeActiveConfig');
+  }
+  // No data revision change since the last compute → idempotent no-op.
+  if (_computedRevision === _dataRevision && _previousAssignments) {
+    return _previousAssignments;
+  }
+  const cfg = findConfig(_activeKey);
+  if (!cfg) throw new InvalidConfigError(`Unknown config key: "${_activeKey}"`);
+
+  const assignments = computeAssignments(cfg.strategy);
+  const a = assignments['jd-judge-a']?.key ?? null;
+  const b = assignments['jd-judge-b']?.key ?? null;
+  if (a !== b) {
+    throw new InvalidConfigError(
+      'jd-judge-a and jd-judge-b must resolve to the same model (twin judge constraint violated)'
+    );
+  }
+
+  const prev = _previousAssignments;
+  _previousAssignments = assignments;
+  _computedRevision = _dataRevision;
+  paintActive(_activeKey);
+  if (typeof _onSelect === 'function') _onSelect(assignments, prev);
+  const opts = options || {};
+  if (opts.silent !== true) scrollToFirstChange(prev, assignments);
+  return assignments;
 }
 
 /**

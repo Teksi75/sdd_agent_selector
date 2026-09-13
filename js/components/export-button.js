@@ -92,6 +92,7 @@ function formatRowHtml(format, sectionId) {
       role="menuitem"
       data-action="export-format"
       data-format-id="${esc(format.id)}"
+      data-export-scope="${esc(format.scope || 'filtered')}"
       data-section-id="${esc(sectionId)}"
       class="w-full text-left flex items-start gap-2 px-3 py-1.5 text-xs text-slate-200 hover:bg-slate-700/80 focus:bg-slate-700/80 focus:outline-none transition-colors"
     >

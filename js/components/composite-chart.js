@@ -33,7 +33,7 @@
 import { compositeScore, isActive } from '../services/model-scorer.js';
 import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
-import { toJSON, markdownTable, exportFilename } from '../services/exporter.js';
+import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
 
 const _tokenCache = Object.create(null);
 const STALE_THRESHOLD_DAYS = 7;
@@ -293,13 +293,13 @@ function staleBadgeHtml(meta, now = new Date()) {
  *                            for the BenchLM freshness badge.
  * @returns {{ scored: number, unavailable: number, maxScore: number|null }}
  */
-export function render(targetEl, models, _meta) {
+export function render(targetEl, models, _meta, options) {
   if (!targetEl || !(targetEl instanceof HTMLElement)) {
     throw new TypeError('composite-chart.render: targetEl must be an HTMLElement');
   }
   if (!models || typeof models !== 'object') {
     targetEl.innerHTML = `
-      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
+      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400" data-test="empty-state">
         No hay datos de modelos para graficar.
       </div>`;
     return { scored: 0, unavailable: 0, maxScore: null };
@@ -308,8 +308,8 @@ export function render(targetEl, models, _meta) {
   const { scored, unavailable } = rowsFor(models);
   if (scored.length === 0 && unavailable.length === 0) {
     targetEl.innerHTML = `
-      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400">
-        No hay modelos activos para mostrar.
+      <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400" data-test="empty-state">
+        No hay modelos elegibles para mostrar con estas suscripciones.
       </div>`;
     return { scored: 0, unavailable: 0, maxScore: null };
   }
@@ -363,19 +363,22 @@ export function render(targetEl, models, _meta) {
     m.lifecycle || '—',
     Number.isFinite(score) ? score.toFixed(1) : '—',
   ]);
-  const exportMd = `# Composite benchmark (${scored.length + unavailable.length} modelos)\n\n` + markdownTable(
+  const exportContext = (options && options.exportContext) || {};
+  const exportMd = `${exportHeader(exportContext)}\n# Composite benchmark (${scored.length + unavailable.length} modelos)\n\n` + markdownTable(
     ['Modelo', 'Tier', 'Lifecycle', 'Score'],
     exportRows
   ) + '\n';
-  const exportJson = toJSON({
-    timestamp: new Date().toISOString(),
-    scored: scored.length,
-    unavailable: unavailable.length,
-    withAa: withAaRows.length,
-    withoutAa: withoutAaRows.length,
-    maxScore,
-    models: groupedRows.map(([k, m]) => [k, m]),
-  });
+  const exportJson = toJSON(
+    {
+      scored: scored.length,
+      unavailable: unavailable.length,
+      withAa: withAaRows.length,
+      withoutAa: withoutAaRows.length,
+      maxScore,
+      models: groupedRows.map(([k, m]) => [k, m]),
+    },
+    exportContext
+  );
 
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">

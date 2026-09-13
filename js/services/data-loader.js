@@ -1,5 +1,5 @@
 // js/services/data-loader.js
-// Phase 1 — fetch + cache the 5 data/*.json files.
+// Phase 1 — fetch + cache the 6 data/*.json files (incl. the V5 registry).
 //
 // Storage shape (sessionStorage, versioned key):
 //   {
@@ -11,12 +11,13 @@
 // Behavior (per spec "Data Layer — Models: Scenario Schema-versioned cache
 //   invalidation"):
 //   - cache HIT (key present, schemaVersion matches) → return cached data
-//   - cache MISS / schema mismatch → fetch all 5 files, populate cache,
+//   - cache MISS / schema mismatch → fetch all 6 files, populate cache,
 //     return composed object
 //
-// The current schemaVersion is 4 (AA effort schema v4); bumping it
-// invalidates every existing cached entry on next page load. The constant
-// lives at the top so a future shape change is a one-line bump + new tests.
+// The current schemaVersion is 5 (V5 catalog + provider registry join);
+// bumping it invalidates every existing cached entry on next page load.
+// The constant lives at the top so a future shape change is a one-line
+// bump + new tests.
 
 /** @type {string} */
 // v6 invalidates cached catalog after the AA effort schema v4 migration,
@@ -36,44 +37,87 @@ export const LEGACY_CACHE_KEYS = Object.freeze(['sdd-models-v5', 'sdd-models-v4'
  *           2 → 3 (AA pricing schema v3, PR4 of aa-benchmark-integration —
  *           adds blended/pricingSource/term/codingIndex/speed fields);
  *           3 → 4 (AA effort schema v4, PR3 of aa-benchmark-integration —
- *           adds first-class effort variants).
+ *           adds first-class effort variants);
+ *           4 → 5 (V5 subscription selector — sixth providers.json file,
+ *           registry gate + availability join envelope).
  */
-export const CURRENT_SCHEMA_VERSION = 4;
-
-/** @type {string[]} - the 5 data files this loader fetches, in order. */
-const DATA_FILES = Object.freeze([
-  'data/models.json',
-  'data/phases.json',
-  'data/configs.json',
-  'data/agent-roles.json',
-  'data/agent-request-profiles.json',
-]);
-
-/** Mapping from data file path → top-level key in the returned payload. */
-const FILE_TO_KEY = Object.freeze({
-  'data/models.json': 'models',
-  'data/phases.json': 'phases',
-  'data/configs.json': 'configs',
-  'data/agent-roles.json': 'roles',
-  'data/agent-request-profiles.json': 'profiles',
-});
+export const CURRENT_SCHEMA_VERSION = 5;
 
 /**
- * Each data file on disk has a `{_meta, <payloadKey>: {...}}` shape
- * (where _meta carries lastSynced + schemaVersion). We surface the
- * inner payload object under the same top-level key so callers receive
- * a clean `{models: {glm52: ...}, phases: [...], configs: [...], ...}`
- * instead of having to navigate `_meta` + nested keys each time. The
- * `_meta` block stays on disk and is not surfaced in the runtime
- * payload — its purpose is to drive cache invalidation only.
+ * The 6 data files this loader fetches, in order, as `[path, payloadKey]`.
+ * Exported (V5) because `data-sync.js` MUST refresh the exact same set —
+ * a single descriptor prevents the loader/refresh 5-vs-6 drift.
+ *
+ * @type {ReadonlyArray<readonly [string, string]>}
  */
-const FILE_TO_PAYLOAD_KEY = Object.freeze({
-  'data/models.json': 'models',
-  'data/phases.json': 'phases',
-  'data/configs.json': 'configs',
-  'data/agent-roles.json': 'roles',
-  'data/agent-request-profiles.json': 'profiles',
-});
+export const DATA_FILES = Object.freeze([
+  ['data/models.json', 'models'],
+  ['data/providers.json', 'providers'],
+  ['data/phases.json', 'phases'],
+  ['data/configs.json', 'configs'],
+  ['data/agent-roles.json', 'roles'],
+  ['data/agent-request-profiles.json', 'profiles'],
+]);
+
+/** Registry record contract (design "Registry normativo"). */
+const PROVIDER_FIELDS = Object.freeze(['id', 'name', 'tier', 'url', 'updated']);
+
+/** Validate `data/providers.json`: schema 1, non-empty, unique ids, exact 5-field records. */
+function isValidRegistry(raw) {
+  if (!raw || typeof raw !== 'object') return false;
+  if (!raw._meta || raw._meta.schemaVersion !== 1) return false;
+  const providers = raw.providers;
+  if (!Array.isArray(providers) || providers.length === 0) return false;
+  const ids = new Set();
+  for (const record of providers) {
+    if (!record || typeof record !== 'object') return false;
+    const keys = Object.keys(record);
+    if (keys.length !== PROVIDER_FIELDS.length) return false;
+    if (!PROVIDER_FIELDS.every((field) => keys.includes(field))) return false;
+    if (typeof record.id !== 'string' || record.id.length === 0 || ids.has(record.id)) return false;
+    ids.add(record.id);
+  }
+  return true;
+}
+
+/**
+ * Validate + compose the raw fetched files into the runtime payload.
+ * Shared by `loadAll()` and `data-sync.refresh()` so both consume the same
+ * descriptor and the same gates. Throws BEFORE any cache write when a
+ * source schema or the registry is invalid.
+ *
+ * @param {any[]} results - raw JSON bodies, one per DATA_FILES entry in order
+ * @returns {{data: Object, sourceSchemaVersions: {models: number, providers: number}}}
+ */
+export function composePayload(results) {
+  const composed = {};
+  const raws = {};
+  for (let i = 0; i < DATA_FILES.length; i++) {
+    const key = DATA_FILES[i][1];
+    const raw = results[i];
+    raws[key] = raw;
+    // Extract the inner payload so callers get clean objects:
+    //   { _meta, models: {glm52: ...} } → {glm52: ...}
+    //   { _meta, configs: [{...}] }     → [{...}]
+    composed[key] = raw && typeof raw === 'object' && key in raw ? raw[key] : raw;
+  }
+  const modelsSchema = raws.models && raws.models._meta ? raws.models._meta.schemaVersion : null;
+  if (modelsSchema !== 5) {
+    throw new Error(`data-loader: data/models.json schemaVersion must be 5, got ${modelsSchema}`);
+  }
+  if (!isValidRegistry(raws.providers)) {
+    throw new Error(
+      'data-loader: data/providers.json registry validation failed (schemaVersion 1, unique ids, exact {id,name,tier,url,updated} records)'
+    );
+  }
+  // availability[modelId] = model.availability — no inference, no defaults.
+  const availability = {};
+  for (const modelId of Object.keys(composed.models || {})) {
+    availability[modelId] = composed.models[modelId].availability;
+  }
+  composed.availability = availability;
+  return { data: composed, sourceSchemaVersions: { models: 5, providers: 1 } };
+}
 
 /**
  * Resolve the cache backend (sessionStorage). Returns an object with
@@ -109,6 +153,10 @@ function readCacheEntry(backend, key) {
     if (!parsed || typeof parsed !== 'object') return null;
     if (parsed.schemaVersion !== CURRENT_SCHEMA_VERSION) return null;
     if (!parsed.data || typeof parsed.data !== 'object') return null;
+    // V5: a cached envelope without the registry join can never satisfy the
+    // runtime contract — discard it and re-fetch (no silent availability).
+    if (!parsed.data.providers || typeof parsed.data.providers !== 'object') return null;
+    if (!parsed.data.availability || typeof parsed.data.availability !== 'object') return null;
     return parsed.data;
   } catch {
     return null;
@@ -138,7 +186,7 @@ function readLegacyFallback() {
  *
  * @param {Object} data
  */
-function writeCache(data) {
+function writeCache(data, sourceSchemaVersions) {
   const backend = cacheBackend();
   if (!backend) return;
   try {
@@ -146,6 +194,7 @@ function writeCache(data) {
       CACHE_KEY,
       JSON.stringify({
         schemaVersion: CURRENT_SCHEMA_VERSION,
+        sourceSchemaVersions,
         timestamp: Date.now(),
         data,
       })
@@ -200,12 +249,13 @@ let inMemory = null;
 let loadGeneration = 0;
 
 /**
- * Load the 5 data files. Cache hit returns synchronously-after-await
+ * Load the 6 data files. Cache hit returns synchronously-after-await
  * (no fetch). Cache miss / schema mismatch triggers a single round of
  * parallel fetches.
  *
  * The returned shape is the composed payload:
- *   { models: {...}, phases: [...], configs: [...], roles: {...}, profiles: {...} }
+ *   { models: {...}, providers: [...], availability: {...},
+ *     phases: [...], configs: [...], roles: {...}, profiles: {...} }
  *
  * Invalidation safety: each loader call captures the current
  * `loadGeneration`; if `invalidateMemoryCache()` runs while the fetch is
@@ -245,25 +295,13 @@ export async function loadAll() {
   // the module-level `inflight = null` cannot turn the `await` below
   // into `await null` (which would resolve to `undefined`).
   const myInflight = (async () => {
-    const results = await Promise.all(DATA_FILES.map(fetchJson));
-    /** @type {Object} */
-    const composed = {};
-    for (let i = 0; i < DATA_FILES.length; i++) {
-      const path = DATA_FILES[i];
-      const key = FILE_TO_KEY[path];
-      const payloadKey = FILE_TO_PAYLOAD_KEY[path];
-      const raw = results[i];
-      // Extract the inner payload so callers get clean objects.
-      //   { _meta: {...}, models: {glm52: ...} } → {glm52: ...}
-      //   { _meta: {...}, configs: [{...}] }    → [{...}]
-      //   { _meta: {...}, roles: {...} }        → {...}
-      composed[key] = raw && typeof raw === 'object' && payloadKey in raw
-        ? raw[payloadKey]
-        : raw;
-    }
+    const results = await Promise.all(DATA_FILES.map(([path]) => fetchJson(path)));
+    // Validate + compose (extracts inner payloads, checks the models and
+    // registry source schemas, builds `availability` with no inference).
+    const { data: composed, sourceSchemaVersions } = composePayload(results);
     // Only persist to sessionStorage if no invalidation happened during
     // the fetch — otherwise we'd overwrite fresh data with stale.
-    if (myGeneration === loadGeneration) writeCache(composed);
+    if (myGeneration === loadGeneration) writeCache(composed, sourceSchemaVersions);
     return composed;
   })();
   inflight = myInflight;

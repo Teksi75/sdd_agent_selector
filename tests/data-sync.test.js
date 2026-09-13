@@ -39,8 +39,14 @@ class FakeStorage {
 
 const freshFiles = {
   'data/models.json': {
-    _meta: { schemaVersion: 1, lastSynced: '2026-07-04', source: 'manual', nextSync: '2026-07-09' },
-    models: { glm52: { name: 'GLM-5.2' } },
+    _meta: { schemaVersion: 5, lastSynced: '2026-07-04', source: 'manual', nextSync: '2026-07-09' },
+    models: { glm52: { name: 'GLM-5.2', availability: { 'opencode-go': true } } },
+  },
+  'data/providers.json': {
+    _meta: { schemaVersion: 1 },
+    providers: [
+      { id: 'opencode-go', name: 'Opencode Go', tier: 'Go', url: 'https://opencode.ai/docs/es/go/', updated: '2026-09-12' },
+    ],
   },
   'data/phases.json': {
     _meta: { schemaVersion: 1 },
@@ -151,16 +157,17 @@ describe('data-sync — refresh() success path', () => {
     delete globalThis.fetch;
   });
 
-  test('refresh() fetches all 5 files and updates sessionStorage', async () => {
+  test('refresh() fetches all 6 files and updates sessionStorage', async () => {
     const { refresh } = await import('../js/services/data-sync.js');
     const result = await refresh();
     expect(result.ok).toBe(true);
-    expect(result.files).toBe(5);
+    expect(result.files).toBe(6);
     // sessionStorage was updated.
     const cached = sessionStorage.getItem('sdd-models-v6');
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    expect(parsed.schemaVersion).toBe(4);
+    expect(parsed.schemaVersion).toBe(5);
+    expect(parsed.sourceSchemaVersions).toEqual({ models: 5, providers: 1 });
     expect(parsed.data.models.glm52.name).toBe('GLM-5.2');
   });
 
@@ -177,6 +184,7 @@ describe('data-sync — refresh() success path', () => {
       expect(captured).not.toBeNull();
       expect(captured.type).toBe('sdd-data-refreshed');
       expect(captured.detail).toHaveProperty('lastSynced');
+      expect(captured.detail.files).toBe(6);
     } finally {
       window.removeEventListener('sdd-data-refreshed', handler);
     }
@@ -204,7 +212,7 @@ describe('data-sync — refresh() success path', () => {
     expect(events[0].phase).toBe('start');
     expect(typeof events[0].source).toBe('string');
     expect(events[1].phase).toBe('success');
-    expect(events[1].files).toBe(5);
+    expect(events[1].files).toBe(6);
     expect(events[1].lastSynced).toBe('2026-07-04');
   });
 
@@ -217,7 +225,49 @@ describe('data-sync — refresh() success path', () => {
     // around each onProgress call in data-sync. The refresh itself
     // should still succeed.
     expect(result.ok).toBe(true);
-    expect(result.files).toBe(5);
+    expect(result.files).toBe(6);
+  });
+});
+
+describe('data-sync — descriptor + validation gates (V5)', () => {
+  beforeEach(async () => {
+    globalThis.sessionStorage = new FakeStorage();
+    mockFetchSuccess(freshFiles);
+    vi.resetModules();
+    const loader = await import('../js/services/data-loader.js');
+    loader.clearCache();
+  });
+  afterEach(() => {
+    delete globalThis.sessionStorage;
+    delete globalThis.fetch;
+  });
+
+  test('refresh() fetches the same 6 paths as the loader DATA_FILES descriptor', async () => {
+    const { refresh } = await import('../js/services/data-sync.js');
+    const { DATA_FILES } = await import('../js/services/data-loader.js');
+    const result = await refresh({ baseUrl: 'https://example.test/data/' });
+    expect(result.files).toBe(6);
+    const fetched = globalThis.fetch.mock.calls.map(([url]) => String(url).split('/').pop());
+    expect(fetched).toEqual(DATA_FILES.map(([path]) => path.split('/').pop()));
+  });
+
+  test('refresh() with an invalid registry does NOT overwrite the previous cache', async () => {
+    const { refresh } = await import('../js/services/data-sync.js');
+    // First refresh writes a valid cache.
+    await refresh();
+    const before = sessionStorage.getItem('sdd-models-v6');
+    // Second refresh gets an invalid registry → validation must reject
+    // BEFORE any cache write, keeping the previous envelope byte-identical.
+    mockFetchSuccess({
+      ...freshFiles,
+      'data/providers.json': {
+        _meta: { schemaVersion: 2 },
+        providers: freshFiles['data/providers.json'].providers,
+      },
+    });
+    const broken = await refresh();
+    expect(broken.ok).toBe(false);
+    expect(sessionStorage.getItem('sdd-models-v6')).toBe(before);
   });
 });
 
@@ -301,6 +351,8 @@ describe('data-sync — refresh() failure path', () => {
 describe('data-loader — legacy cache fallback', () => {
   const legacyData = {
     models: { legacyModel: { name: 'LEGACY' } },
+    providers: [],
+    availability: {},
     phases: [],
     configs: [],
     roles: {},
@@ -323,7 +375,7 @@ describe('data-loader — legacy cache fallback', () => {
     const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
     sessionStorage.setItem(
       LEGACY_CACHE_KEYS[0],
-      JSON.stringify({ schemaVersion: 4, timestamp: Date.now(), data: legacyData })
+      JSON.stringify({ schemaVersion: 5, timestamp: Date.now(), data: legacyData })
     );
     const [data, concurrent] = await Promise.all([loadAll(), loadAll()]);
     expect(globalThis.fetch).toHaveBeenCalled();

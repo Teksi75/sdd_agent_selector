@@ -13,7 +13,7 @@
 //   2. Warning case — gentle-orchestrator with minReasoning 95 + a
 //      dataset where no model qualifies
 
-import { describe, test, expect, beforeEach } from 'vitest';
+import { describe, test, expect, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -356,5 +356,47 @@ describe('justification-ui — V5+ critique v3 P1-3 soft-summary banner', () => 
     // Limpiamos el mock para no contaminar los tests siguientes.
     vi.doUnmock('../js/components/config-selector.js');
     vi.resetModules();
+  });
+});
+// V5 Slice 3 — empty eligible set yields 18 stable warning cards; the export
+// carries the active-providers header and only visible assignments.
+describe('justification-ui — V5 Slice 3 unassigned + filtered export', () => {
+  const CTX = {
+    providerIds: ['alpha', 'beta'],
+    providerNames: ['Alpha', 'Beta'],
+    timestamp: '2026-09-12T00:00:00.000Z',
+  };
+
+  test('18 cards warning con todos los assignments unassigned', async () => {
+    ({ render } = await import('../js/components/justification-ui.js'));
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) assignments[agent] = { key: null, reason: 'filtro vacío' };
+    const summary = render(target, assignments, ROLE_MATRIX, {});
+    expect(summary.cards).toBe(18);
+    expect(summary.withoutAssignment).toBe(18);
+    const cards = target.querySelectorAll('.justification-card[data-has-assignment="false"]');
+    expect(cards.length).toBe(18);
+  });
+
+  test('export default: primera línea con scope + providers activos', async () => {
+    ({ render } = await import('../js/components/justification-ui.js'));
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const base = { key: 'shared', model: { name: 'Shared Model', tier: 'high' }, score: 85, cost: 0.014, effectiveMaxCost: 0.0175, alternatives: [] };
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) assignments[agent] = base;
+    render(target, assignments, ROLE_MATRIX, { shared: base.model }, { exportContext: CTX });
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    target.querySelector('[data-format-id="copy-md"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const captured = writeText.mock.calls[0][0];
+    expect(captured.split('\n')[0]).toBe(
+      '<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="2026-09-12T00:00:00.000Z" -->'
+    );
+    expect(captured).toContain('Shared Model');
   });
 });

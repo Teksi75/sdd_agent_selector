@@ -2,7 +2,7 @@
 // Phase 3 — auto-sync service.
 //
 // Contract (per design.md "Sync Service" + spec.md "Auto-Sync"):
-//   - refresh()         → fetches the 5 data files from the public raw URL,
+//   - refresh()         → fetches the 6 data files from the public raw URL,
 //                          updates sessionStorage cache (via data-loader),
 //                          emits a "sdd-data-refreshed" CustomEvent on success,
 //                          and falls back to cached data + console.warn on failure.
@@ -19,7 +19,7 @@
 //   warning banner surfaces the staleness until the data repo ships.
 //
 // Storage shape (delegated to data-loader): sessionStorage key
-//   `sdd-models-v1` carries `{ schemaVersion, timestamp, data }`.
+//   `sdd-models-v6` carries `{ schemaVersion, sourceSchemaVersions, timestamp, data }`.
 //
 // The CustomEvent detail carries `{ lastSynced, source, files }` so
 //   consumers (e.g., app.js forced-refresh re-validation) can react
@@ -28,8 +28,10 @@
 import {
   clearCache,
   invalidateMemoryCache,
+  composePayload,
   CACHE_KEY,
   CURRENT_SCHEMA_VERSION,
+  DATA_FILES,
 } from './data-loader.js';
 
 /**
@@ -51,19 +53,9 @@ export const DEFAULT_DATA_URL =
  */
 export const STALENESS_THRESHOLD_DAYS = 7;
 
-/**
- * The 5 files the sync service refreshes. Order is preserved from
- * data-loader so the cached payload shape is identical.
- *
- * @type {string[]}
- */
-const DATA_FILES = Object.freeze([
-  'data/models.json',
-  'data/phases.json',
-  'data/configs.json',
-  'data/agent-roles.json',
-  'data/agent-request-profiles.json',
-]);
+// V5: the file list is the loader's exported DATA_FILES descriptor — both
+// paths MUST fetch the same 6 files, so the single source of truth lives in
+// data-loader.js and this service just consumes it.
 
 /**
  * Resolve the cache backend (sessionStorage). Mirrors the helper in
@@ -200,8 +192,9 @@ function readCache() {
  * the refresh flow.
  *
  * @param {Object} data
+ * @param {{models: number, providers: number}} sourceSchemaVersions
  */
-function writeCache(data) {
+function writeCache(data, sourceSchemaVersions) {
   const backend = cacheBackend();
   if (!backend) return;
   try {
@@ -209,6 +202,7 @@ function writeCache(data) {
       CACHE_KEY,
       JSON.stringify({
         schemaVersion: CURRENT_SCHEMA_VERSION,
+        sourceSchemaVersions,
         timestamp: Date.now(),
         data,
       })
@@ -219,38 +213,7 @@ function writeCache(data) {
 }
 
 /**
- * Extract the inner payload from a `{_meta, <key>: ...}` shape so the
- * cached payload mirrors the data-loader contract.
- *
- * @param {Object} raw
- * @param {string} key
- * @returns {*}
- */
-function extractPayload(raw, key) {
-  if (!raw || typeof raw !== 'object') return raw;
-  if (key in raw) return raw[key];
-  return raw;
-}
-
-/**
- * Compose the 5 file results into the data-loader payload shape and
- * extract the inner payload for each so the consumer gets clean shapes.
- *
- * @param {Object[]} results - one entry per DATA_FILES, in order
- * @returns {Object}
- */
-function composePayload(results) {
-  const keys = ['models', 'phases', 'configs', 'roles', 'profiles'];
-  const out = {};
-  for (let i = 0; i < DATA_FILES.length; i++) {
-    const key = keys[i];
-    out[key] = extractPayload(results[i], key);
-  }
-  return out;
-}
-
-/**
- * Refresh the 5 data files from the upstream URL. On success: update
+ * Refresh the 6 data files from the upstream URL. On success: update
  * sessionStorage, invalidate the data-loader in-memory cache (so the
  * next `loadAll()` call picks up the fresh data), and dispatch a
  * `sdd-data-refreshed` CustomEvent on `window` so UI components can
@@ -296,7 +259,7 @@ export async function refresh(options) {
   }
 
   try {
-    const urls = DATA_FILES.map((file) => resolveUrl(file, baseUrl));
+    const urls = DATA_FILES.map(([file]) => resolveUrl(file, baseUrl));
     const results = await Promise.all(urls.map((u) => doFetch(u).then((r) => {
       if (!r || !r.ok) {
         throw new Error(`Failed to fetch ${u}: ${r?.status || 'no-response'} ${r?.statusText || ''}`);
@@ -304,8 +267,10 @@ export async function refresh(options) {
       return r.json();
     })));
 
-    const composed = composePayload(results);
-    writeCache(composed);
+    // Same validation + join as the boot loader — throws BEFORE any cache
+    // write, so a broken registry/race keeps the previous envelope intact.
+    const { data: composed, sourceSchemaVersions } = composePayload(results);
+    writeCache(composed, sourceSchemaVersions);
     // Invalidate data-loader's in-memory memo (NOT sessionStorage — we just
     //   wrote fresh data to it; clearing it would erase the refresh). The
     //   next loadAll() call will re-read sessionStorage and return the new

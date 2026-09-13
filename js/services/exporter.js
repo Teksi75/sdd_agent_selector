@@ -18,19 +18,63 @@
 //
 // All copy is in rioplatense Spanish to match the rest of the page.
 
+/* ─────────────────────────── export context ─────────────────────────── */
+
+/**
+ * Normalize an export context. `scope` defaults to `filtered`; a
+ * `full-catalog` export MUST be requested explicitly (V5 Slice 3 — the
+ * exporter never infers it from an empty eligible set).
+ *
+ * @param {{ scope?: string, providerIds?: string[], providerNames?: string[], timestamp?: string }} [context]
+ * @returns {{ scope: 'filtered'|'full-catalog', providerIds: string[], providerNames: string[], timestamp: string }}
+ */
+export function exportMetadata(context) {
+  const ctx = context || {};
+  return {
+    scope: ctx.scope === 'full-catalog' ? 'full-catalog' : 'filtered',
+    providerIds: Array.isArray(ctx.providerIds) ? ctx.providerIds.slice() : [],
+    providerNames: Array.isArray(ctx.providerNames) ? ctx.providerNames.slice() : [],
+    timestamp:
+      typeof ctx.timestamp === 'string' && ctx.timestamp.length > 0
+        ? ctx.timestamp
+        : new Date().toISOString(),
+  };
+}
+
+/**
+ * Canonical first line for every markdown/text export:
+ * `<!-- sdd-export scope=filtered providers="Alpha, Beta" timestamp="..." -->`
+ *
+ * @param {object} [context]
+ * @returns {string}
+ */
+export function exportHeader(context) {
+  const meta = exportMetadata(context);
+  const providers = meta.providerNames.map((n) => String(n).replace(/"/g, "'")).join(', ');
+  return `<!-- sdd-export scope=${meta.scope} providers="${providers}" timestamp="${meta.timestamp}" -->`;
+}
+
 /* ─────────────────────────── format functions ─────────────────────────── */
 
 /**
- * Pretty-print a value as JSON with stable key ordering. Falls back to
- * a stringified version on circular refs (shouldn't happen, but safer).
+ * Pretty-print a value as JSON with stable key ordering. When `value` is a
+ * plain object the `_export` metadata block is inserted as the FIRST
+ * property so downstream tooling can read the scope/providers/timestamp
+ * without scanning the payload. Falls back to a stringified version on
+ * circular refs (shouldn't happen, but safer).
  *
  * @param {any} value
+ * @param {object} [context] - export context (scope/providers/timestamp)
  * @returns {string}
  */
-export function toJSON(value) {
+export function toJSON(value, context) {
+  const payload =
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? { _export: exportMetadata(context), ...value }
+      : value;
   const seen = new WeakSet();
   return JSON.stringify(
-    value,
+    payload,
     (k, v) => {
       if (typeof v === 'object' && v !== null) {
         if (seen.has(v)) return '[Circular]';
@@ -82,6 +126,7 @@ export function markdownTable(headers, rows) {
 export function agentsMarkdown(assignments, options) {
   const opts = options || {};
   const today = opts.now instanceof Date ? opts.now.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
+  const header = exportHeader(opts.context);
   const blocks = [];
   for (const a of assignments || []) {
     const m = a.model || {};
@@ -103,7 +148,7 @@ export function agentsMarkdown(assignments, options) {
       `_role:_ ${role}  ·  _score:_ ${scoreCheck}  ·  _cost:_ ${costCheck}${fallback}`
     );
   }
-  return `# SDD Agent Assignments (${today})\n\n${blocks.join('\n\n')}\n`;
+  return `${header}\n# SDD Agent Assignments (${today})\n\n${blocks.join('\n\n')}\n`;
 }
 
 /* ─────────────────────────── browser actions ─────────────────────────── */

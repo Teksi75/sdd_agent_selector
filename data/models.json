@@ -2,7 +2,7 @@
   "_meta": {
     "lastSynced": "2026-09-10",
     "nextSync": "2026-09-15",
-    "schemaVersion": 4,
+    "schemaVersion": 5,
     "scrapers": {
       "benchlm": {
         "lastRun": "2026-07-17"
@@ -17,6 +17,7 @@
   },
   "models": {
     "glm52": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5.2",
       "effort": "max",
       "arena": 1595,
@@ -103,6 +104,7 @@
       "pricingSource": "artificialanalysis"
     },
     "glm52NonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5.2 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -136,6 +138,7 @@
       ]
     },
     "qwen37max": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
       "name": "Qwen3.7 Max",
       "effort": "max",
       "arena": 1680,
@@ -184,6 +187,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "glm51": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5.1",
       "effort": "max",
       "arena": 1532,
@@ -231,6 +235,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "glm51NonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5.1 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "legacy",
@@ -262,6 +267,7 @@
       ]
     },
     "minimaxm3": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": true, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "MiniMax M3",
       "effort": "max",
       "arena": 1521,
@@ -309,6 +315,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "kimik27c": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K2.7 Code",
       "effort": "max",
       "arena": 1510,
@@ -368,6 +375,7 @@
       "pricingSource": "artificialanalysis"
     },
     "kimik3": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K3",
       "effort": "max",
       "arena": 1486,
@@ -436,6 +444,7 @@
       "pricingSource": "artificialanalysis"
     },
     "kimik3Low": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K3 (low)",
       "effort": "low",
       "lifecycle": "active",
@@ -469,6 +478,7 @@
       ]
     },
     "kimik25": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K2.5",
       "effort": "max",
       "arena": 1400,
@@ -521,6 +531,7 @@
       "pricingSource": "artificialanalysis"
     },
     "kimik25NonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K2.5 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -552,6 +563,7 @@
       ]
     },
     "kimik26": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K2.6",
       "effort": "max",
       "arena": null,
@@ -599,6 +611,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "kimik26NonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": true, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Kimi K2.6 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -630,6 +643,7 @@
       ]
     },
     "deepseekv4p": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Pro",
       "effort": "max",
       "arena": 1462,
@@ -677,6 +691,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "mimo25pro": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "MiMo V2.5 Pro",
       "effort": "max",
       "arena": 1468,
@@ -724,6 +739,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "mimo25proNonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "MiMo-V2.5-Pro (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -755,6 +771,7 @@
       ]
     },
     "qwen37plus": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
       "name": "Qwen3.7 Plus",
       "effort": "max",
       "arena": null,
@@ -803,6 +820,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "qwen36plus": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
       "name": "Qwen3.6 Plus",
       "effort": "max",
       "arena": 1464,
@@ -851,6 +869,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "minimaxm27": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": true, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "MiniMax M2.7",
       "effort": "max",
       "arena": 1395,
@@ -899,6 +918,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "mimo25": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "MiMo V2.5",
       "effort": "max",
       "arena": 1435,
@@ -946,6 +966,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "minimaxm25": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": true, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "MiniMax M2.5",
       "effort": "max",
       "arena": null,
@@ -989,6 +1010,7 @@
       "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)"
     },
     "deepseekv4f": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash",
       "effort": "max",
       "arena": null,
@@ -1036,6 +1058,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "deepseekv4fNonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -1067,6 +1090,7 @@
       ]
     },
     "glm5": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5",
       "effort": "max",
       "arena": null,
@@ -1108,6 +1132,7 @@
       "notes": "AA sync 2026-08-17: omitted term, codingIndex, mathIndex (not returned by API; never synthesized)"
     },
     "glm5NonReasoning": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "legacy",
@@ -1139,6 +1164,7 @@
       ]
     },
     "opus48": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Opus 4.8",
       "effort": "max",
       "arena": 1567,
@@ -1184,6 +1210,7 @@
       ]
     },
     "gpt55": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "gpt-5.5",
       "effort": "xhigh",
       "arena": 2123,
@@ -1229,6 +1256,7 @@
       ]
     },
     "gpt55High": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.5 (high)",
       "effort": "high",
       "lifecycle": "reference",
@@ -1262,6 +1290,7 @@
       ]
     },
     "gpt55Medium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.5 (medium)",
       "effort": "medium",
       "lifecycle": "reference",
@@ -1295,6 +1324,7 @@
       ]
     },
     "gpt55Low": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.5 (low)",
       "effort": "low",
       "lifecycle": "reference",
@@ -1328,6 +1358,7 @@
       ]
     },
     "gpt55NonReasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.5 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "reference",
@@ -1361,6 +1392,7 @@
       ]
     },
     "gpt56terra": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Terra",
       "effort": "max",
       "arena": 2200,
@@ -1417,6 +1449,7 @@
       "pricingSource": "artificialanalysis"
     },
     "gpt56terraXhigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Terra (xhigh)",
       "effort": "xhigh",
       "lifecycle": "active",
@@ -1450,6 +1483,7 @@
       ]
     },
     "gpt56terraHigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Terra (high)",
       "effort": "high",
       "lifecycle": "active",
@@ -1483,6 +1517,7 @@
       ]
     },
     "gpt56terraMedium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Terra (medium)",
       "effort": "medium",
       "lifecycle": "active",
@@ -1516,6 +1551,7 @@
       ]
     },
     "gpt56terraLow": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Terra (low)",
       "effort": "low",
       "lifecycle": "active",
@@ -1549,6 +1585,7 @@
       ]
     },
     "gpt56terraNonReasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Terra (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -1582,6 +1619,7 @@
       ]
     },
     "gpt56luna": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Luna",
       "effort": "max",
       "arena": null,
@@ -1641,6 +1679,7 @@
       "timeToFirstAnswerTokenSeconds": 76.41
     },
     "gpt56lunaXhigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Luna (xhigh)",
       "effort": "xhigh",
       "lifecycle": "active",
@@ -1674,6 +1713,7 @@
       ]
     },
     "gpt56lunaHigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Luna (high)",
       "effort": "high",
       "lifecycle": "active",
@@ -1707,6 +1747,7 @@
       ]
     },
     "gpt56lunaMedium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Luna (medium)",
       "effort": "medium",
       "lifecycle": "active",
@@ -1740,6 +1781,7 @@
       ]
     },
     "gpt56lunaLow": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Luna (low)",
       "effort": "low",
       "lifecycle": "active",
@@ -1773,6 +1815,7 @@
       ]
     },
     "gpt56lunaNonReasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Luna (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -1806,6 +1849,7 @@
       ]
     },
     "gpt56sol": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Sol",
       "effort": "max",
       "benchlm": {
@@ -1851,6 +1895,7 @@
       "pricingSource": "artificialanalysis"
     },
     "gpt56solXhigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Sol (xhigh)",
       "effort": "xhigh",
       "lifecycle": "active",
@@ -1884,6 +1929,7 @@
       ]
     },
     "gpt56solHigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Sol (high)",
       "effort": "high",
       "lifecycle": "active",
@@ -1917,6 +1963,7 @@
       ]
     },
     "gpt56solMedium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Sol (medium)",
       "effort": "medium",
       "lifecycle": "active",
@@ -1950,6 +1997,7 @@
       ]
     },
     "gpt56solLow": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Sol (low)",
       "effort": "low",
       "lifecycle": "active",
@@ -1983,6 +2031,7 @@
       ]
     },
     "gpt56solNonReasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.6 Sol (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -2016,6 +2065,7 @@
       ]
     },
     "gpt6astra": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-6 Astra",
       "tier": "high",
       "effort": "max",
@@ -2041,6 +2091,7 @@
       ]
     },
     "gpt6astraLow": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-6 Astra (low)",
       "tier": "high",
       "effort": "low",
@@ -2066,6 +2117,7 @@
       ]
     },
     "gpt54": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "gpt-5.4",
       "effort": "xhigh",
       "benchlm": {
@@ -2116,6 +2168,7 @@
       "pricingSource": "artificialanalysis"
     },
     "gpt54Low": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.4 (low)",
       "effort": "low",
       "lifecycle": "active",
@@ -2147,6 +2200,7 @@
       ]
     },
     "gpt54NonReasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GPT-5.4 (Non-reasoning)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -2178,6 +2232,7 @@
       ]
     },
     "claudeFable5": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Fable 5",
       "effort": "max",
       "benchlm": {
@@ -2223,6 +2278,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "sonnet5": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Sonnet 5",
       "effort": "max",
       "benchlm": {
@@ -2272,6 +2328,7 @@
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)"
     },
     "sonnet5High": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Sonnet 5 (Adaptive Reasoning, High Effort)",
       "effort": "high",
       "lifecycle": "active",
@@ -2303,6 +2360,7 @@
       ]
     },
     "sonnet5Xhigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Sonnet 5 (Adaptive Reasoning, Xhigh Effort)",
       "effort": "xhigh",
       "lifecycle": "active",
@@ -2334,6 +2392,7 @@
       ]
     },
     "sonnet5Medium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Sonnet 5 (Adaptive Reasoning, Medium Effort)",
       "effort": "medium",
       "lifecycle": "active",
@@ -2365,6 +2424,7 @@
       ]
     },
     "sonnet5Low": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Sonnet 5 (Adaptive Reasoning, Low Effort)",
       "effort": "low",
       "lifecycle": "active",
@@ -2396,6 +2456,7 @@
       ]
     },
     "sonnet5NonReasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Sonnet 5 (Non-reasoning, High Effort)",
       "effort": "non-reasoning",
       "lifecycle": "active",
@@ -2429,6 +2490,7 @@
       ]
     },
     "haiku45": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Haiku 4.5",
       "effort": "non-reasoning",
       "benchlm": {
@@ -2473,6 +2535,7 @@
       "notes": "AA sync 2026-08-17: omitted term, codingIndex (not returned by API; never synthesized)"
     },
     "haiku45Reasoning": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude 4.5 Haiku (Reasoning)",
       "effort": "max",
       "lifecycle": "active",
@@ -2507,6 +2570,7 @@
       ]
     },
     "claudeOpus5": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Opus 5",
       "effort": "max",
       "arena": null,
@@ -2556,6 +2620,7 @@
       "pricingSource": "artificialanalysis"
     },
     "claudeOpus5High": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Opus 5 (Adaptive Reasoning, High Effort)",
       "effort": "high",
       "lifecycle": "active",
@@ -2589,6 +2654,7 @@
       ]
     },
     "claudeOpus5Xhigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Opus 5 (Adaptive Reasoning, Xhigh Effort)",
       "effort": "xhigh",
       "lifecycle": "active",
@@ -2622,6 +2688,7 @@
       ]
     },
     "claudeOpus5Medium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Opus 5 (Adaptive Reasoning, Medium Effort)",
       "effort": "medium",
       "lifecycle": "active",
@@ -2655,6 +2722,7 @@
       ]
     },
     "claudeOpus5Low": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Claude Opus 5 (Adaptive Reasoning, Low Effort)",
       "effort": "low",
       "lifecycle": "active",
@@ -2688,6 +2756,7 @@
       ]
     },
     "opencodeHy3": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Opencode Hy3",
       "effort": "max",
       "arena": 1450,
@@ -2740,6 +2809,7 @@
       "pricingSource": "artificialanalysis"
     },
     "grok45": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": true, "deepseek": false, "meta": false },
       "name": "Grok 4.5",
       "effort": "high",
       "benchlm": {
@@ -2779,6 +2849,7 @@
       "pricingSource": "artificialanalysis"
     },
     "qwen38max": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
       "name": "Qwen3.8 Max",
       "effort": "max",
       "benchlm": {
@@ -2819,6 +2890,7 @@
       "pricingSource": "artificialanalysis"
     },
     "glm53": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5.3",
       "benchlm": {
         "score": null,
@@ -2845,6 +2917,7 @@
       ]
     },
     "deepseekv4prooffpeak": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Pro (Off-Peak)",
       "benchlm": {
         "score": null,
@@ -2868,6 +2941,7 @@
       ]
     },
     "deepseekv4propeak": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Pro (Peak)",
       "benchlm": {
         "score": null,
@@ -2891,6 +2965,7 @@
       ]
     },
     "deepseekv4flashoffpeak": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash (Off-Peak)",
       "benchlm": {
         "score": null,
@@ -2914,6 +2989,7 @@
       ]
     },
     "deepseekv4flashpeak": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash (Peak)",
       "benchlm": {
         "score": null,
@@ -2937,6 +3013,7 @@
       ]
     },
     "omenalpha": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Omen Alpha",
       "benchlm": {
         "score": null,
@@ -2963,6 +3040,7 @@
       ]
     },
     "glm53flash": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": true, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "GLM-5.3-Flash",
       "benchlm": {
         "score": null,
@@ -2989,6 +3067,7 @@
       ]
     },
     "longcat20": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "LongCat-2.0",
       "benchlm": {
         "score": null,
@@ -3015,6 +3094,7 @@
       ]
     },
     "musespark13contributor": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": true },
       "name": "Muse Spark 1.3 Contributor",
       "benchlm": {
         "score": null,
@@ -3042,6 +3122,7 @@
       "effort": "xhigh"
     },
     "musespark12contributor": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": true },
       "name": "Muse Spark 1.2 Contributor",
       "benchlm": {
         "score": null,
@@ -3069,6 +3150,7 @@
       "effort": "xhigh"
     },
     "qwen38flash": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": true, "xai": false, "deepseek": false, "meta": false },
       "name": "Qwen3.8 Flash",
       "benchlm": {
         "score": null,
@@ -3096,6 +3178,7 @@
       ]
     },
     "deepseekv4flashvisionexpoffpeak": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash Vision Exp (Off-Peak)",
       "benchlm": {
         "score": null,
@@ -3119,6 +3202,7 @@
       ]
     },
     "deepseekv4flashvisionexppeak": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash Vision Exp (Peak)",
       "benchlm": {
         "score": null,
@@ -3142,6 +3226,7 @@
       ]
     },
     "hy4preview": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Hy4 preview",
       "benchlm": {
         "score": null,
@@ -3168,6 +3253,7 @@
       ]
     },
     "deepseekv4flashvisionexp": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": true, "meta": false },
       "name": "DeepSeek V4 Flash Vision Exp",
       "benchlm": {
         "score": null,
@@ -3191,6 +3277,7 @@
       ]
     },
     "grok46": {
+      "availability": { "opencode-go": true, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
       "name": "Grok 4.6",
       "benchlm": {
         "score": null,
@@ -3204,7 +3291,7 @@
       "requestsPer5h": 169,
       "requestsPerWeek": 423,
       "requestsPerMonth": 845,
-      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation.",
+      "notes": "Auto-stubbed by scrape-opencode-prices on 2026-09-10. Pricing + rate limits from opencode Go. BenchLM/Arena/SWE/Terminal-Bench: pending curation. TODO(source:xai)",
       "sources": [
         {
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
