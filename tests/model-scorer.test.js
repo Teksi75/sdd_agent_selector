@@ -686,6 +686,76 @@ describe('model-scorer — role-designated reference soft fallback', () => {
   });
 });
 
+// V5 Slice 3 — boundary tests proving the scorer only ever returns members
+// of the pre-filtered set it is handed: result, role-designated fallback,
+// general cost-clearing fallback and alternatives. The signature stays
+// getBestFor(agent, models, roleMatrix, profiles, strategy) — the provider
+// filter is a caller-side pre-pass, never scorer awareness.
+describe('getBestFor — V5 Slice 3 eligible-set boundaries', () => {
+  const PASSED = {
+    a: {
+      name: 'A', tier: 'high', lifecycle: 'active',
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
+      input: 1, output: 3,
+    },
+    b: {
+      name: 'B', tier: 'balanced', lifecycle: 'active',
+      benchlm: { score: 60, verified: true, reliability: 0.8, categories: {} },
+      input: 0.5, output: 1,
+    },
+  };
+
+  test('la firma sigue siendo 5 parámetros (sin provider awareness)', () => {
+    expect(getBestFor.length).toBe(5);
+  });
+
+  test('resultado + alternatives quedan dentro del set pasado', () => {
+    const role = { 'sdd-apply': { minReasoning: 40, costRatio: 1.0, role: 'apply' } };
+    const res = getBestFor('sdd-apply', PASSED, role, {}, 'balanced');
+    expect(Object.keys(PASSED)).toContain(res.key);
+    expect(res.alternatives.length).toBeGreaterThan(0);
+    for (const alt of res.alternatives) {
+      expect(Object.keys(PASSED)).toContain(alt.key);
+    }
+  });
+
+  test('role-designated fallback queda dentro del set pasado', () => {
+    const passed = {
+      orchRef: {
+        name: 'Orch Ref', tier: 'high', lifecycle: 'active',
+        benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
+        input: 1, output: 3,
+      },
+    };
+    const role = {
+      orch: { minReasoning: 99, costRatio: 1.0, referenceModelId: 'orchRef', role: 'orch' },
+    };
+    const res = getBestFor('orch', passed, role, {}, 'balanced');
+    expect(res.key).toBe('orchRef');
+    expect(res.softFallback).toBe(true);
+  });
+
+  test('general cost-clearing fallback queda dentro del set pasado', () => {
+    const role = { 'sdd-design': { minReasoning: 99, costRatio: 1.0, role: 'design' } };
+    const res = getBestFor('sdd-design', PASSED, role, {}, 'balanced');
+    expect(res.softFallback).toBe(true);
+    expect(Object.keys(PASSED)).toContain(res.key);
+    for (const alt of res.alternatives) {
+      expect(Object.keys(PASSED)).toContain(alt.key);
+    }
+  });
+
+  test('un modelo excluido del set (aunque puntúe más alto) nunca se devuelve', () => {
+    const role = { 'sdd-verify': { minReasoning: 40, costRatio: 1.0, role: 'verify' } };
+    // ghost scores 100 but is NOT part of the passed set.
+    const res = getBestFor('sdd-verify', PASSED, role, {}, 'balanced');
+    expect(res.key).not.toBe('ghost');
+    for (const alt of res.alternatives) {
+      expect(alt.key).not.toBe('ghost');
+    }
+  });
+});
+
 // === Imports ===========================================================
 // Imports declared at the bottom so the test file is still readable top-down.
 
