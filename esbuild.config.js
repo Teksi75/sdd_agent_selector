@@ -87,8 +87,16 @@ function inlineHtml() {
   }
 
   const out = html
-    .replace('<!-- __INLINE_CSS__ -->', `<style>${css}</style>`)
-    .replace('<!-- __INLINE_JS__ -->', `<script type="module">${js}</script>`);
+    .replace('<!-- __INLINE_CSS__ -->', () => `<style>${css}</style>`)
+    .replace('<!-- __INLINE_JS__ -->', () => `<script type="module">${js}</script>`);
+  
+  // Replacer FUNCTIONS above (not template strings): bundle/CSS text may contain
+  // `$&`-style sequences (e.g. minified `let $` + `&&`), which String.replace
+  // would expand into match insertions, corrupting the inlined module with a
+  // fatal `<!--` (production blank page, 2026-09-14). Functions insert literally.
+  if (out.includes('<!-- __INLINE_CSS__ -->') || out.includes('<!-- __INLINE_JS__ -->')) {
+    throw new Error('dist/index.html still contains an __INLINE_ placeholder — refusing to write');
+  }
 
   // Refuse to ship a page with runtime CDN references. Defense in depth
   // — the workflow also re-checks.
