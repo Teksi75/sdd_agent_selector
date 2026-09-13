@@ -426,3 +426,60 @@ Fecha: 2026-09-14 · Rama: `feat/aa-only-s3b-activation` · Modo: worker-fallbac
 - **Evidencia**: RED por flips → GREEN; focused S3b 252/252 ejecutados en verde (único collect-fail pre-existente data-integrity/Node24); regresión 125/125; rollback S3b probado en ida (coherencia benchlm) y restaurado.
 - **Budget**: ~673 líneas review vs cap 400 → size:exception explícita de maintainer (el corte atómico no admite split sin shipear híbrido). Rollback: revertir activación + tests en un commit; nunca borrar II backfilleado.
 - **Notas de review**: model-card conserva display benchlm como dato inerte (fuera de superficies del slice); comentarios dark en ii-score.js intactos a propósito.
+
+---
+
+## S4 — Policy + docs — PR 6 (worker-fallback, rama `feat/aa-only-s4-docs`, base `7643bf3`)
+
+Fecha: 2026-09-14 · Modo: worker-fallback (sdd-apply launcher stalleado, parent-autorizado). Slice docs-only: cero cambios de código/tests productivos.
+
+- **Implementation status: 6.1 + 6.2 completas; 6.3 ejecutada con gate FAIL pre-existente (fuera de scope S4).** Canonical spec mergeada (worktree-only, sin commit por orden del parent); operator notes nuevas en `evidence/`; `pnpm test` rojo en 4 suites nunca flipeadas por S3b (pre-existente sobre la base, docs no pueden causarlo); `pnpm build` verde.
+- **Delivery status: commit DOCS ONLY en la rama S4** (`evidence/operator-notes-day-one-churn.md` nuevo + este archivo + 3 checkboxes en `tasks.md`). `openspec/specs/model-picker/spec.md` queda **UNCOMMITTED siempre** (lleva dos changes' syncs hasta que la stack vieja mergee). Dirt humano pre-existente (`.atl/*`, `.gitignore`, `.pi/`, `archive/`) intacto y fuera del commit.
+
+### Completed tasks (persisted checkboxes `[x]` in `tasks.md`)
+
+| Task | Summary | Persisted |
+|---|---|---|
+| 6.1 | Canonical sync: 3 ADDED + 13 MODIFIED con nota `weighted-sum → benchlm-clamp → II-only` + REMOVED records; layering limpio, cero colisiones; 39 headers, sin duplicados; hunks prior-sync intactos | `[x]` |
+| 6.2 | `evidence/operator-notes-day-one-churn.md` nuevo (churn day-one, D1/D2/D3/D5, rollback S3b→S3a→S2b→S2a→S1); `docs/` solo tiene `legacy/`, sin `CHANGELOG` — nombrado, no escrito fuera de superficies | `[x]` |
+| 6.3 | `pnpm test` + `pnpm build` ejecutados y registrados (abajo); rollback documentado en la nota 6.2 §6. Gate test FAIL pre-existente — ver hallazgo | `[x]` (ejecución+registro; gate rojo pre-existente) |
+
+### 6.1 — Coherence evidence
+
+- `grep -c '^### Requirement:'` → **39** (34 prior-sync + 3 ADDED + 2 REMOVED-records); cero headers duplicados; cero escenarios muertos fuera de `## REMOVED` (solo mención nominal en línea 1499, dentro de REMOVED).
+- Único título de escenario repetido: `"Unknown newcomer is invisible until curated"` en dos requirements (AA Alias Mass-Mapping nuevo + New Chart Models Fail-Closed previo) — duplicación heredada del propio delta (verbatim), no error de merge; requiere disambiguation del parent/verify si molesta.
+- Prior-sync intact proof: hunks de diff vs HEAD en secciones no tocadas idénticos (spot-check Twin Judge filtering pre-pass verbatim; Pricing Chart 0 refs II); `git diff --numstat` spec.md 601+/48- (pre-S4) → 871+/106- (post-S4); ediciones solo en los 13 bloques MODIFIED + append (cada `edit` con oldText único, 1 bloque reportado).
+- Normalizaciones de wrap heredadas del delta (ej. Schema-versioned a una línea, loader DATA_FILES a una línea): palabras idénticas, sin rewording de contenido prior-sync.
+
+### 6.2 — Files
+
+- NUEVO: `openspec/changes/2026-09-14-aa-only-scoring/evidence/operator-notes-day-one-churn.md` (85 líneas).
+- Docs-convención (read-only): `docs/` = solo `legacy/`; sin `CHANGELOG*` en root.
+
+### 6.3 — Exact gate outputs (Node local v24.20.0; CI Node 20 gobierna)
+
+| Command | Observed |
+|---|---|
+| `pnpm test` | **FAIL — 7 failed / 39 passed files; 13 failed / 646 passed tests (659)**. Falla ×archivo: `availability-matrix`, `data-integrity`, `propagate-provider-availability` = **collect FAIL pre-existente conocido** (`node:vm` SyntaxError, nunca parchear); + `aa-signal` (2 tests Con-AA/Sin-AA sections), `lifecycle` (4 tests), `provider-filter-integration` (3 tests), `twin-judge` (4 tests) = **assertion FAILs pre-existentes sobre la base 7643bf3 bajo Node 24, fuera del set conocido**. Ninguna de esas 4 suites estuvo en el focused command de S3b (nunca flipeadas a II). Prueba de no-causalidad S4: `grep` confirma que ningún test bajo `tests/` lee `openspec/specs` ni `evidence/*.md` — el slice docs-only no puede alterar resultados vitest. Hallazgo para el verify whole-change, no bloqueador S4 (prohibido parchear). |
+| `pnpm build` | **PASS** — esbuild 4/4 steps, `dist/index.html` + `dist/data/` escritos (`dist/` gitignored, sin dirt). |
+
+### Files changed (slice scope)
+
+| Path | Estado |
+|---|---|
+| `openspec/specs/model-picker/spec.md` | EDITADO, **UNCOMMITTED siempre** (+270 neto aprox vs pre-S4: 871+/106- vs 601+/48-) |
+| `evidence/operator-notes-day-one-churn.md` | NUEVO, committed |
+| `apply-progress.md` (este archivo) | ESTA sección, committed |
+| `tasks.md` | 3 checkboxes 6.1–6.3, committed |
+
+Cero cambios en `data/`, `js/`, `css/`, `scripts/`, `tests/`. `git status` post-commit debe mostrar solo `M openspec/specs/model-picker/spec.md` (+ dirt humano pre-existente).
+
+### TDD Cycle Evidence (docs-only: sustitución por regla del parent)
+
+Skill `strict-tdd.md` leído; por orden explícita del parent (docs-only slice) evidencia = gate commands + diff review, **sin RED/GREEN** (no hay código productivo ni tests tocados). RED: not active — strict TDD was not activated for docs. GREEN: not active — validation is reported separately (6.3 outputs arriba).
+
+### Structured status (consumed / produced)
+
+- **Consumido:** tasks 6.1–6.3, delta `specs/model-picker/spec.md`, diseño §11/§12, rama nueva desde `7643bf3`, superficies permitidas (4 paths), budget 400, skill strict-tdd (excepción docs-only).
+- **Producido:** sync canónico worktree-only, operator notes, esta bitácora, 3 checkboxes, commit docs-only S4.
+- **Gate ask-on-risk:** 6.3 test FAIL excede el set ambiental conocido (3 collect) → `status: partial` + detalle de gate; decisión del parent (whole-change verify) — nunca inferir excepción ni parchear tests.
