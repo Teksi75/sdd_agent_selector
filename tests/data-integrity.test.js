@@ -638,7 +638,7 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
 //
 // The one-shot backfill of the AA 2026-09-13 chart is audited by BOTH sides:
 // the catalog (`data/models.json`) and the manifest of evidence
-// (`openspec/changes/2026-09-13-aa-intelligence-refresh/evidence/`). Every
+// (`openspec/changes/archive/2026-09-13-aa-intelligence-refresh/evidence/` — archived with the change). Every
 // manifest row must resolve to the exact catalog value plus its AA source
 // tuple; every catalog model carrying the AA 2026-09-13 tuple must be
 // enumerated in the manifest. No number without evidence, no evidence without
@@ -651,6 +651,7 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
     ROOT,
     'openspec',
     'changes',
+    'archive',
     '2026-09-13-aa-intelligence-refresh',
     'evidence',
     'aa-2026-09-13-backfill-manifest.md'
@@ -683,6 +684,44 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
     return rows;
   };
 
+  // S2a/S2b live-exact tables in our change's manifest (sections
+  // "## S2a live-exact rows" / "## S2b live-exact rows"): rows shaped
+  // | `catalogId` | `live-slug` | <finite II> |. Verdict/non-numeric rows
+  // and every other table are ignored by construction.
+  const parseNewManifestRows = (markdown) => {
+    const rows = [];
+    let active = false;
+    for (const rawLine of markdown.split(String.fromCharCode(10))) {
+      const line = rawLine.trim();
+      if (line.charAt(0) === '#') {
+        active = line.indexOf('S2a live-exact rows') !== -1 || line.indexOf('S2b live-exact rows') !== -1;
+        continue;
+      }
+      if (!active || !line.startsWith('|')) continue;
+      const cells = line.split('|').map((c) => c.trim());
+      if (cells.length !== 5) continue;
+      const id = (cells[1].match(/^`([A-Za-z0-9]+)`$/) || [])[1];
+      const slug = (cells[2].match(/^`([a-z0-9-]+)`$/) || [])[1];
+      const deStarred = cells[3].split('*').join('').trim();
+      let numPrefix = '';
+      for (const ch of deStarred) {
+        if ((ch >= '0' && ch <= '9') || ch === '.') numPrefix += ch;
+        else break;
+      }
+      const value = numPrefix === '' ? NaN : Number(numPrefix);
+      if (!id || !slug || !Number.isFinite(value)) continue;
+      rows.push({ modelId: id, slug, value });
+    }
+    return rows;
+  };
+  const AA_NEW_MANIFEST_PATH = join(
+    ROOT,
+    'openspec',
+    'changes',
+    '2026-09-14-aa-only-scoring',
+    'evidence',
+    'aa-live-manifest.md'
+  );
   const manifestRows = parseBackfillManifest(readFileSync(MANIFEST_PATH, 'utf-8'));
 
   test('the manifest enumerates every traced backfill number exactly once', () => {
@@ -729,10 +768,25 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
       )
       .map(([id]) => id)
       .sort();
-    const manifestIds = [...new Set(manifestRows.map((row) => row.modelId))].sort();
+    const newManifestRows = parseNewManifestRows(readFileSync(AA_NEW_MANIFEST_PATH, 'utf-8'));
+    const manifestIds = [...new Set([...manifestRows.map((row) => row.modelId), ...newManifestRows.map((row) => row.modelId)])].sort();
     expect(backfilled).toEqual(manifestIds);
   });
 
+  test('every S2a/S2b live-exact row resolves to the exact catalog II + AA tuple', () => {
+    const newRows = parseNewManifestRows(readFileSync(AA_NEW_MANIFEST_PATH, 'utf-8'));
+    expect(newRows.length).toBeGreaterThanOrEqual(60); // 43 S2a + 29 S2b finite rows (overlap allowed)
+    for (const row of newRows) {
+      const model = models[row.modelId];
+      expect(model, `${row.modelId} (S2 manifest row) must exist in data/models.json`).toBeDefined();
+      expect(model.intelligenceIndex, `${row.modelId}.intelligenceIndex`).toBe(row.value);
+      expect(model.sources, `${row.modelId}.sources`).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ url: 'https://artificialanalysis.ai/', date: '2026-09-13', scraper: 'scrape-artificialanalysis' }),
+        ])
+      );
+    }
+  });
   test('intelligenceIndex is finite-or-null catalog-wide, never a fabricated 0', () => {
     const covered = Object.entries(models).filter(([, model]) =>
       Object.hasOwn(model, 'intelligenceIndex')

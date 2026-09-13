@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // scripts/propagate-provider-availability.mjs
 // V5 deterministic authoring pass (design "Familias y herencia mecánica"):
 //
