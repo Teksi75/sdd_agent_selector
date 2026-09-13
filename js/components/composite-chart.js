@@ -12,10 +12,10 @@
 // Behavior (spec benchlm-rendering + design "Chart Rendering"):
 //   - Only active-lifecycle models (lifecycleOf(m) === 'active') are
 //     INCLUDED. Reference/legacy/benchmark-only models are excluded.
-//   - Bar color follows `model.tier` (high → emerald, balanced → indigo,
-//     budget → amber). Reference-tier models used to render rose, but
-//     tier 'reference' is no longer a candidate for the main bars
-//     (per the V5 GPT-demote change — see feat/demote-gpt-from-reference).
+//   - Every bar uses the SAME neutral fill (token `--composite-score-fill`,
+//     Tailwind indigo fallback). PR-B (effort-only) removed the per-tier
+//     colors, the tier DOM attribute, the tier text in the legend and the
+//     tier column of the markdown export.
 //   - Each row carries:
 //     * a bar fill (width = score / maxScore %) inside a track
 //     * a verified/estimated badge (verified=true → green, false → amber)
@@ -43,62 +43,39 @@ function _resetTokenCache() {
 }
 
 /**
- * Resolve the bar fill color for a tier. Tries the
- * `--composite-tier-{tier}` CSS custom property first (defined in
- * tokens.css), then falls back to a Tailwind utility class so the
- * chart renders correctly even when tokens.css has not been linked.
+ * Resolve the neutral bar fill shared by every bar. Tries the
+ * `--composite-score-fill` CSS custom property first (defined in
+ * tokens.css), then falls back to the indigo Tailwind utility class so
+ * the chart renders correctly even when tokens.css has not been linked.
  *
  * @param {Document} doc
- * @param {'high'|'balanced'|'budget'|'reference'} tier
  * @returns {{ value: string, tw: string }} `value` is the resolved CSS
  *   color (or '' when absent); `tw` is the Tailwind class used as fallback.
  */
-function barColor(doc, tier) {
-  const slug = tier === 'high' ? 'high' : tier === 'budget' ? 'budget' : tier === 'reference' ? 'reference' : 'balanced';
-  const twClass =
-    tier === 'high' ? 'bg-emerald-500' :
-    tier === 'budget' ? 'bg-amber-500' :
-    tier === 'reference' ? 'bg-rose-500/80' :
-    'bg-indigo-500';
-  const cacheKey = `${slug}|${doc === document ? 'dom' : 'test'}`;
+function neutralFill(doc) {
+  const cacheKey = doc === document ? 'dom' : 'test';
   if (cacheKey in _tokenCache) return _tokenCache[cacheKey];
   let value = '';
   try {
     const root = doc.documentElement ?? doc.body ?? null;
     if (root) {
-      const cssVar = getComputedStyle(root).getPropertyValue(
-        `--composite-tier-${slug}`
-      );
+      const cssVar = getComputedStyle(root).getPropertyValue('--composite-score-fill');
       value = cssVar ? cssVar.trim() : '';
     }
   } catch {
     // jsdom + computed-style fallback; keep empty.
   }
-  const out = { value, tw: twClass };
+  const out = { value, tw: 'bg-indigo-500' };
   _tokenCache[cacheKey] = out;
   return out;
 }
 
-/** Minimal HTML escaper. Keeps model names + tier names safe against XSS. */
+/** Minimal HTML escaper. Keeps model names safe against XSS. */
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     return map[ch];
   });
-}
-
-/**
- * Pick the tier tag for a model. Falls back to 'balanced' when the
- * field is missing or unrecognized. Reference-tier models are returned
- * as 'reference' so the bar color and data-tier attribute reflect it.
- *
- * @param {Object} m
- * @returns {'high'|'balanced'|'budget'|'reference'}
- */
-function tierOf(m) {
-  const t = m && m.tier;
-  if (t === 'high' || t === 'balanced' || t === 'budget' || t === 'reference') return t;
-  return 'balanced';
 }
 
 /**
@@ -198,13 +175,12 @@ function reliabilityDotsHtml(reliability) {
   return html;
 }
 
-/** Build one SCORED row's HTML. */
+/** Build one SCORED row's HTML (single neutral fill; no tier markup). */
 function barRowHtml(key, m, score, width, bgClass, bgValue) {
   const newBadge =
     m.isNew === true
       ? ' <span class="src-badge src-new ml-1">NEW</span>'
       : '';
-  const tierLabel = esc(tierOf(m));
   const fillStyle = bgValue ? ` style="transform:scaleX(${(width / 100).toFixed(4)});background-color:${esc(bgValue)}"` : ` style="transform:scaleX(${(width / 100).toFixed(4)})"`;
   const fillClass = bgValue ? 'bar-fill' : `bar-fill ${bgClass}`;
   const badge = badgeHtml(m.benchlm);
@@ -214,7 +190,7 @@ function barRowHtml(key, m, score, width, bgClass, bgValue) {
     ? m.benchlm.reliability.toFixed(2)
     : '0';
   return `
-    <div class="flex items-center gap-3" data-model-key="${esc(key)}" data-score="${score.toFixed(2)}" data-width="${width}" data-tier="${tierLabel}" data-verified="${verifiedAttr}" data-reliability="${reliabilityAttr}">
+    <div class="flex items-center gap-3" data-model-key="${esc(key)}" data-score="${score.toFixed(2)}" data-width="${width}" data-verified="${verifiedAttr}" data-reliability="${reliabilityAttr}">
       <div class="w-32 md:w-40 text-xs font-medium text-slate-200 truncate">${esc(m.name || key)}${newBadge}</div>
       <div class="flex items-center gap-2">${badge}${dots}</div>
       <div class="flex-1 bar-track rounded-full bg-slate-800/60 overflow-hidden h-3">
@@ -316,6 +292,8 @@ export function render(targetEl, models, _meta, options) {
 
   const maxScore = scored.length > 0 ? scored[0][2] : null;
   const doc = targetEl.ownerDocument ?? document;
+  // PR-B: one neutral fill for every bar (resolved once per render).
+  const { value: fillValue, tw: fillClass } = neutralFill(doc);
   const groupedScored = splitByAaSignal(scored, ([, m]) => m);
   const groupedUnavailable = splitByAaSignal(unavailable, ([, m]) => m);
   const withAaRows = [...groupedScored.withAa, ...groupedUnavailable.withAa];
@@ -334,9 +312,8 @@ export function render(targetEl, models, _meta, options) {
     }
     const scoredBody = scoredRows
       .map(([key, m, score]) => {
-        const { value: bgValue, tw: twClass } = barColor(doc, tierOf(m));
         const width = widthPct(score, maxScore);
-        return barRowHtml(key, m, score, width, twClass, bgValue);
+        return barRowHtml(key, m, score, width, fillClass, fillValue);
       })
       .join('');
     const unavailableBody = unavailableRows
@@ -356,16 +333,15 @@ export function render(targetEl, models, _meta, options) {
   const stale = staleBadgeHtml(_meta);
 
   // V5 — build export formats. Markdown is a table of every ranked
-  // model (score + tier + lifecycle); JSON is the full record set.
+  // model (score + lifecycle); JSON is the full record set.
   const exportRows = groupedRows.map(([key, m, score]) => [
     m.name || key,
-    tierOf(m),
     m.lifecycle || '—',
     Number.isFinite(score) ? score.toFixed(1) : '—',
   ]);
   const exportContext = (options && options.exportContext) || {};
   const exportMd = `${exportHeader(exportContext)}\n# Composite benchmark (${scored.length + unavailable.length} modelos)\n\n` + markdownTable(
-    ['Modelo', 'Tier', 'Lifecycle', 'Score'],
+    ['Modelo', 'Lifecycle', 'Score'],
     exportRows
   ) + '\n';
   const exportJson = toJSON(
@@ -397,7 +373,7 @@ export function render(targetEl, models, _meta, options) {
       <details class="mt-3 text-[11px] text-slate-500 group" data-test="composite-legend">
         <summary class="cursor-pointer text-slate-400 hover:text-slate-300 select-none">Cómo leer las barras</summary>
         <div class="mt-2 space-y-1.5 pl-2">
-          <p><strong class="text-slate-300">Color del tier</strong> (alto/balanceado/económico/reference) sale del precio y rol del modelo. emerald=alto (flagship), indigo=balanceado, amber=económico, rose=reference (ancla del cost ceiling).</p>
+          <p><strong class="text-slate-300">Color neutral</strong>: todas las barras usan el mismo relleno indigo (<code>--composite-score-fill</code>) — el color ya no codifica el precio ni el rol del modelo.</p>
           <p><strong class="text-slate-300">Badge verified / estimated</strong>: <span class="text-emerald-300">verified</span> = BenchLM con datos confirmados; <span class="text-amber-300">estimated</span> = provisional, puede cambiar.</p>
           <p><strong class="text-slate-300">5 puntos de reliability</strong> (escala 0–5): cuántos más puntos verdes, más consistente es el score de BenchLM en el tiempo.</p>
           <p><strong class="text-slate-300">— unavailable —</strong> = modelo todavía sin scrape de BenchLM (llega en la próxima sync).</p>
@@ -415,7 +391,7 @@ export function render(targetEl, models, _meta, options) {
     renderExportButton(exportMount, {
       sectionId: 'composite-chart',
       formats: [
-        { id: 'copy-md', label: 'Copiar tabla', description: 'Markdown con score compuesto + tier', content: exportMd },
+        { id: 'copy-md', label: 'Copiar tabla', description: 'Markdown con score compuesto', content: exportMd },
         {
           id: 'download-md',
           label: 'Descargar markdown',
