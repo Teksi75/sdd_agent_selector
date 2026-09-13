@@ -895,16 +895,17 @@ describe('scrape-artificialanalysis — missing secret soft-fail', () => {
   });
 });
 
-// --- S2a-1 (2026-09-14): live-exact provenance via extended fixture (chatgpt-plus) ---
-describe('scrape-artificialanalysis — S2a-1 live-exact (astra fixture)', () => {
-  test('S2a-1 fixture rows land verbatim: no clamp/round, source tuple once, benchlm untouched', async () => {
+// --- S2a (2026-09-14): live-exact provenance via extended fixture ---
+describe('scrape-artificialanalysis — S2a live-exact (astra/fable fixture)', () => {
+  test('S2a fixture rows land verbatim: no clamp/round, source tuple once, benchlm untouched', async () => {
     fsImpl.writeFileSync(
       aliasesPath,
       JSON.stringify({
-        _meta: { version: 2, notes: 'S2a-1 probe aliases.' },
+        _meta: { version: 2, notes: 'S2a probe aliases.' },
         aliases: [
           { slug: 'gpt-6-astra', to: 'gpt6astraProbe', effort: 'max' },
           { slug: 'gpt-6-astra-low', to: 'gpt6astraLowProbe', effort: 'low' },
+          { slug: 'claude-fable-5', to: 'claudeFable5Probe', effort: 'max' },
         ],
       }, null, 2),
       'utf-8',
@@ -927,6 +928,7 @@ describe('scrape-artificialanalysis — S2a-1 live-exact (astra fixture)', () =>
           models: {
             gpt6astraProbe: mkProbe('gpt6astraProbe'),
             gpt6astraLowProbe: mkProbe('gpt6astraLowProbe'),
+            claudeFable5Probe: mkProbe('claudeFable5Probe'),
           },
         },
         null,
@@ -942,10 +944,12 @@ describe('scrape-artificialanalysis — S2a-1 live-exact (astra fixture)', () =>
     // Live-exact beats chart rounding: verbatim, never clamped/rounded.
     expect(after.models.gpt6astraProbe.intelligenceIndex).toBe(52.8);
     expect(after.models.gpt6astraLowProbe.intelligenceIndex).toBe(46);
+    expect(after.models.claudeFable5Probe.intelligenceIndex).toBe(49.7);
     expect(after.models.gpt6astraProbe.effort).toBe('max');
     expect(after.models.gpt6astraLowProbe.effort).toBe('low');
+    expect(after.models.claudeFable5Probe.effort).toBe('max');
     // Source tuple appended exactly once with the run date.
-    for (const key of ['gpt6astraProbe', 'gpt6astraLowProbe']) {
+    for (const key of ['gpt6astraProbe', 'gpt6astraLowProbe', 'claudeFable5Probe']) {
       const aaSources = after.models[key].sources.filter((s) => s.scraper === 'scrape-artificialanalysis');
       expect(aaSources.length).toBeGreaterThanOrEqual(1);
       expect(aaSources.every((s) => s.url === 'https://artificialanalysis.ai/')).toBe(true);
@@ -954,14 +958,14 @@ describe('scrape-artificialanalysis — S2a-1 live-exact (astra fixture)', () =>
     }
     // benchlm stays byte-identical through the AA merge.
     expect(after.models.gpt6astraProbe.benchlm).toEqual({ score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } });
-    expect(after.models.gpt6astraLowProbe.benchlm).toEqual({ score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } });
+    expect(after.models.claudeFable5Probe.benchlm).toEqual({ score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } });
   });
 
-  test('covered-but-absent S2a-1 row → null + idempotent omission note (key never deleted)', async () => {
+  test('covered-but-absent S2a row → null + idempotent omission note (key never deleted)', async () => {
     fsImpl.writeFileSync(
       aliasesPath,
       JSON.stringify({
-        _meta: { version: 2, notes: 'S2a-1 null probe.' },
+        _meta: { version: 2, notes: 'S2a null probe.' },
         aliases: [{ slug: 'gpt-5-4-pro', to: 'gpt54proProbe', effort: 'xhigh' }],
       }, null, 2),
       'utf-8',

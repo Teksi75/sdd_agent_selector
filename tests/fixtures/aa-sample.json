@@ -1,7 +1,7 @@
 {
   "_meta": {
     "fetchedAt": "2026-09-13T01:03:29.104Z",
-    "note": "REAL AA v2 payload slices (trimmed to the mapped fields) from the authenticated GET https://artificialanalysis.ai/api/v2/data/llms/models captured 2026-09-13T01:03:29.104Z (live response: 646 models). S2a-1 rows (gpt-6-astra, gpt-6-astra-low) are REAL slices from the S1 live capture 2026-09-13T03:53:18.345Z (same day, 646 items, HTTP 200; manifest evidence/aa-live-manifest.md S2a Half-1). Shape: UUID `id` (unstable, ignored), stable `slug` (identity), `pricing.price_1m_input_tokens`/`price_1m_output_tokens` (required), `pricing.price_1m_blended_3_to_1` (present but MUST be IGNORED - blended is computed locally as (3*input+output)/4), `evaluations.terminalbench_v2_1` (0-1 ratio -> term = value*100), `evaluations.artificial_analysis_coding_index`, `evaluations.artificial_analysis_intelligence_index` (nullable Intelligence Index -> intelligenceIndex; `gpt-5-4-pro` carries a real null), optional `evaluations.artificial_analysis_math_index`, root `median_*` speed fields. AA has NO cacheRead/cacheWrite keys; the API key never appears in the payload."
+    "note": "REAL AA v2 payload slices (trimmed to the mapped fields) from the authenticated GET https://artificialanalysis.ai/api/v2/data/llms/models captured 2026-09-13T01:03:29.104Z (live response: 646 models). S2a rows (gpt-6-astra, gpt-6-astra-low, claude-fable-5) are REAL slices from the S1 live capture 2026-09-13T03:53:18.345Z (same day, 646 items, HTTP 200; manifest evidence/aa-live-manifest.md S2a). Shape: UUID `id` (unstable, ignored), stable `slug` (identity), `pricing.price_1m_input_tokens`/`price_1m_output_tokens` (required), `pricing.price_1m_blended_3_to_1` (present but MUST be IGNORED - blended is computed locally as (3*input+output)/4), `evaluations.terminalbench_v2_1` (0-1 ratio -> term = value*100), `evaluations.artificial_analysis_coding_index`, `evaluations.artificial_analysis_intelligence_index` (nullable Intelligence Index -> intelligenceIndex; `gpt-5-4-pro` carries a real null), optional `evaluations.artificial_analysis_math_index`, root `median_*` speed fields. AA has NO cacheRead/cacheWrite keys; the API key never appears in the payload."
   },
   "data": [
     {
@@ -250,6 +250,25 @@
       "median_output_tokens_per_second": 57.257,
       "median_time_to_first_token_seconds": 2.009,
       "median_time_to_first_answer_token": 2.009
+    },
+    {
+      "id": "cd55210d-358e-4df1-ba9c-9acb5f186cc9",
+      "name": "Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)",
+      "slug": "claude-fable-5",
+      "evaluations": {
+        "terminalbench_v2_1": 0.846441947565543,
+        "artificial_analysis_coding_index": 76.5,
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 49.7
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 20,
+        "price_1m_input_tokens": 10,
+        "price_1m_output_tokens": 50
+      },
+      "median_output_tokens_per_second": 69.457,
+      "median_time_to_first_token_seconds": 63.564,
+      "median_time_to_first_answer_token": 63.564
     }
   ]
 }

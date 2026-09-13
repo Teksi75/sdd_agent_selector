@@ -131,21 +131,118 @@ No se ejecuta ningún scraper "de reversa"; el rollback es restore exacto del JS
 
 ---
 
-# S2a Half-1 — chatgpt-plus II backfill (22 new II, live-exact + sources)
+# S2a — Ranking-relevant II backfill (chatgpt-plus + anthropic) — tareas 2.1–2.11
 
-Slice: **S2a-1 (PR 2/6, Half-1)** · Rama: `feat/aa-only-s2a1-chatgpt` (base `cc1cab2`) · Captura reuse: **S1 live capture `2026-09-13T03:53:18.345Z`, 646 items, HTTP 200** (misma fecha UTC que la materialización `2026-09-13`; no stale, sin re-fetch; key solo en memoria, payload fuera del repo).
+Slice: **S2a (PR 2/6)** · Rama: `feat/aa-only-s2a-backfill` (base `cc1cab2`) · Captura reuse: **S1 live capture `2026-09-13T03:53:18.345Z`, 646 items, HTTP 200** (misma fecha UTC que la materialización `2026-09-13`; no stale, sin re-fetch; key solo en memoria, payload fuera del repo).
 Reglas: pnpm only, strict TDD (data JSON usa manifest+gate), sin tocar `providers.json`/`benchlm`/`minReasoning`/counts, `model-scorer.js` intacto, cero `intelligenceIndex` bajo `js/`.
 
-## Half-1 scope (chatgpt-plus only)
+## 2.1 — Pre-mutation gate: three-bucket recount (BLOCKING, two-bucket bloquea S2)
 
-28 ids tocados (sources + II donde nuevo): `gpt55`, `gpt55High:37.3`, `gpt55Medium:34.2`, `gpt55Low:30.7`, `gpt55NonReasoning:23.2`, `gpt56terra`, `gpt56terraXhigh:38.2`, `gpt56terraHigh:34.5`, `gpt56terraMedium:30.4`, `gpt56terraLow:27.9`, `gpt56terraNonReasoning:22.3`, `gpt56luna`, `gpt56lunaXhigh:34.8`, `gpt56lunaHigh:32.4`, `gpt56lunaMedium:25.5`, `gpt56lunaLow:21.5`, `gpt56lunaNonReasoning:16.8`, `gpt56sol`, `gpt56solXhigh:44.1`, `gpt56solHigh:42.5`, `gpt56solMedium:39.5`, `gpt56solLow:33.8`, `gpt56solNonReasoning:28.3`, `gpt6astra`, `gpt6astraLow:46` (incl. pricingSource/blended), `gpt54`, `gpt54Low:27.6`, `gpt54NonReasoning:18.2`. De los 28, 6 ya tenían II en base (`gpt55`, `gpt56terra`, `gpt56luna`, `gpt56sol`, `gpt6astra`, `gpt54`); **22 son backfill nuevo**. Todos finite → copia verbatim, sin clamp/round. Chart público redondea; acá vale el payload exacto.
+Tabulado sobre `data/models.json` base (88 ids, `Number.isFinite`):
 
-Anthropic incl. Fable (`opus48`, `claudeFable5:49.7`, `sonnet5` family, `haiku45` family, `claudeOpus5` family) **no tocado en Half-1 — lands in Half-2** (`feat/aa-only-s2a2-anthropic`).
+| Bucket | Definición | Count |
+|---|---|---:|
+| II-covered | `Number.isFinite(intelligenceIndex)` | **8** |
+| benchlm-only | finite `benchlm.score` AND NOT II-covered (`kimik3` precedent) | **22** |
+| fully-scoreless | neither finite | **58** |
+| **Total** | suma = catálogo | **88** |
 
-## Half-1 buckets + preservation
+II-covered (8): `gpt55:38.6`, `gpt56terra:42.3`, `gpt56luna:37.5`, `gpt56sol:47.1`, `gpt6astra:52.8`, `gpt54:39`, `claudeOpus5:50.7`, `musespark13:48.2`.
+`kimik3` clasifica **benchlm-only** (`benchlm.score 80.96`, sin key `intelligenceIndex`) — precedente verificado. Suma 8+22+58=88 = catálogo. **Gate PASS: conteo de tres buckets, S2 puede empezar.**
 
-- Base: **8 / 22 / 58 = 88**. Post-Half-1: **II-covered 30 / benchlm-only 22 / fully-scoreless 36 = 88** (movimiento +22 nuevo backfill; benchlm-only intacto pues los 4 que migran a II en S2a full son anthropic Half-2). `kimik3` sigue benchlm-only (80.96, sin key II).
-- `benchlm` 0 diffs (28/28), `availability` 0 diffs (28/28), `providers.json` git-clean, `schemaVersion` 5, `DATA_FILES` 6, sources dedupe 0 duplicados.
-- **`_meta.scrapers['scrape-artificialanalysis'].lastRun` NO se registra en Half-1 — lands in Half-2** (solo porque el run válido + escritura exitosa se materializa completo en S2a-2 con `2026-09-13T03:53:18.345Z`). Preservación Half-1 verificada SIN lastRun.
-- S2a-1 focused: `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js` → verde en Half-1 (subset, never weaken); espejos standalone para suites no colectables como en S1 §6.
+## 2.2 — Fable live-slug verdict D4 (BLOCKING, sin handling antes del cierre)
 
+Procedimiento diseño §8 contra la captura §1.1 (`entry.slug === 'claude-fable-5'`):
+
+- Exact matches: **1** (≤1 OK). Slug: `claude-fable-5` · Display: `Claude Fable 5 (Adaptive Reasoning, Max Effort, Opus 4.8 Fallback)` · II exacto: **49.7** (finite) · pricing live 10/50.
+- Alias comprometido: `claude-fable-5 → claudeFable5` con `effort: 'max'` — validado en `data/aa-aliases.json`.
+- Rama: **present + finite II → backfill valor exacto 49.7 + source tuple**; incluido en cálculos S2a. `benchlm` queda byte-idéntico (83.68 verificado en 2.5/2.10).
+- `fetchedAt`: **2026-09-13T03:53:18.345Z**.
+
+## 2.3 — Temporary candidate (sin mutación canónica)
+
+Proyección S2a generada fuera del worktree (`s2a-projection.json`, 43 rows: todos los catalog ids con `availability chatgpt-plus|anthropic`, incl. effort variants, Astra, Fable) desde la tabla comprometida. Payload: copia S1 `aa-live-payload.json` (646 items). Copia: `models-copy.json` de `data/models.json` base.
+
+- `node scripts/scrape-artificialanalysis.js --alias <temp-projection> --source <temp-payload> --file <temp-models-copy> --dry-run` → **ok:true, dryRun:true, changes:240** (missing = 45 ids no-S2a preservados, WARN+preserve).
+- Mismo comando sin `--dry-run` sobre la copia → **ok:true, changes:240**. Gates 2.4/2.5 evalúan SOLO sobre este candidato.
+- Nota de formato: el candidato usa `JSON.stringify` plano (availability multi-línea); el canónico usa `serializeModels` inline. El delta canónico (2.7) es quirúrgico II+sources+lastRun con el formatter canónico, no copia del candidato.
+
+## 2.4 — Pre-mutation gate: Astra maximum (BLOCKING para 2.5+)
+
+Máximo real sobre finite-II + active + `chatgpt-plus` en el candidato temporal: **`gpt6astra` 52.8** (chatgpt-plus active finite-II max; runner-up `gpt56sol` 47.1 / `gpt6astraLow` 46). **Máximo id === `gpt6astra` → Gate PASS.** Sin mutación canónica pendiente, sin excepciones de scorer/sort. Si max ≠ gpt6astra el slice se detiene (no ocurrió).
+
+## 2.5 — Preservation pre-check (sobre el candidato; cualquier diff bloquea)
+
+- `JSON.stringify(model.benchlm)` para los 43 ids S2a: **0 diffs** (incl. Fable 83.68 byte-idéntico).
+- `availability` deep-equal 43/43: **0 diffs** (write-guard intacto).
+- `data/providers.json`: **byte-idéntico** (scraper nunca lo nombra; verificado `git diff --stat` vacío para ese path).
+- `schemaVersion`: **5** (origen y candidato); `DATA_FILES`: **6** (`data-loader.js`).
+- Source tuples dedupe por `(url,date,scraper)`: **0 duplicados** en los 43 ids.
+- `lastSynced` candidato 2026-09-13 vs base 2026-09-10: bump esperado del write path (no es señal de ranking; freshness S3b lo consume).
+- **Pre-check PASS → 2.7 puede materializar el delta seleccionado.**
+
+## S2a live-exact rows (43/43 finite, fuente §1.1)
+
+| Catalog id | Live slug | II exacto |
+|---|---|---:|
+| `opus48` | `claude-opus-4-8` | 42 |
+| `gpt55` | `gpt-5-5` | 38.6 |
+| `gpt55High` | `gpt-5-5-high` | 37.3 |
+| `gpt55Medium` | `gpt-5-5-medium` | 34.2 |
+| `gpt55Low` | `gpt-5-5-low` | 30.7 |
+| `gpt55NonReasoning` | `gpt-5-5-non-reasoning` | 23.2 |
+| `gpt56terra` | `gpt-5-6-terra` | 42.3 |
+| `gpt56terraXhigh` | `gpt-5-6-terra-xhigh` | 38.2 |
+| `gpt56terraHigh` | `gpt-5-6-terra-high` | 34.5 |
+| `gpt56terraMedium` | `gpt-5-6-terra-medium` | 30.4 |
+| `gpt56terraLow` | `gpt-5-6-terra-low` | 27.9 |
+| `gpt56terraNonReasoning` | `gpt-5-6-terra-non-reasoning` | 22.3 |
+| `gpt56luna` | `gpt-5-6-luna` | 37.5 |
+| `gpt56lunaXhigh` | `gpt-5-6-luna-xhigh` | 34.8 |
+| `gpt56lunaHigh` | `gpt-5-6-luna-high` | 32.4 |
+| `gpt56lunaMedium` | `gpt-5-6-luna-medium` | 25.5 |
+| `gpt56lunaLow` | `gpt-5-6-luna-low` | 21.5 |
+| `gpt56lunaNonReasoning` | `gpt-5-6-luna-non-reasoning` | 16.8 |
+| `gpt56sol` | `gpt-5-6-sol` | 47.1 |
+| `gpt56solXhigh` | `gpt-5-6-sol-xhigh` | 44.1 |
+| `gpt56solHigh` | `gpt-5-6-sol-high` | 42.5 |
+| `gpt56solMedium` | `gpt-5-6-sol-medium` | 39.5 |
+| `gpt56solLow` | `gpt-5-6-sol-low` | 33.8 |
+| `gpt56solNonReasoning` | `gpt-5-6-sol-non-reasoning` | 28.3 |
+| `gpt6astra` | `gpt-6-astra` | 52.8 |
+| `gpt6astraLow` | `gpt-6-astra-low` | 46 |
+| `gpt54` | `gpt-5-4` | 39 |
+| `gpt54Low` | `gpt-5-4-low` | 27.6 |
+| `gpt54NonReasoning` | `gpt-5-4-non-reasoning` | 18.2 |
+| `claudeFable5` | `claude-fable-5` | 49.7 |
+| `sonnet5` | `claude-sonnet-5` | 38.4 |
+| `sonnet5High` | `claude-sonnet-5-high` | 32 |
+| `sonnet5Xhigh` | `claude-sonnet-5-xhigh` | 34.7 |
+| `sonnet5Medium` | `claude-sonnet-5-medium` | 28.4 |
+| `sonnet5Low` | `claude-sonnet-5-low` | 24.7 |
+| `sonnet5NonReasoning` | `claude-sonnet-5-non-reasoning` | 28.9 |
+| `haiku45` | `claude-4-5-haiku` | 15.4 |
+| `haiku45Reasoning` | `claude-4-5-haiku-reasoning` | 17.6 |
+| `claudeOpus5` | `claude-opus-5` | 50.7 |
+| `claudeOpus5High` | `claude-opus-5-high` | 48.2 |
+| `claudeOpus5Xhigh` | `claude-opus-5-xhigh` | 49.7 |
+| `claudeOpus5Medium` | `claude-opus-5-medium` | 45.1 |
+| `claudeOpus5Low` | `claude-opus-5-low` | 39.8 |
+
+De los 43, 7 ya tenían II (`gpt55`, `gpt56terra`, `gpt56luna`, `gpt56sol`, `gpt6astra`, `gpt54`, `claudeOpus5`); **36 son backfill nuevo**. Todos finite → copia verbatim, sin clamp/round. Chart público redondea; acá vale el payload exacto.
+
+## 2.10 — Gate: recount + matrix + benchlm hands-off (sobre datos canónicos)
+
+- Recount post-S2a sobre `data/models.json`: **II-covered 44 / benchlm-only 18 / fully-scoreless 26 = 88**. Movimiento desde 2.1: **8→44 (+36 nuevo backfill), 22→18 (−4: `opus48`, `claudeFable5`, `sonnet5`, `haiku45` pasan a II-covered), 58→26 (−32)**. `kimik3` sigue benchlm-only (80.96, sin key II). Suma 88 = catálogo.
+- S2a focused command: `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js tests/data-integrity.test.js tests/availability-matrix.test.js tests/propagate-provider-availability.test.js` → **2 passed / 3 failed-to-collect (pre-existente) — 56 tests passed** (scrape 27 + aa-effort 29). Las 3 suites no colectan por el fallo pre-existente de vitest 1.6.1 con `scripts/propagate-provider-availability.mjs` (idéntico pre/post slice; verificado por espejos standalone en S1 §6 y re-verificado aquí por comparación directa base↔canónico).
+- Re-verificación 2.5 sobre canónico vs base `cc1cab2`: **benchlm 0 diffs (43/43, incl. Fable 83.68), availability 0 diffs (43/43), `providers.json` git-clean, `schemaVersion` 5, `DATA_FILES` 6, sources dedupe 0 duplicados, ids no-S2a byte-idénticos (45/45)**. `lastSynced` base 2026-09-10 → S2a conserva la fecha del documento base en esta materialización quirúrgica (el bump del write path del scraper no se aplica al canónico; S3b consumirá `lastRun` AA).
+- Movimiento registrado: este §2.10 + tabla S2a (§S2a live-exact rows) + `evidence/s2a-role-outcomes.md`.
+
+## 2.11 — Rollback check (S2a)
+
+Procedimiento con backup (sin scraper de reversa, nunca compensar):
+
+- `cp data/models.json /tmp/s2a-rollback-backup-models.json` → `git checkout HEAD -- data/models.json` → base restaurada: **II-covered 8, Fable II undefined, schema 5, lastRun ausente**; `pnpm vitest run tests/aa-effort.test.js` → **9 failed / 20 passed** — los 9 fallos son exactamente las aserciones S2a en modo "missing II" (live-exact, Fable, shrink, gpt6astraLow, triangulación, acceptance); registros curados preservados, slugs siguen mapeados.
+- `cp /tmp/s2a-rollback-backup-models.json data/models.json` → S2a restaurada: **II-covered 44**; `pnpm vitest run tests/scrape-artificialanalysis.test.js tests/aa-effort.test.js` → **56 passed**.
+- Rollback completo (datos + expectativas base) = baseline registrado al inicio del slice: **2 passed / 3 failed-to-collect, 45 tests passed** (scrape 25 + aa-effort 20). El restore es JSON exacto + expectativas exactas, nunca migración reversa ni scores inventados.
+- **Budget trip (bloqueante para commit):** superficies de review `models.json`+tests = **660 líneas cambiadas** (numstat vs `cc1cab2`: models 257+36=293, aa-effort 157+3=160, data-integrity 43+1=44, fixture 58+1=59, scrape 104+0=104) — **excede el budget de 400**. **NO se commitea.** Pre-split plan (tasks.md): dividir en **S2a-1 (`chatgpt-plus` incl. Astra/Astra-Low, ~22 II nuevos)** y **S2a-2 (`anthropic` incl. Fable, ~14 II nuevos)** como dos PRs apilados; nunca inferir `size:exception`. Trabajo dejado sin commitear en `feat/aa-only-s2a-backfill` para revisión del parent.

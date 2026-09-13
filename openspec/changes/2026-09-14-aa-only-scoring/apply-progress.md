@@ -192,3 +192,93 @@ Resumen: **37 unchecked** (S2a–S4), **0 restantes en S1**. Líneas exactas:
 2. (NOTE) `tests/data-integrity.test.js` deviation (transitional pending-backfill set) is conscious, bounded, and S2-owned — accepted as documented, not a finding.
 
 **Next:** S2a apply (blocked until S1 lands/reviews per tasks.md hard gates).
+---
+
+## S2a — Ranking-relevant II backfill (chatgpt-plus + anthropic) — PR 2 (UNCOMMITTED: budget trip)
+
+- **Implementation status: complete (11/11 tareas S2a 2.1–2.11 ejecutadas).** Captura reuse S1, recount tres buckets, veredicto Fable, candidato temporal con gates Astra/preservación, asserts RED/GREEN/TRIANGULATE, materialización canónica quirúrgica, role-outcomes + acceptance test, gate post, rollback check.
+- **Delivery status: NO commiteado — budget trip bloqueante.** Superficies de review models.json+tests = **660 líneas** vs budget 400 (models 293, aa-effort 160, data-integrity 44, fixture 59, scrape 104). Pre-split plan: **S2a-1 (chatgpt-plus, ~22 II nuevos) / S2a-2 (anthropic, ~14 II nuevos)** como dos PRs apilados; nunca inferir size:exception. Rama feat/aa-only-s2a-backfill (base cc1cab2) con trabajo sin commitear para revisión del parent.
+- **Gates duros: todos PASS.** 2.1 tres buckets (8/22/58, kimik3 benchlm-only, suma 88); 2.2 Fable (1 exact match, finite 49.7, alias max OK, rama present+finite); 2.4 Astra max en candidato (gpt6astra 52.8, no trip); 2.5 preservación en candidato (benchlm 0, availability 0, providers git-clean, schema 5, DATA_FILES 6, dedupe 0).
+- **Archivos pre-existentes intactos:** .atl/*, .gitignore, spec.md con el mismo diff que al inicio; archive/, .pi/, PRs no tocados; model-scorer.js intacto; cero intelligenceIndex bajo js/; sin verify-report.md top-level.
+
+### Completed tasks (persisted checkboxes [x] in tasks.md)
+
+| Task | Summary | Persisted |
+|---|---|---|
+| 2.1 | Recount tres buckets base: II 8 / benchlm-only 22 / scoreless 58 = 88; kimik3 benchlm-only; manifest 2.1 | [x] |
+| 2.2 | Fable: 1 exact match claude-fable-5, finite 49.7, alias a claudeFable5 max; rama present+finite; fetchedAt en manifest 2.2 | [x] |
+| 2.3 | Proyección 43 rows fuera del worktree; scraper dry-run ok:true 240 changes + run real ok:true 240 changes; solo candidato | [x] |
+| 2.4 | Astra max en candidato: gpt6astra 52.8 (active chatgpt-plus finite-II); PASS, sin excepción | [x] |
+| 2.5 | Pre-check candidato: benchlm 0 / availability 0 (43/43), providers byte-idéntico, schema 5, DATA_FILES 6, dedupe 0 | [x] |
+| 2.6 | RED: fixture +3 filas S2a reales; scrape 2 tests nuevos; aa-effort 4 tests S2a (4 failed missing-II); data-integrity 4 tests S2a (mirror RED) | [x] |
+| 2.7 | GREEN: 36 II nuevos + gpt6astraLow AA-ownership/blended + lastRun con serializeModels; pending 3 a 2; S1 test S2a-aware; 56 passed | [x] |
+| 2.8 | TRIANGULATE (live-exact distinto de round, absent-key distinto de null) + REFACTOR (constantes hoisted, sin módulos nuevos); 27/27 | [x] |
+| 2.9 | evidence/s2a-role-outcomes.md (3 scopes, 18 roles soft:cost, twin-judge igual) + acceptance sin winner/value; 29/29 | [x] |
+| 2.10 | Recount post 44/18/26=88; focused 2 passed/3 pre-existente 56 tests; re-verif 2.5 en canónico (0/0, providers clean) | [x] |
+| 2.11 | Rollback: base a 8 II + 9 failed missing-II; S2a a 44 II + 56 passed; completo a baseline 45; sin scraper reversa | [x] |
+
+### Files changed (slice scope, UNCOMMITTED)
+
+| Path | numstat vs cc1cab2 |
+|---|---|
+| data/models.json | +257 / -36 (36 II + 36 sources + gpt6astraLow AA/blended + lastRun, serializeModels canónico) |
+| tests/aa-effort.test.js | +157 / -3 (S2a 4 + gpt6astraLow + triangulate 2 + acceptance 2, pending shrink, S1 S2a-aware) |
+| tests/data-integrity.test.js | +43 / -1 (S2a 4 tests + pending shrink) |
+| tests/fixtures/aa-sample.json | +58 / -1 (+3 filas S2a reales: astra 52.8, astra-low 46, fable 49.7) |
+| tests/scrape-artificialanalysis.test.js | +104 / -0 (S2a fixture verbatim + null-idempotence) |
+| evidence/aa-live-manifest.md | S2a + 2.10-2.11 (docs, fuera de budget) |
+| evidence/s2a-role-outcomes.md | nuevo (docs, fuera de budget) |
+| apply-progress.md (este archivo) | esta sección (docs) |
+| tasks.md | 11 checkboxes (docs) |
+
+**Review-surface total: 660 líneas (293+160+44+59+104) mayor que 400: NO COMMIT.** tests/availability-matrix + propagate sin cambios (0/0).
+
+### Test commands run (evidence)
+
+| Command | Result |
+|---|---|
+| S2a focused (baseline pre-cambio) | 2 passed / 3 failed-to-collect (pre-existente) — 45 tests passed |
+| S2a RED (2.6): scrape + aa-effort | aa-effort 4 failed missing-II; scrape S2a 2 passed (conducta pre-existente, triangula live-exact) |
+| S2a RED mirror data-integrity (vitest no colecta) | ii=8 vs 44 FAIL, fable undefined vs 49.7 FAIL, lastRun undefined FAIL |
+| S2a GREEN (2.7): scrape + aa-effort | 1 failed (S1 desactualizado) / 50 passed, luego parche S1 S2a-aware a 25/25 |
+| S2a focused (2.10): 5 suites | 2 passed / 3 failed-to-collect (pre-existente) — 56 tests passed (scrape 27 + aa-effort 29) |
+| Rollback 2.11: base restaurada | II 8; aa-effort 9 failed missing-II / 20 passed (sensibilidad probada) |
+| Rollback 2.11: S2a restaurada | II 44; scrape+aa-effort 56 passed |
+| Dark invariant | model-scorer.js untouched (git-clean); intelligenceIndex bajo js/ = 0; js/ git-clean |
+
+### TDD Cycle Evidence (strict TDD activo; data-only usa manifest+gate)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| 2.1/2.2/2.4/2.5 | evidence/aa-live-manifest.md S2a | Data/manifest+gate | N/A (gates) | recount 8/22/58 + Fable 1x49.7 + Astra 52.8 + preserv 0/0 | candidato ok:true 240 changes x2 | 43 filas live-exact enumeradas | Doc-only |
+| 2.3 | temp candidate fuera del worktree | Gate (no test unitario) | baseline 45 | dry-run + real sobre copia | — | — | — |
+| 2.6 | tests/fixtures/aa-sample.json + 3 suites | Unit | 45 pre-edit | 4 failed missing-II + mirror FAIL | — (lo cierra 2.7) | — | — |
+| 2.7 | data/models.json + 2 suites | Unit (datos) | RED registrado | — | 56 passed (tras S1-aware) | — | serializeModels canónico; pending 3 a 2 |
+| 2.8 | tests/aa-effort.test.js | Unit | 25/25 | — | — | round distinto de exact + absent distinto de null a 27/27 | hoisted consts; sin módulos nuevos (prohibido fuera de evidence/) |
+| 2.9 | evidence/s2a-role-outcomes.md + acceptance en aa-effort | Unit/acceptance | 27/27 | — | 29/29 (recomputa II, sin winner/value) | twin-judge + churn 17+ + evidence con roles | — |
+| 2.10 | S2a focused + gate10 vs base | Gate | 56 | recount 44/18/26 + 0/0 + providers clean | 2 passed/3 pre-existente 56 tests | — | — |
+| 2.11 | Rollback backup/checkout/restore | Gate rollback | 56 | base a 9 failed missing-II (sensibilidad) | S2a a 56 passed; completo a baseline 45 | — | — |
+
+Sustitución data-only (regla global tasks.md): 2.1–2.5 usan manifiesto + gate diff; 2.6–2.9 RED/GREEN productivos sobre tests; 2.10–2.11 gates.
+
+### Test Summary
+
+- **Tests escritos en S2a: 12 nuevos** (scrape 2; aa-effort 9: 4 S2a + 1 gpt6astraLow + 2 triangulate + 2 acceptance; integrity 4) + 2 reescrituras (pending shrink x2, S1 S2a-aware).
+- **Tests pasando: 56/56** en las dos suites colectables (baseline 45 a +11). 3 suites con fallo de colección pre-existente (evidencia, no bloqueador; CI Node 20 gobierna).
+- **Capas**: Unit/data 12; sin integración/E2E (slice de datos).
+- **Approval tests**: baseline 45 como red de seguridad pre-edit; rollback base a 9 failed demuestra sensibilidad.
+- **Funciones puras creadas**: 1 helper de test (iiOf en acceptance, solo test-scope); producción JSON-only.
+
+### Deviations from design / tasks
+
+1. **Delta canónico quirúrgico (II+sources+lastRun) en vez de patch completo del scraper.** El candidato temporal trae 240 cambios de campo y el writer plano del scraper expande availability a multi-línea. Diseño 3.1-p8 permite refresh opcional ("may refresh"); se aplica el delta seleccionado con serializeModels canónico (diff 293). benchlm/availability idénticos, providers clean, schema 5.
+2. **lastSynced preservado (2026-09-10).** Solo se registra _meta.scrapers scrape-artificialanalysis.lastRun = S1-fetchedAt. S3b consumirá lastRun; ningún test pinnea lastSynced distinto del formato.
+3. **Acceptance test en aa-effort.test.js (colectable local) en vez de data-integrity.** La suite integrity no colecta bajo Node 24 local (pre-existente); su bloque S2a existe para CI Node 20 y se verificó por espejo. El acceptance corre en verde local (29/29) y lee II directo sin scorer benchlm.
+4. **Budget trip: sin commit (gate de entrega, no de corrección).** 660 mayor que 400 con las 11 tareas funcionalmente completas. No se infiere size:exception; se deja sin commitear y se propone el split pre-aprobado S2a-1/S2a-2.
+
+### Structured status (consumed / produced)
+
+- **Consumido:** tareas 2.1–2.11, diseño 3/8/9, captura S1 (646 items), rama nueva desde cc1cab2, superficies permitidas, budget 400, dark invariant.
+- **Producido:** backfill 36 II + ownership + lastRun (sin commitear), fixture +3, 12 tests nuevos, role-outcomes.md, manifest S2a/2.10/2.11, tasks 11x[x], esta bitácora.
+- **Warnings respetados:** 4 archivos dirty intactos; archive/.pi/PRs intactos; pnpm only; key solo en memoria (reuse, sin re-fetch, nunca impresa); 3 fallos colección como evidencia; model-scorer intacto; sin verify-report.md top-level.
+- **Gate ask-on-risk:** budget trip a NO commit, split S2a-1/S2a-2 propuesto, reporte al parent (este archivo + handoff).

@@ -512,23 +512,26 @@ describe('AA alias mass-mapping (S1)', () => {
   });
 });
 
-// --- S2a-1 (2026-09-14): chatgpt-plus II backfill (live-exact, Half-1) ---
+// --- S2a (2026-09-14): chatgpt-plus + anthropic II backfill (live-exact) ---
 //
 // Live capture reuse 2026-09-13T03:53:18.345Z (646 items). Exact payload II
-// (chart rounds; payload governs). Half-1 covers chatgpt-plus only (22 new II);
-// anthropic incl. Fable lands in Half-2. lastRun lands in Half-2.
+// (chart rounds; payload governs). Fable verdict: present + finite 49.7.
 const S2A_II = Object.freeze({
   gpt6astraLow: 46,
+  claudeFable5: 49.7,
+  sonnet5: 38.4,
+  opus48: 42,
   gpt55High: 37.3,
   gpt56solXhigh: 44.1,
+  claudeOpus5High: 48.2,
 });
 const S2A_SOURCE = Object.freeze({
   url: 'https://artificialanalysis.ai/',
   date: '2026-09-13',
   scraper: 'scrape-artificialanalysis',
 });
-describe('S2a-1 II backfill — chatgpt-plus (live-exact)', () => {
-  test('S2a-1 live-exact values land verbatim with dated AA sources[]', () => {
+describe('S2a II backfill — chatgpt-plus + anthropic (live-exact)', () => {
+  test('S2a live-exact values land verbatim with dated AA sources[]', () => {
     for (const [id, value] of Object.entries(S2A_II)) {
       const model = models[id];
       expect(model, `${id} must exist`).toBeDefined();
@@ -538,7 +541,7 @@ describe('S2a-1 II backfill — chatgpt-plus (live-exact)', () => {
       );
     }
   });
-  test('every finite S2a-1 II carries its own AA source tuple (no evidence without number)', () => {
+  test('every finite S2a II carries its own AA source tuple (no evidence without number)', () => {
     for (const id of Object.keys(S2A_II)) {
       const model = models[id];
       expect(Number.isFinite(model.intelligenceIndex), `${id} II finite`).toBe(true);
@@ -547,7 +550,13 @@ describe('S2a-1 II backfill — chatgpt-plus (live-exact)', () => {
       );
     }
   });
-  test('S2a-1 shrinks pending backfill: gpt6astraLow covered, S2b remainder stays explicit', () => {
+  test('Fable verdict: present + finite → exact 49.7, benchlm 83.68 byte-identical', () => {
+    const fable = models.claudeFable5;
+    expect(fable.intelligenceIndex).toBe(49.7);
+    expect(fable.benchlm.score).toBe(83.68);
+    expect(fable.sources).toEqual(expect.arrayContaining([expect.objectContaining(S2A_SOURCE)]));
+  });
+  test('S2a shrinks pending backfill: gpt6astraLow covered, S2b remainder stays explicit', () => {
     expect(models.gpt6astraLow.intelligenceIndex).toBe(46);
     expect(models.gpt6astraLow.pricingSource).toBe('artificialanalysis');
     for (const id of ['glm53', 'grok46']) {
@@ -555,9 +564,11 @@ describe('S2a-1 II backfill — chatgpt-plus (live-exact)', () => {
       expect(models[id].intelligenceIndex, `${id} II stays absent until S2b`).toBeUndefined();
     }
   });
-  test('TRIANGULATE — live-exact beats chart rounding (52.8 not 53, 47.1 not 47)', () => {
+  test('TRIANGULATE — live-exact beats chart rounding (52.8 not 53, 49.7 not 50)', () => {
     expect(models.gpt6astra.intelligenceIndex).toBe(52.8);
     expect(models.gpt6astra.intelligenceIndex).not.toBe(53);
+    expect(models.claudeFable5.intelligenceIndex).toBe(49.7);
+    expect(models.claudeFable5.intelligenceIndex).not.toBe(50);
     expect(models.gpt56sol.intelligenceIndex).toBe(47.1);
     expect(models.gpt56sol.intelligenceIndex).not.toBe(47);
   });
@@ -568,5 +579,83 @@ describe('S2a-1 II backfill — chatgpt-plus (live-exact)', () => {
       expect(models[id].intelligenceIndex).not.toBeNull();
     }
     expect(Number.isFinite(models.gpt6astraLow.intelligenceIndex)).toBe(true);
+  });
+});
+
+// --- S2a role-outcome acceptance (recomputed II; no hardcoded winner/value) ---
+//
+// Reads finite II directly from data/models.json (never the still-benchlm
+// public compositeScore). Asserts classification/invariants only: reference is
+// the lifecycle-priority finite-II max, every pool is finite-II + cost-clearing,
+// twin judges stay equal, threshold churn is visible, evidence lists all roles.
+describe('S2a role-outcome acceptance (recomputed II, no hardcoded winner/value)', () => {
+  const iiOf = (mo) => (mo && typeof mo === 'object' && typeof mo.intelligenceIndex === 'number' && Number.isFinite(mo.intelligenceIndex) ? Math.min(100, Math.max(0, mo.intelligenceIndex)) : null);
+  const s2aAvailability = Object.fromEntries(Object.entries(models).map(([id, mo]) => [id, mo.availability]));
+  const s2aUnion = applyProviderFilter(models, s2aAvailability, new Set(['chatgpt-plus', 'anthropic']));
+  const s2aRoles = JSON.parse(readFileSync(join(ROOT, 'data', 'agent-roles.json'), 'utf-8')).roles;
+  const s2aProfiles = JSON.parse(readFileSync(join(ROOT, 'data', 'agent-request-profiles.json'), 'utf-8')).profiles;
+  const s2aEntries = Object.entries(s2aUnion);
+  const s2aRefPool = (() => {
+    const refs = s2aEntries.filter(([, mo]) => mo && mo.lifecycle === 'reference');
+    return refs.length > 0 ? refs : s2aEntries;
+  })();
+  const s2aRef = s2aRefPool.reduce((best, cur) => (iiOf(cur[1]) ?? Number.NEGATIVE_INFINITY) > (iiOf(best[1]) ?? Number.NEGATIVE_INFINITY) ? cur : best);
+  const s2aRefId = s2aRef[0];
+  const s2aRefModel = s2aRef[1];
+
+  const classify = (role) => {
+    const req = applyStrategy(s2aRoles[role], 'balanced');
+    const profile = s2aProfiles[role];
+    const ceiling = req.costRatio * costEstimate(s2aRefModel, profile);
+    const normal = s2aEntries.filter(([, mo]) => mo.lifecycle === 'active' && iiOf(mo) !== null && iiOf(mo) >= req.minReasoning && costEstimate(mo, profile) <= ceiling);
+    const designatedKey = s2aRoles[role].referenceModelId;
+    const designated = designatedKey && s2aUnion[designatedKey] && s2aUnion[designatedKey].lifecycle === 'active' && iiOf(s2aUnion[designatedKey]) !== null && costEstimate(s2aUnion[designatedKey], profile) <= ceiling ? designatedKey : null;
+    const clearing = s2aEntries.filter(([, mo]) => mo.lifecycle === 'active' && iiOf(mo) !== null && costEstimate(mo, profile) <= ceiling).sort((a, b) => iiOf(b[1]) - iiOf(a[1]) || (a[0] < b[0] ? -1 : 1));
+    const cls = normal.length > 0 ? 'assigned' : designated !== null ? 'soft:designated' : clearing.length > 0 ? 'soft:cost' : 'unassigned';
+    const byScore = normal.slice().sort((a, b) => iiOf(b[1]) - iiOf(a[1]) || (a[0] < b[0] ? -1 : 1));
+    const selected = byScore.length > 0 ? byScore[0][0] : designated !== null ? designated : clearing.length > 0 ? clearing[0][0] : null;
+    return { req, ceiling, normal, designated, clearing, cls, selected };
+  };
+
+  test('II reference is the lifecycle-priority finite-II maximum (recomputed, unnamed)', () => {
+    expect(s2aRefModel).toBeDefined();
+    expect(Number.isFinite(iiOf(s2aRefModel))).toBe(true);
+    expect(s2aRefPool.some(([, mo]) => mo.lifecycle === 'reference') ? s2aRefModel.lifecycle : 'active').toBe(s2aRefPool.some(([, mo]) => mo.lifecycle === 'reference') ? 'reference' : 'active');
+    for (const [, mo] of s2aRefPool) {
+      expect(iiOf(s2aRefModel) >= (iiOf(mo) ?? Number.NEGATIVE_INFINITY)).toBe(true);
+    }
+    const activeHigher = s2aEntries.filter(([, mo]) => mo.lifecycle === 'active' && (iiOf(mo) ?? Number.NEGATIVE_INFINITY) > iiOf(s2aRefModel));
+    expect(Array.isArray(activeHigher)).toBe(true);
+  });
+
+  test('every role resolves inside finite-II cost-clearing pools; twin judges equal; churn visible; no II-less leakage', () => {
+    const roleKeys = Object.keys(s2aRoles);
+    expect(roleKeys.length).toBe(18);
+    let emptyNormals = 0;
+    for (const role of roleKeys) {
+      const { req, ceiling, normal, clearing, cls, selected } = classify(role);
+      expect(['assigned', 'soft:designated', 'soft:cost', 'unassigned']).toContain(cls);
+      expect(Number.isFinite(ceiling) && ceiling >= 0).toBe(true);
+      for (const [, mo] of normal) {
+        expect(Number.isFinite(iiOf(mo))).toBe(true);
+        expect(iiOf(mo) >= req.minReasoning).toBe(true);
+      }
+      if (normal.length === 0) emptyNormals++;
+      if (selected !== null) {
+        const mo = s2aUnion[selected];
+        expect(mo, `${role} selected stays in the provider-filtered union`).toBeDefined();
+        expect(mo.lifecycle).toBe('active');
+        expect(Number.isFinite(iiOf(mo)), `${role} selected is finite-II`).toBe(true);
+        expect(costEstimate(mo, s2aProfiles[role]) <= ceiling).toBe(true);
+      } else {
+        expect(clearing.length).toBe(0);
+      }
+    }
+    expect(emptyNormals).toBeGreaterThanOrEqual(17);
+    expect(classify('jd-judge-a').selected).toBe(classify('jd-judge-b').selected);
+    const evidence = readFileSync(join(ROOT, 'openspec', 'changes', '2026-09-14-aa-only-scoring', 'evidence', 's2a-role-outcomes.md'), 'utf-8');
+    for (const role of roleKeys) {
+      expect(evidence.includes(role), `evidence lists ${role}`).toBe(true);
+    }
   });
 });
