@@ -3,7 +3,7 @@
 # V5+ — KI-1: mirror data/*.json from sdd_agent_selector → Teksi75/sdd-data
 #
 # Why this exists:
-#   The sdd_agent_selector page bakes the 5 data files into dist/data/ at
+#   The sdd_agent_selector page bakes the 6 data files into dist/data/ at
 #   build time, so the runtime is always self-contained. The "Actualizar
 #   ahora" button in the freshness badge, however, does a runtime fetch
 #   from Teksi75/sdd-data (the curated data feed). This workflow keeps
@@ -47,6 +47,7 @@ on:
       - 'data/configs.json'
       - 'data/agent-roles.json'
       - 'data/agent-request-profiles.json'
+      - 'data/providers.json'
   schedule:
     # Daily 06:00 UTC. Picked at 06:00 because the data/sync-benchmarks.yml
     # workflow runs on a separate cadence; the 06:00 self-heal covers any
@@ -96,17 +97,17 @@ jobs:
             --branch main \
             --single-branch
 
-      - name: Copy the 5 data files
+      - name: Copy the 6 data files
         run: |
           mkdir -p /tmp/sdd-data/data
-          for f in models phases configs agent-roles agent-request-profiles; do
+          for f in models phases configs agent-roles agent-request-profiles providers; do
             if [ ! -f "data/${f}.json" ]; then
               echo "::error::data/${f}.json missing in sdd_agent_selector"
               exit 1
             fi
             cp "data/${f}.json" "/tmp/sdd-data/data/${f}.json"
           done
-          echo "Copied 5 files. Diff vs HEAD:"
+          echo "Copied 6 files. Diff vs HEAD:"
           cd /tmp/sdd-data && git diff --stat data/
 
       - name: Commit and push
