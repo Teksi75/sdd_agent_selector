@@ -12,7 +12,9 @@
 //                { html: string, mounted: true } when targetEl is provided.
 //
 // The card carries:
-//   - a name row with a tier badge (tier-tag) and a NEW badge when isNew=true
+//   - a name row with at most one reasoning tag: the effort badge
+//     (`data-effort`, closed vocabulary) plus a NEW badge when isNew=true;
+//     no tier badge/attribute (PR-B effort-only)
 //   - ONE BenchLM score row: numeric score (1 decimal) + verified/estimated
 //     badge + 5-dot reliability scale (floor(reliability*5) filled)
 //   - an "unavailable" placeholder row when benchlm.score is missing/null
@@ -23,45 +25,14 @@
 // is the single source of truth for benchmark context (per design
 // benchlm-data-model).
 
+import { effortTagHtml } from './effort-tag.js';
+
 /** Minimal HTML escaper. */
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     return map[ch];
   });
-}
-
-/** Pick the tier slug for the badge. Defaults to 'balanced'. */
-function tierSlug(tier) {
-  if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'budget';
-  if (tier === 'reference') return 'reference';
-  return 'balanced';
-}
-
-const EFFORT_LABELS = Object.freeze({
-  max: 'Máximo',
-  xhigh: 'Extremo alto',
-  high: 'Alto',
-  medium: 'Medio',
-  low: 'Bajo',
-  'non-reasoning': 'Sin razonamiento',
-});
-
-/** Render the optional first-class effort badge. */
-function effortBadgeHtml(effort) {
-  if (effort === null || effort === undefined || effort === '') return '';
-  const label = EFFORT_LABELS[effort] || String(effort);
-  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${esc(effort)}">${esc(label)}</span>`;
-}
-
-/** Tier badge label. V5: label matches the data-tier (high/budget/
-    reference/balanced) for consistency with the data model. */
-function tierLabel(tier) {
-  if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'budget';
-  if (tier === 'reference') return 'reference';
-  return 'balanced';
 }
 
 /** Render the verified/estimated badge HTML. */
@@ -136,20 +107,17 @@ export function buildCard(model) {
   if (!model || typeof model !== 'object') {
     return `<div class="model-card empty" data-empty="true">—</div>`;
   }
-  const tier = tierSlug(model.tier);
-  const label = tierLabel(model.tier);
   const newBadge = model.isNew === true
     ? ' <span class="src-badge src-new">NEW</span>'
     : '';
-  const effortBadge = effortBadgeHtml(model.effort);
+  const effortBadge = effortTagHtml(model.effort);
   const benchlmRow = benchlmRowHtml(model.benchlm);
   return `
-    <div class="model-card" data-model-key="${esc(model.key || '')}" data-tier="${esc(tier)}">
+    <div class="model-card" data-model-key="${esc(model.key || '')}">
       <div class="flex items-center justify-between gap-2 mb-1.5">
         <span class="text-sm font-semibold text-slate-100 truncate">${esc(model.name || model.key || '—')}${newBadge}</span>
         <span class="inline-flex items-center gap-1.5">
           ${effortBadge}
-          <span class="model-tier-tag" data-tier="${esc(tier)}">${esc(label)}</span>
         </span>
       </div>
       ${benchlmRow}

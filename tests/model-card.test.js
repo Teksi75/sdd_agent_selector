@@ -9,8 +9,9 @@
 // reliability scale. Legacy 4-benchmark columns removed. Price row
 // preserved unchanged.
 //
-// Tier badge, NEW badge, name, model-tier-tag, escaping, and null-model
-// fallback retain their pre-PR3 behavior (regression coverage).
+// Effort-only (PR-B): the card shows the NEW badge + at most one effort
+// tag; the tier badge/attribute is gone. Escaping and null-model fallback
+// retain their pre-PR3 behavior (regression coverage).
 
 import { describe, test, expect, beforeEach } from 'vitest';
 
@@ -23,11 +24,12 @@ beforeEach(() => {
 let render, buildCard;
 
 describe('model-card — render() contract (PR3 benchlm row)', () => {
-  test('mounts a card with model name and tier badge', async () => {
-    ({ render, buildCard } = await import('../js/components/model-card.js'));
+  test('mounts a card with model name and no tier badge (effort-only)', async () => {
+    ({ render } = await import('../js/components/model-card.js'));
     render(target, {
       name: 'MiMo V2.5',
       tier: 'budget',
+      effort: 'max',
       input: 0.14,
       output: 0.28,
       benchlm: { score: 87, verified: true, reliability: 0.88, categories: {} },
@@ -35,7 +37,26 @@ describe('model-card — render() contract (PR3 benchlm row)', () => {
     const card = target.querySelector('.model-card');
     expect(card).toBeDefined();
     expect(card.textContent).toMatch(/MiMo V2\.5/);
-    expect(card.querySelector('.model-tier-tag').textContent).toMatch(/budget/);
+    // Effort-only: the sole reasoning tag is the effort badge.
+    expect(card.querySelector('[data-effort="max"]')?.textContent).toBe('Máximo');
+    expect(card.querySelector('.model-tier-tag')).toBeNull();
+    expect(card.querySelector('.tier-tag')).toBeNull();
+    expect(card.querySelectorAll('[data-tier]').length).toBe(0);
+    expect(card.textContent).not.toMatch(/~/);
+  });
+
+  test('model card shows effort and nothing else (spec scenario)', async () => {
+    ({ buildCard } = await import('../js/components/model-card.js'));
+    const html = buildCard({
+      name: 'Effortful',
+      tier: 'high',
+      effort: 'xhigh',
+      benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
+    });
+    expect(html).toMatch(/data-effort="xhigh"/);
+    expect(html).not.toMatch(/data-tier=/);
+    expect(html).not.toMatch(/model-tier-tag/);
+    expect(html).not.toMatch(/tier-tag/);
   });
 
   test('renders NEW badge when isNew=true', async () => {
@@ -68,14 +89,15 @@ describe('model-card — render() contract (PR3 benchlm row)', () => {
     expect(buildCard(undefined)).toMatch(/empty/);
   });
 
-  test('reference tier renders "reference" label', async () => {
+  test('reference tier no longer renders a tier label', async () => {
     ({ buildCard } = await import('../js/components/model-card.js'));
     const html = buildCard({
       name: 'Opus 4.8',
       tier: 'reference',
       benchlm: { score: 92, verified: true, reliability: 0.95, categories: {} },
     });
-    expect(html).toMatch(/reference/);
+    expect(html).not.toMatch(/reference/i);
+    expect(html).not.toMatch(/data-tier=/);
   });
 
   // === PR3: BenchLM row contract ============================================

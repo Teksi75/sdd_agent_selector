@@ -7,7 +7,7 @@
 // Contract (PR3, per spec benchlm-data-model + spec "UI Component —
 // Reference Table"):
 //   - Every non-reference model renders as one `<tr>` carrying:
-//       Modelo | Tier | Score | BenchLM (badge + reliability) |
+//       Modelo | Esfuerzo | Score | BenchLM (badge + reliability) |
 //       Input $ | Output $ | Sources
 //   - The score column reads `benchlm.score` directly (1 decimal).
 //   - The BenchLM column shows a verified/estimated badge PLUS a
@@ -26,16 +26,9 @@ import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
 import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
+import { effortTagHtml, effortLabel } from './effort-tag.js';
 
 const REFERENCE_DISPLAY_ORDER = ['gpt56sol', 'opus48', 'gpt56terra', 'gpt56luna'];
-const EFFORT_LABELS = Object.freeze({
-  max: 'Máximo',
-  xhigh: 'Extremo alto',
-  high: 'Alto',
-  medium: 'Medio',
-  low: 'Bajo',
-  'non-reasoning': 'Sin razonamiento',
-});
 
 /**
  * Format a numeric value for display. Numbers render as-is; null /
@@ -72,11 +65,13 @@ function badge(kind, label) {
   return `<span class="${cls}"${dataAttr}>${label}</span>`;
 }
 
-/** Build the optional first-class effort badge for a model row. */
-function effortBadgeHtml(effort) {
-  if (effort === null || effort === undefined || effort === '') return '—';
-  const label = EFFORT_LABELS[effort] || String(effort);
-  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${escapeAttr(effort)}">${escapeHtml(label)}</span>`;
+/**
+ * Build the optional first-class effort badge for a model row via the
+ * shared renderer (PR-B effort-only): missing or out-of-vocabulary effort
+ * falls back to the em-dash placeholder, never an invented label.
+ */
+function effortCellHtml(effort) {
+  return effortTagHtml(effort) || '—';
 }
 
 /**
@@ -201,14 +196,13 @@ function orderRows(models) {
   };
 }
 
-/** Build the export rows (name/tier/effort/lifecycle/score/prices). */
+/** Build the export rows (name/effort/lifecycle/score/prices). */
 function exportRowsFrom(groupedRows) {
   return groupedRows.map(([key, m]) => {
     const sc = compositeScore(m);
     return [
       m.name || key,
-      m.tier || '—',
-      m.effort == null ? '—' : (EFFORT_LABELS[m.effort] || String(m.effort)),
+      effortLabel(m.effort) || '—',
       lifecycleOf(m),
       Number.isFinite(sc) ? sc.toFixed(1) : '—',
       Number.isFinite(m.input) ? `$${m.input.toFixed(2)}` : '—',
@@ -224,7 +218,7 @@ function buildExportPayload(order, context, scope) {
   const md =
     `${exportHeader(ctx)}\n# SDD Models (${order.activeCount} active + ${order.nonActiveCount} non-active)\n\n` +
     markdownTable(
-      ['Modelo', 'Tier', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
+      ['Modelo', 'Esfuerzo', 'Lifecycle', 'Score', 'Input $', 'Output $'],
       rows
     ) +
     '\n';
@@ -319,9 +313,6 @@ function rowHtml(key, m, isNonActive) {
   const newBadge = m.isNew === true
     ? ' <span class="src-badge src-new">NEW</span>'
     : '';
-  const tierCell = isNonActive
-    ? `<span class="src-badge" style="background:rgba(244,63,94,.15);color:#fda4af;">${escapeHtml(lc.toUpperCase())}</span>`
-    : escapeHtml(m.tier || '—');
   const lifecycleCell = isNonActive
     ? `<span class="font-mono text-xs text-slate-400">${escapeHtml(lc)}</span>`
     : `<span class="font-mono text-xs text-emerald-400">active</span>`;
@@ -331,8 +322,7 @@ function rowHtml(key, m, isNonActive) {
   return `
         <tr class="${rowClass}" data-model-key="${escapeAttr(key)}" data-lifecycle="${escapeAttr(lc)}" data-verified="${m.benchlm && m.benchlm.verified === true ? 'true' : 'false'}" ${cs == null ? 'data-unavailable="true"' : ''}>
           <td class="py-2.5 px-3 font-medium">${escapeHtml(m.name || key)}${newBadge}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-xs">${tierCell}</td>
-          <td class="py-2.5 px-3 text-center font-mono text-xs">${effortBadgeHtml(m.effort)}</td>
+          <td class="py-2.5 px-3 text-center font-mono text-xs">${effortCellHtml(m.effort)}</td>
           <td class="py-2.5 px-3 text-center">${lifecycleCell}</td>
           <td class="py-2.5 px-3 text-center font-mono text-xs" data-score="${cs == null ? '0' : cs.toFixed(2)}">${score}</td>
           <td class="py-2.5 px-3 text-center">${benchlmProvenanceHtml(m)}</td>
@@ -432,7 +422,6 @@ export function render(targetEl, models, options) {
             <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
               <tr>
                 <th scope="col" class="py-2.5 px-3 font-semibold">Modelo</th>
-                <th scope="col" class="py-2.5 px-3 font-semibold text-center">Tier</th>
                 <th scope="col" class="py-2.5 px-3 font-semibold text-center">Esfuerzo</th>
                 <th scope="col" class="py-2.5 px-3 font-semibold text-center">Lifecycle</th>
                 <th scope="col" class="py-2.5 px-3 font-semibold text-center">Score</th>
@@ -443,7 +432,7 @@ export function render(targetEl, models, options) {
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-800/60" data-test="${activeTestId}">
-              ${activeBody || `<tr><td colspan="9" class="py-3 px-3 text-center text-xs text-slate-500">Sin modelos activos en esta sección.</td></tr>`}
+              ${activeBody || `<tr><td colspan="8" class="py-3 px-3 text-center text-xs text-slate-500">Sin modelos activos en esta sección.</td></tr>`}
             </tbody>
             ${nonActiveSection}
           </table>
