@@ -153,9 +153,13 @@ describe('agentsMarkdown', () => {
     expect(md).toContain('**GPT-5.6 Sol**');
     expect(md).toContain('implementador');
     expect(md).toContain('87.2');
+    // Effort-only (PR-B): the model line carries score + cost and no tier.
+    expect(md).toContain('**GPT-5.6 Sol** (87.2 · $0.000023/req)');
+    expect(md).not.toMatch(/\(high ·/);
+    expect(md).not.toContain('tier');
   });
 
-  test('marks soft fallback assignments', () => {
+  test('soft fallback assignments export as the plain model name (no soft marker)', () => {
     const md = agentsMarkdown(
       [
         {
@@ -170,7 +174,12 @@ describe('agentsMarkdown', () => {
       ],
       { context: CTX }
     );
-    expect(md).toContain('soft fallback');
+    // The soft flag stays a machine-readable JSON/assignment concern; the
+    // markdown body shows only the model name + score + cost.
+    expect(md).not.toMatch(/soft fallback/i);
+    expect(md).not.toMatch(/_soft/);
+    expect(md).not.toMatch(/soft/);
+    expect(md).toContain('**GPT-5.6 Luna** (60.0 · $0.000001/req)');
   });
 
   test('handles missing model gracefully (no throw)', () => {

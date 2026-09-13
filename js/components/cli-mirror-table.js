@@ -21,12 +21,13 @@
 //   - Copy markdown agents block (paste-ready for gentle-ai's agents/*.md)
 //   - Download JSON of the full assignments
 //
-// Tier-based colors come from tokens.css (--cli-tier-{high,balanced,budget})
-// with a Tailwind fallback so the table renders correctly before tokens.css
-// ships. No global side effects.
+// Effort-only (PR-B): the assigned cell renders the model name plus at
+// most the shared effort tag; soft fallbacks render the name alone. No
+// tier colors/tokens, no soft badge. No global side effects.
 
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, exportFilename, agentsMarkdown } from '../services/exporter.js';
+import { effortTagHtml } from './effort-tag.js';
 
 /** Canonical 18-agent order. MUST match spec.md / role-matrix-completeness. */
 const CANONICAL_ORDER = Object.freeze([
@@ -39,15 +40,6 @@ const CANONICAL_ORDER = Object.freeze([
   'review-risk', 'review-readability', 'review-reliability', 'review-resilience',
 ]);
 
-const EFFORT_LABELS = Object.freeze({
-  max: 'Máximo',
-  xhigh: 'Extremo alto',
-  high: 'Alto',
-  medium: 'Medio',
-  low: 'Bajo',
-  'non-reasoning': 'Sin razonamiento',
-});
-
 /** Minimal HTML escaper. */
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => {
@@ -56,86 +48,17 @@ function esc(s) {
   });
 }
 
-/** Resolve the tier → CSS token slug (same naming as workflow-table). */
-function tierSlug(tier) {
-  if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'budget';
-  if (tier === 'reference') return 'reference';
-  return 'balanced';
-}
-
-/** Resolve the tier → badge label. V5: label matches the data-tier
-    (high/budget/reference/balanced) so the visible text is consistent
-    with the data model. */
-function tierLabel(tier) {
-  if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'budget';
-  if (tier === 'reference') return 'reference';
-  return 'balanced';
-}
-
 /**
- * Read `--cli-tier-{slug}` from the document, fall back to ''. Used so the
- * tag color follows tokens.css when present; Tailwind handles the fallback.
+ * Build the model-name + effort cell HTML for the `assigned` column.
  *
- * @param {Document} doc
- * @param {'high'|'balanced'|'budget'|'reference'} slug
- * @returns {string}
- */
-function tokenColor(doc, slug) {
-  try {
-    const root = doc.documentElement ?? doc.body ?? null;
-    if (!root) return '';
-    const v = getComputedStyle(root).getPropertyValue(`--cli-tier-${slug}`);
-    return v ? v.trim() : '';
-  } catch {
-    return '';
-  }
-}
-
-/** Tailwind fallback class per tier. */
-function twClassFor(slug) {
-  return slug === 'high' ? 'bg-emerald-500/80'
-    : slug === 'budget' ? 'bg-amber-500/80'
-    : slug === 'reference' ? 'bg-rose-500/80'
-    : 'bg-indigo-500/80';
-}
-
-/**
- * Build the small "soft" badge for assignments that fell back to the best
- * cost-clearing model because the reasoning floor was unreachable.
- *
- * V5+ critique v2 — P1-2: the old `text-amber-300` was overloaded with
- * the "Sin modelo elegible" / "warning" color, so a soft-fallback (which
- * is a *successful* assignment under a relaxed heuristic, not an error)
- * read as a failure. Switched to the purple `.soft-badge` class in
- * tokens.css (with a `~` shape prefix for color-blind users) so the
- * meaning ("approx / best-effort under a ceiling") is carried by both
- * color and shape, not color alone.
- *
- * @param {string} reason - the getBestFor reason string (shown in `title`)
- * @returns {string} HTML
- */
-function softBadge(reason) {
-  const title = reason ? ` title="${esc(reason)}"` : '';
-  return `<span class="soft-badge" data-soft-fallback="true"${title}>soft</span>`;
-}
-
-/** Render the optional effort tag for an assigned model variant. */
-function effortBadge(effort) {
-  if (effort === null || effort === undefined || effort === '') return '';
-  const label = EFFORT_LABELS[effort] || String(effort);
-  return `<span class="src-badge src-effort bg-indigo-500/20 text-indigo-300 border border-indigo-500/30" data-effort="${esc(effort)}">${esc(label)}</span>`;
-}
-
-/**
- * Build the model-name + tier-tag cell HTML for the `assigned` column.
+ * Effort-only (PR-B): normal assignments show the name plus at most the
+ * shared effort tag; `softFallback` assignments render the model name
+ * only (zero badges — the flag stays in assignments/JSON for logic).
  *
  * @param {Object|null} assignment
- * @param {Document} doc
  * @returns {string}
  */
-function assignedCell(assignment, doc) {
+function assignedCell(assignment) {
   if (!assignment || !assignment.key) {
     return `<span class="warn-row inline-flex items-center gap-1.5 text-amber-300">
       <span aria-hidden="true">⚠</span>
@@ -143,18 +66,10 @@ function assignedCell(assignment, doc) {
     </span>`;
   }
   const m = assignment.model || {};
-  const slug = tierSlug(m.tier);
-  const label = tierLabel(m.tier);
-  const bg = tokenColor(doc, slug);
-  const styleAttr = bg ? ` style="background-color:${esc(bg)}"` : '';
-  const cls = bg ? 'tier-tag' : `tier-tag ${twClassFor(slug)}`;
-  const soft = assignment.softFallback ? softBadge(assignment.reason) : '';
-  const effort = effortBadge(m.effort);
+  const effort = effortTagHtml(m.effort, { softFallback: assignment.softFallback === true });
   return `<span class="inline-flex items-center gap-2">
     <span class="font-medium">${esc(m.name || assignment.key)}</span>
-    <span class="${cls}" data-tier="${esc(slug)}"${styleAttr}>${esc(label)}</span>
     ${effort}
-    ${soft}
   </span>`;
 }
 
@@ -188,7 +103,6 @@ export function render(targetEl, agentsAssignments, agentRoles, options) {
   }
 
   const safeAssignments = agentsAssignments || {};
-  const doc = targetEl.ownerDocument ?? document;
   let withA = 0;
   let withoutA = 0;
 
@@ -204,7 +118,7 @@ export function render(targetEl, agentsAssignments, agentRoles, options) {
         <tr class="hover:bg-slate-800/30 transition" data-agent="${esc(agent)}" data-has-assignment="${hasKey}">
           <td class="py-2 px-3 font-mono text-xs text-slate-300">${esc(agent)}</td>
           <td class="py-2 px-3 text-xs text-slate-400">${esc(roleDesc)}</td>
-          <td class="py-2 px-3 text-right">${assignedCell(a, doc)}</td>
+          <td class="py-2 px-3 text-right">${assignedCell(a)}</td>
         </tr>`;
     })
     .join('');
