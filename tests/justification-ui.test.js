@@ -130,16 +130,18 @@ describe('justification-ui — render() contract (spec.md)', () => {
 
     const card = target.querySelector('.justification-card[data-agent="gentle-orchestrator"]');
     expect(card).toBeDefined();
-    // The card is treated as having an assignment (it has a model), but
-    //   flagged as a soft fallback so the UI shows a different color and
-    //   the reason banner.
+    // The card is still flagged as a soft fallback (machine-readable
+    //   attribute + amber state color), but it renders like any other
+    //   assignment: model name only, zero badges (effort-only PR-B).
     expect(card.getAttribute('data-has-assignment')).toBe('true');
     expect(card.getAttribute('data-soft-fallback')).toBe('true');
-    // Soft fallback banner + reason (not the rose "Sin modelo" critical
-    //   warning).
-    expect(card.textContent).toMatch(/Soft fallback/i);
-    expect(card.textContent).toMatch(/minReasoning=95/);
     expect(card.textContent).not.toMatch(/Sin modelo|No hay modelo elegible/i);
+    expect(card.textContent).not.toMatch(/soft/i);
+    expect(card.querySelector('.soft-badge')).toBeNull();
+    expect(card.querySelector('[data-effort]')).toBeNull();
+    expect(card.querySelector('.tier-tag')).toBeNull();
+    expect(card.querySelectorAll('[data-tier]').length).toBe(0);
+    expect(card.textContent).toMatch(/score/);
     // The card uses the amber color (not rose).
     expect(card.className).toMatch(/border-amber/);
     // The gentle-orchestrator card is treated as with-assignment (it has
@@ -246,7 +248,7 @@ describe('justification-ui — render() contract (spec.md)', () => {
     expect(card.textContent).toMatch(/Alternativas/i);
   });
 
-  test('hand-crafted assignments cover all 4 tiers (high/balanced/budget/reference)', async () => {
+  test('effort-only: 18 cards with no tier/soft traces and at most one effort tag per header', async () => {
     ({ render } = await import('../js/components/justification-ui.js'));
     const baseA = {
       score: 80, cost: 0.001, effectiveMaxCost: 0.005,
@@ -259,103 +261,80 @@ describe('justification-ui — render() contract (spec.md)', () => {
       'sdd-init': { ...baseA, key: 'qwen36plus', model: MODELS.qwen36plus },
     };
     render(target, assignments, ROLE_MATRIX, MODELS);
-    // All 18 cards render — 4 with tier 'reference', 'high', 'budget', 'balanced'.
     const cards = target.querySelectorAll('.justification-card');
     expect(cards.length).toBe(18);
-    // Each tier shows up in the DOM at least once.
     const html = target.innerHTML;
-    expect(html).toMatch(/data-tier="reference"/);
-    expect(html).toMatch(/data-tier="high"/);
-    expect(html).toMatch(/data-tier="budget"/);
-    expect(html).toMatch(/data-tier="balanced"/);
+    // No tier/soft traces anywhere in the DOM (spec scenario).
+    expect(html).not.toMatch(/data-tier=/);
+    expect(html).not.toMatch(/tier-tag/);
+    expect(html).not.toMatch(/soft-badge/);
+    expect(html).not.toMatch(/soft fallback/i);
+    expect(html).not.toMatch(/~/);
+    expect(target.querySelectorAll('[data-test="soft-summary"]').length).toBe(0);
+    // Every assigned-model header shows at most one effort tag from the
+    // closed vocabulary.
+    const vocab = new Set(['max', 'xhigh', 'high', 'medium', 'low', 'non-reasoning']);
+    for (const card of cards) {
+      const efforts = card.querySelectorAll('[data-effort]');
+      expect(efforts.length).toBeLessThanOrEqual(1);
+      for (const tag of efforts) expect(vocab.has(tag.getAttribute('data-effort'))).toBe(true);
+    }
+    // The four hand-crafted assignments expose their effort tag.
+    expect(target.querySelector('[data-agent="gentle-orchestrator"] [data-effort="max"]')).not.toBeNull();
+    expect(target.querySelector('[data-agent="gentle-orchestrator"] [data-effort="max"]').textContent).toBe('Máximo');
   });
 });
 
-// V5+ critique v3 — P1-3: soft-fallback count summary banner. When the
-// current strategy produces N>0 soft-fallbacks, a one-line banner
-// appears at the top of the mount with a "cambiar a Balanceado" link
-// that fires selectConfig('balanceado'). The banner is absent when N=0.
-describe('justification-ui — V5+ critique v3 P1-3 soft-summary banner', () => {
-  test('aparece el banner cuando N>0 agentes usan soft fallback, con copy rioplatense', async () => {
+// PR-B (effort-only): the soft-summary banner and its switch-balanced link
+// are gone; soft fallbacks render the model name with zero badges and the
+// markdown export carries Agente/Rol/Modelo/Esfuerzo/Score/Costo only.
+describe('justification-ui — effort-only export (PR-B)', () => {
+  const baseA = {
+    key: 'mimo25', model: MODELS.mimo25,
+    score: 86.97, cost: 0.000266, effectiveMaxCost: 0.00085, alternatives: [],
+  };
+  const softA = { ...baseA, softFallback: true, reason: 'soft fallback (minReasoning=95)' };
+
+  test('no soft-summary banner and no switch link even with N>0 soft fallbacks', async () => {
     ({ render } = await import('../js/components/justification-ui.js'));
-    const baseA = {
-      key: 'mimo25', model: MODELS.mimo25,
-      score: 86.97, cost: 0.000266, effectiveMaxCost: 0.00085, alternatives: [],
-    };
-    const softA = { ...baseA, softFallback: true, reason: 'soft fallback (minReasoning=95)' };
-    // 3 soft-fallbacks, el resto asignaciones normales. Suficiente para
-    // gatillar el banner y verificar el conteo.
-    const assignments = {
-      'sdd-archive': softA, 'sdd-apply': softA, 'sdd-design': softA,
-      'gentle-orchestrator': baseA,
-      'sdd-init': baseA, 'sdd-explore': baseA, 'sdd-propose': baseA,
-      'sdd-spec': baseA, 'sdd-tasks': baseA, 'sdd-verify': baseA,
-      'sdd-onboard': baseA,
-      'jd-judge-a': baseA, 'jd-judge-b': baseA, 'jd-fix-agent': baseA,
-      'review-risk': baseA, 'review-readability': baseA,
-      'review-reliability': baseA, 'review-resilience': baseA,
-    };
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) assignments[agent] = baseA;
+    assignments['sdd-archive'] = softA;
+    assignments['sdd-apply'] = softA;
+    assignments['sdd-design'] = softA;
     render(target, assignments, ROLE_MATRIX, MODELS);
-    const banner = target.querySelector('[data-test="soft-summary"]');
-    expect(banner).not.toBeNull();
-    expect(banner.textContent).toMatch(/3/);
-    expect(banner.textContent).toMatch(/de\s*18/);
-    // Rioplatense: "usan" (no "usa") y "cambiar a Balanceado" (sin artículo).
-    expect(banner.textContent).toMatch(/usan soft fallback/);
-    expect(banner.textContent).toMatch(/cambiar a\s*Balanceado/);
-    const link = banner.querySelector('[data-action="switch-balanced"]');
-    expect(link).not.toBeNull();
-    expect(link.getAttribute('href')).toBe('#');
-    expect(link.textContent).toBe('Balanceado');
-    // El banner aparece ANTES del grid de cards (es el primer hijo del mount).
-    const firstChild = target.firstElementChild;
-    expect(firstChild.getAttribute('data-test')).toBe('soft-summary');
-    // Conteo 0 → no se renderiza (verificamos el caso negativo en el mismo
-    // test re-renderizando con assignments todas-non-soft).
-    const allNormal = {};
-    for (const a of Object.keys(assignments)) allNormal[a] = baseA;
-    render(target, allNormal, ROLE_MATRIX, MODELS);
     expect(target.querySelector('[data-test="soft-summary"]')).toBeNull();
+    expect(target.querySelector('.soft-summary')).toBeNull();
+    expect(target.querySelector('[data-action="switch-balanced"]')).toBeNull();
+    expect(target.textContent).not.toMatch(/soft fallback/i);
+    // Soft-fallback cards render the model name with zero badges.
+    const softCard = target.querySelector('.justification-card[data-agent="sdd-archive"]');
+    expect(softCard.getAttribute('data-soft-fallback')).toBe('true');
+    expect(softCard.querySelectorAll('[data-effort], .soft-badge, .tier-tag, [data-tier]').length).toBe(0);
+    expect(softCard.textContent).toContain(MODELS.mimo25.name);
   });
 
-  test('click en el link llama selectConfig("balanceado") y hace preventDefault', async () => {
+  test('export markdown carries Agente/Rol/Modelo/Esfuerzo/Score/Costo and no Tier/Estado', async () => {
     ({ render } = await import('../js/components/justification-ui.js'));
-    // Mockeamos el módulo config-selector para espiar selectConfig. Usamos
-    // vi.resetModules + vi.doMock para que el import del justification-ui
-    // (que arriba trae el módulo real) vea el mock en el segundo render.
-    const { vi } = await import('vitest');
-    vi.resetModules();
-    vi.doMock('../js/components/config-selector.js', () => ({
-      selectConfig: vi.fn(),
-    }));
-    const { render: renderMocked } = await import('../js/components/justification-ui.js');
-    const mockedConfig = await import('../js/components/config-selector.js');
-    const baseA = {
-      key: 'mimo25', model: MODELS.mimo25,
-      score: 86.97, cost: 0.000266, effectiveMaxCost: 0.00085, alternatives: [],
-    };
-    const softA = { ...baseA, softFallback: true };
-    const assignments = {
-      'gentle-orchestrator': baseA, 'sdd-init': baseA, 'sdd-explore': baseA,
-      'sdd-propose': baseA, 'sdd-spec': baseA, 'sdd-design': softA,
-      'sdd-tasks': baseA, 'sdd-apply': baseA, 'sdd-verify': baseA,
-      'sdd-archive': baseA, 'sdd-onboard': baseA,
-      'jd-judge-a': baseA, 'jd-judge-b': baseA, 'jd-fix-agent': baseA,
-      'review-risk': baseA, 'review-readability': baseA,
-      'review-reliability': baseA, 'review-resilience': baseA,
-    };
-    target.innerHTML = '';
-    renderMocked(target, assignments, ROLE_MATRIX, MODELS);
-    const link = target.querySelector('[data-action="switch-balanced"]');
-    expect(link).not.toBeNull();
-    const ev = new Event('click', { cancelable: true, bubbles: true });
-    link.dispatchEvent(ev);
-    expect(ev.defaultPrevented).toBe(true);
-    expect(mockedConfig.selectConfig).toHaveBeenCalledTimes(1);
-    expect(mockedConfig.selectConfig).toHaveBeenCalledWith('balanceado');
-    // Limpiamos el mock para no contaminar los tests siguientes.
-    vi.doUnmock('../js/components/config-selector.js');
-    vi.resetModules();
+    const writeText = vi.fn().mockResolvedValue();
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const assignments = {};
+    for (const agent of Object.keys(ROLE_MATRIX)) assignments[agent] = baseA;
+    assignments['sdd-archive'] = softA;
+    render(target, assignments, ROLE_MATRIX, MODELS);
+    const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
+    toggle.click();
+    target.querySelector('[data-format-id="copy-md"]').click();
+    await new Promise((r) => setTimeout(r, 0));
+    const md = writeText.mock.calls[0][0];
+    expect(md).toContain('| Agente | Rol | Modelo | Esfuerzo | Score | Costo/req |');
+    expect(md).not.toMatch(/\|\s*Tier\s*\|/);
+    expect(md).not.toMatch(/Estado/);
+    expect(md).not.toMatch(/soft fallback/i);
+    expect(md).toContain('Máximo');
   });
 });
 // V5 Slice 3 — empty eligible set yields 18 stable warning cards; the export
