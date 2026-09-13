@@ -4,7 +4,7 @@
 //
 // Contract (spec.md "Justification UI" + design.md):
 //   render(targetEl, agentsAssignments, roleMatrix, models)
-//     Each card: agent key, model name + tier, score, cost, role,
+//     Each card: agent key, model name + effort tag, score, cost, role,
 //     the two checks (score ≥ minReasoning, cost ≤ effectiveMaxCost),
 //     and top 3 alternatives. Null assignment → critical warning with
 //     the getBestFor reason. Colors via tokens.css with Tailwind fallback.
@@ -13,16 +13,14 @@
 //   - Copy markdown justification block (per-agent rationale table)
 //   - Download JSON of the full justification set
 //
-// V5+ critique v3 — P1-3: soft-fallback count summary banner.
-// The banner appears at the top of the mount when the current
-// strategy produces N>0 soft-fallbacks. The link inside the banner
-// calls selectConfig('balanceado') to switch the global strategy,
-// which clears the soft-fallbacks in the next paint and the banner
-// disappears by itself (no manual teardown needed).
+// PR-B (effort-only): each card shows at most the shared effort tag;
+// soft-fallback assignments render the model name alone (the flag stays
+// machine-readable in assignments/JSON). No tier badge, no `.soft-badge`,
+// no soft-summary banner, no `Tier`/`Estado` columns in the markdown.
 
 import { render as renderExportButton } from './export-button.js';
-import { selectConfig } from './config-selector.js';
 import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
+import { effortTagHtml, effortLabel } from './effort-tag.js';
 
 const CANONICAL_ORDER = Object.freeze([
   'gentle-orchestrator', 'sdd-init', 'sdd-explore', 'sdd-propose', 'sdd-spec',
@@ -36,28 +34,6 @@ function esc(s) {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
     return map[ch];
   });
-}
-
-function tierSlug(tier) {
-  if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'budget';
-  if (tier === 'reference') return 'reference';
-  return 'balanced';
-}
-
-function tierLabel(tier) {
-  // V5: label matches the data-tier (high/budget/reference/balanced).
-  if (tier === 'high') return 'high';
-  if (tier === 'budget') return 'budget';
-  if (tier === 'reference') return 'reference';
-  return 'balanced';
-}
-
-function twClassFor(slug) {
-  return slug === 'high' ? 'bg-emerald-500/80'
-    : slug === 'budget' ? 'bg-amber-500/80'
-    : slug === 'reference' ? 'bg-rose-500/80'
-    : 'bg-indigo-500/80';
 }
 
 function tokenValue(doc, name) {
@@ -117,14 +93,11 @@ function alternativesBlock(alternatives) {
   return `<div class="mt-2"><div class="text-[10px] uppercase tracking-wider text-slate-500 mb-1">Alternativas (top 3)</div><ul class="space-y-0.5">${items}</ul></div>`;
 }
 
-function assignmentHeader(assignment, doc) {
+function assignmentHeader(assignment) {
   if (!assignment || !assignment.key) return '';
   const m = assignment.model || {};
-  const slug = tierSlug(m.tier);
-  const bg = tokenValue(doc, `--just-tier-${slug}`);
-  const styleAttr = bg ? ` style="background-color:${esc(bg)}"` : '';
-  const cls = bg ? 'tier-tag' : `tier-tag ${twClassFor(slug)}`;
-  return `<div class="flex items-center justify-between gap-2 mb-1"><span class="text-sm font-semibold text-slate-100">${esc(m.name || assignment.key)}</span><span class="${cls}" data-tier="${esc(slug)}"${styleAttr}>${esc(tierLabel(m.tier))}</span></div>
+  const effort = effortTagHtml(m.effort, { softFallback: assignment.softFallback === true });
+  return `<div class="flex items-center justify-between gap-2 mb-1"><span class="text-sm font-semibold text-slate-100">${esc(m.name || assignment.key)}</span>${effort}</div>
   <div class="flex gap-3 text-[11px] text-slate-400 font-mono"><span>score ${fmtScore(assignment.score)}</span><span>·</span><span>${fmtCost(assignment.cost)}/req</span></div>`;
 }
 
@@ -142,26 +115,20 @@ function cardHtml(agent, role, assignment, doc) {
     </div>`;
   }
   if (safeA.softFallback) {
-    const reason = safeA.reason || 'Soft fallback activo';
-    // V5+ critique v2 — P1-2: soft-fallback badge switched to the
-    // purple `.soft-badge` class (with a tilde shape prefix from
-    // tokens.css) so the "approx / best-effort" meaning is carried
-    // by shape as well as color. The old amber overload made
-    // soft-fallbacks read as errors.
+    // Effort-only (PR-B): the fallback keeps its machine-readable flag and
+    // amber state color, but renders the model name with zero badges — no
+    // soft badge, no reason banner, no effort tag.
     return `<div class="justification-card rounded-xl border border-amber-700 bg-amber-900/25 p-4" data-agent="${esc(agent)}" data-has-assignment="true" data-soft-fallback="true">
-      <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span>
-        <span class="soft-badge" data-soft-fallback="true" title="${esc(reason)}">soft</span>
-      </div>
-      ${assignmentHeader(safeA, doc)}
-      <div class="text-[11px] text-amber-200/85 mt-2 mb-1">${esc(reason)}</div>
-      <div class="text-[11px] text-slate-400"><span class="text-slate-500">role:</span> ${esc(roleDesc)}</div>
+      <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span></div>
+      ${assignmentHeader(safeA)}
+      <div class="text-[11px] text-slate-400 mt-2"><span class="text-slate-500">role:</span> ${esc(roleDesc)}</div>
       ${checksBlock(safeA, minReasoning, doc)}
       ${alternativesBlock(safeA.alternatives)}
     </div>`;
   }
   return `<div class="justification-card rounded-xl border border-slate-800 bg-slate-900/60 p-4" data-agent="${esc(agent)}" data-has-assignment="true">
     <div class="flex items-center justify-between mb-1"><span class="font-mono text-xs text-slate-300">${esc(agent)}</span></div>
-    ${assignmentHeader(safeA, doc)}
+    ${assignmentHeader(safeA)}
     <div class="text-[11px] text-slate-400 mt-2"><span class="text-slate-500">role:</span> ${esc(roleDesc)}</div>
     ${checksBlock(safeA, minReasoning, doc)}
     ${alternativesBlock(safeA.alternatives)}
@@ -205,7 +172,7 @@ export function render(targetEl, agentsAssignments, roleMatrix, models, options)
     .join('');
 
   // V5 — build export formats. The markdown is a table per agent:
-  // agent | role | model | tier | score | cost | checks
+  // agent | role | model | effort | score | cost
   const exportRows = exportAssignments.map((ea) => {
     const m = ea.model || {};
     const sc = Number.isFinite(ea.score) ? ea.score.toFixed(1) : '—';
@@ -214,15 +181,14 @@ export function render(targetEl, agentsAssignments, roleMatrix, models, options)
       ea.key,
       ea.role || '—',
       m.name || (ea.key ? '(sin modelo)' : '—'),
-      m.tier || '—',
+      effortLabel(m.effort) || '—',
       sc,
       cs,
-      ea.softFallback ? 'soft fallback' : (ea.key ? 'ok' : '—'),
     ];
   });
   const exportContext = (options && options.exportContext) || {};
   const exportMd = `${exportHeader(exportContext)}\n# Justificación por agente (${withA}/18 con asignación)\n\n` + markdownTable(
-    ['Agent', 'Role', 'Modelo', 'Tier', 'Score', 'Costo/req', 'Estado'],
+    ['Agente', 'Rol', 'Modelo', 'Esfuerzo', 'Score', 'Costo/req'],
     exportRows
   ) + '\n';
   const exportJson = toJSON(
@@ -238,51 +204,13 @@ export function render(targetEl, agentsAssignments, roleMatrix, models, options)
   // so screen readers announce the new assignment set after the
   // user picks a different strategy. `polite` (not `assertive`)
   // because the change is informational, not a critical alert.
-  //
-  // V5+ critique v3 — P1-3: soft-fallback count summary banner.
-  // When the current strategy (e.g. "Experimental" or "Híbrido")
-  // produces N>0 soft-fallbacks, render a one-line summary above
-  // the cards with a "cambiar a Balanceado" link. The banner is
-  // absent for strategies with 0 soft-fallbacks (Balanceado /
-  // Máximo) — keeps the mount clean for the common case. Copy
-  // uses rioplatense "usan" (not "usa") and omits the article
-  // before "Balanceado" to read naturally in Spanish.
-  const softCount = Object.values(safeA).filter((a) => a && a.softFallback).length;
-  const softSummary = softCount > 0
-    ? `<div class="soft-summary" data-test="soft-summary" role="status" aria-live="polite">
-         <strong>${softCount}</strong> de <strong>18</strong> usan soft fallback — el rol no tiene un modelo que cumpla minReasoning estricto dentro del cost ceiling.
-         ¿Querés cambiar a <a href="#" data-action="switch-balanced">Balanceado</a>?
-       </div>`
-    : '';
-  targetEl.innerHTML = `${softSummary}
+  targetEl.innerHTML = `
     <div class="flex items-center justify-between gap-2 mb-3">
       <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${withA}/18 agentes con asignación</span>
       <div data-test="justification-export"></div>
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3" data-test="justification-cards" aria-live="polite">${cards}</div>
     <p class="mt-3 text-xs text-slate-500">${withA}/18 agentes con asignación · colores desde <code>tokens.css</code>.</p>`;
-
-  // V5+ critique v3 — P1-3: wire the "switch to Balanceado" link.
-  // The link uses href="#" + data-action="switch-balanced" so users
-  // without JS still see a real anchor. preventDefault on click so
-  // the browser doesn't scroll to the top. selectConfig re-renders
-  // the dependent mounts and the next paint of this mount will have
-  // 0 soft-fallbacks under 'balanceado' — the banner disappears by
-  // itself. The try/catch covers the edge case where render() runs
-  // before config-selector.setData() (test harness). We log and
-  // bail; the rest of the mount still renders fine.
-  const switchLink = targetEl.querySelector('[data-action="switch-balanced"]');
-  if (switchLink) {
-    switchLink.addEventListener('click', (e) => {
-      e.preventDefault();
-      try {
-        selectConfig('balanceado');
-      } catch (err) {
-        // eslint-disable-next-line no-console
-        console.warn('justification-ui: switch to balanceado failed', err);
-      }
-    });
-  }
 
   const exportMount = targetEl.querySelector('[data-test="justification-export"]');
   if (exportMount) {
