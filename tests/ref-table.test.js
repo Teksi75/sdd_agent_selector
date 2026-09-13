@@ -16,7 +16,7 @@
 //     group (score/price tie-break unchanged inside each bucket).
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
-import { render, rowsFor } from '../js/components/ref-table.js';
+import { render, rowsFor, buildExportFormats } from '../js/components/ref-table.js';
 
 // Mixed-fixture: verified + estimated + unavailable + reference. Score
 // ordering is clear: alpha (verified 85) > beta (estimated 65) >
@@ -107,22 +107,28 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
 
   test('(a) row shows benchlm score column; NO legacy 4-benchmark columns', () => {
     render(target, FIXTURE);
-    // Columns: Modelo, Tier, Esfuerzo, Lifecycle, Score, BenchLM, Input $, Output $, Sources = 9.
+    // Effort-only columns: Modelo, Esfuerzo, Lifecycle, Score, BenchLM,
+    // Input $, Output $, Sources = 8 (Tier column removed in PR-B).
     const ths = target.querySelectorAll('thead th');
-    expect(ths.length).toBe(9);
+    expect(ths.length).toBe(8);
     // Specific columns present.
     const labels = Array.from(ths).map((th) => th.textContent.trim());
     expect(labels).toContain('Modelo');
-    expect(labels).toContain('Tier');
     expect(labels).toContain('Esfuerzo');
     expect(labels).toContain('Lifecycle');
     expect(labels).toContain('Score');
     expect(labels).toContain('BenchLM');
+    // Tier header is gone (effort-only).
+    expect(labels).not.toContain('Tier');
     // Legacy columns gone.
     expect(labels).not.toContain('Arena');
     expect(labels).not.toContain('SWE-Pro');
     expect(labels).not.toContain('SWE-Ver');
     expect(labels).not.toContain('Term');
+    // No tier markup survives anywhere in the rendered table.
+    expect(target.querySelectorAll('[data-tier]').length).toBe(0);
+    expect(target.querySelectorAll('.tier-tag').length).toBe(0);
+    expect(target.querySelectorAll('.model-tier-tag').length).toBe(0);
 
     // The alpha row scores match the data.
     const alpha = target.querySelector('tr[data-model-key="alpha"]');
@@ -371,20 +377,24 @@ describe('ref-table — reference display order and legacy filtering', () => {
     expect(summaryText).not.toMatch(/\+ 7 non-active/);
   });
 
-  test('preserve score/tier/lifecycle rendering for visible reference rows', () => {
+  test('preserve score/lifecycle rendering for visible reference rows (no tier survivors)', () => {
     render(target, CATALOG_FIXTURE);
     const gpt56sol = target.querySelector('tr[data-model-key="gpt56sol"]');
     expect(gpt56sol.textContent).toMatch(/82\.0/);
-    expect(gpt56sol.textContent).toMatch(/REFERENCE/);
+    expect(gpt56sol.textContent).toMatch(/reference/i);
     expect(gpt56sol.getAttribute('data-lifecycle')).toBe('reference');
 
     const opus48 = target.querySelector('tr[data-model-key="opus48"]');
     expect(opus48.textContent).toMatch(/78\.3/);
-    expect(opus48.textContent).toMatch(/REFERENCE/);
+    expect(opus48.textContent).toMatch(/reference/i);
 
     const gpt55 = target.querySelector('tr[data-model-key="gpt55"]');
     expect(gpt55.textContent).toMatch(/73\.5/);
-    expect(gpt55.textContent).toMatch(/REFERENCE/);
+    expect(gpt55.textContent).toMatch(/reference/i);
+
+    // Effort-only: no tier badge/attribute leaks through the reference rows.
+    expect(target.querySelectorAll('[data-tier]').length).toBe(0);
+    expect(target.querySelectorAll('.tier-tag').length).toBe(0);
   });
 });
 
@@ -593,5 +603,53 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
     };
     const { active } = rowsFor(models);
     expect(active.map(([key]) => key)).toEqual(['newCheap', 'newPricey', 'oldCheapest']);
+  });
+});
+
+// PR-B (effort-only UI) — the reference table exports `Esfuerzo` and never
+// `Tier`; the row/export contract forbids tierCell/data-tier/tier-tag.
+describe('ref-table — effort-only export (PR-B)', () => {
+  const EFFORT_MODELS = {
+    alpha: {
+      name: 'Alpha-1',
+      tier: 'high',
+      effort: 'max',
+      lifecycle: 'active',
+      benchlm: { score: 85, verified: true, reliability: 0.92, categories: {} },
+      input: 1.0,
+      output: 3.0,
+    },
+    legacy: {
+      name: 'Legacy-No-Effort',
+      tier: 'balanced',
+      lifecycle: 'active',
+      benchlm: { score: 50, verified: false, reliability: 0.5, categories: {} },
+      input: 1.0,
+      output: 2.0,
+    },
+  };
+
+  test('export markdown carries Modelo/Esfuerzo/Lifecycle/Score/Input/Output and no Tier', () => {
+    const formats = buildExportFormats(EFFORT_MODELS);
+    const md = formats.find((f) => f.id === 'copy-md').content;
+    expect(md).toContain('| Modelo | Esfuerzo | Lifecycle | Score | Input $ | Output $ |');
+    expect(md).not.toMatch(/\|\s*Tier\s*\|/);
+    expect(md).toContain('Máximo');
+    // Missing effort exports as the em-dash placeholder, never an invented label.
+    expect(md).toMatch(/Legacy-No-Effort \| —/);
+  });
+
+  test('rendered rows carry at most the effort badge; invalid effort gets the placeholder, not a badge', () => {
+    render(target, EFFORT_MODELS);
+    expect(target.querySelector('[data-model-key="alpha"] [data-effort="max"]')?.textContent).toBe('Máximo');
+    expect(target.querySelector('[data-model-key="legacy"] [data-effort]')).toBeNull();
+    expect(target.querySelector('[data-model-key="legacy"]').textContent).toMatch(/—/);
+  });
+
+  test('out-of-vocabulary effort renders no badge and no invented label', () => {
+    render(target, { weird: { name: 'Weird', tier: 'high', effort: 'turbo', lifecycle: 'active', benchlm: { score: 70, verified: true, reliability: 0.7, categories: {} } } });
+    const row = target.querySelector('[data-model-key="weird"]');
+    expect(row.querySelector('[data-effort]')).toBeNull();
+    expect(row.textContent).not.toMatch(/turbo/);
   });
 });
