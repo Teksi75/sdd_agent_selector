@@ -155,3 +155,30 @@ describe('pricing-chart — render() contract (spec.md)', () => {
     expect(target.innerHTML).toMatch(/&lt;img/);
   });
 });
+
+// V5 Slice 3 — eligible-only rendering + empty-state label.
+describe('pricing-chart — V5 Slice 3 eligible-only', () => {
+  test('rinde solo el set elegible recibido (sin barras fuera del set)', async () => {
+    ({ render } = await import('../js/components/pricing-chart.js'));
+    const FIXTURE = {
+      a: { name: 'A', tier: 'high', input: 1, output: 3, lifecycle: 'active' },
+      b: { name: 'B', tier: 'balanced', input: 0.5, output: 1, lifecycle: 'active' },
+      c: { name: 'C', tier: 'budget', input: 0.1, output: 0.2, lifecycle: 'active' },
+    };
+    render(target, { a: FIXTURE.a, b: FIXTURE.b });
+    const keys = Array.from(target.querySelectorAll('[data-model-key]')).map((el) =>
+      el.getAttribute('data-model-key')
+    );
+    expect(keys.sort()).toEqual(['a', 'b']);
+    expect(target.querySelector('[data-model-key="c"]')).toBeNull();
+  });
+
+  test('set elegible vacío: empty-state label dedicado, cero barras', async () => {
+    ({ render } = await import('../js/components/pricing-chart.js'));
+    const summary = render(target, {});
+    expect(summary.bars).toBe(0);
+    const empty = target.querySelector('[data-test="empty-state"]');
+    expect(empty).not.toBeNull();
+    expect(empty.textContent).toMatch(/No hay modelos elegibles/i);
+  });
+});

@@ -78,19 +78,20 @@ export function countAgentsByFamily(roleMatrix) {
  * @returns {string}
  */
 export function buildStatsLine(data) {
-  const m = countModelsByLifecycle(data?.models);
+  const total = countModelsByLifecycle(data?.models);
+  const eligible = countModelsByLifecycle(data?.eligibleModels);
   // V5+ KI-P0-2: resolve the role-matrix key. data-loader.js uses
   // `roles`; the legacy name was `roleMatrix`. Prefer `roles` (the
   // live contract) and only fall back to `roleMatrix` when absent.
   const roleMatrix = data?.roles ?? data?.roleMatrix;
   const a = countAgentsByFamily(roleMatrix);
-  // P2-5 copy: "24 activos · 2 reference · 18 agentes (11 SDD + 3 JD + 4 Review)"
-  // Legacy count is mentioned only when non-zero — keeps the line clean
-  // for the common case (24/2/18 today).
+  // V5 Slice 3 — "X de Y visibles": X = active models inside the eligible
+  // projection, Y = active models in the full catalog. Y is stable under
+  // filtering; the static "24 activos" copy is gone.
   const modelPart =
-    `${m.active} activos` +
-    (m.reference > 0 ? ` · ${m.reference} reference` : '') +
-    (m.legacy > 0 ? ` · ${m.legacy} legacy` : '');
+    `${eligible.active} de ${total.active} visibles` +
+    (total.reference > 0 ? ` · ${total.reference} reference` : '') +
+    (total.legacy > 0 ? ` · ${total.legacy} legacy` : '');
   const agentPart =
     `${a.total} agentes (${a.sdd} SDD + ${a.jd} JD + ${a.review} review)`;
   return `${modelPart} · ${agentPart}`;
@@ -116,14 +117,15 @@ export function buildStatsLine(data) {
  * @returns {{ html: string, mounted: boolean, modelCounts: object, agentCounts: object }}
  */
 export function render(targetEl, data, options) {
-  const modelCounts = countModelsByLifecycle(data?.models);
+  const totalCounts = countModelsByLifecycle(data?.models);
+  const eligibleCounts = countModelsByLifecycle(data?.eligibleModels);
   const roleMatrix = data?.roles ?? data?.roleMatrix;
   const agentCounts = countAgentsByFamily(roleMatrix);
   // P1-1 — tooltip text for the headline numbers. Kept short so the
   // browser's default tooltip (which truncates ~in 512px) shows the
   // whole sentence.
   const modelsHeadlineTitle =
-    'Modelos activos en el catálogo actual (lifecycle = active). El resto son reference (techo de costo) y legacy.';
+    `X de Y visibles: modelos de lifecycle activo dentro de las suscripciones habilitadas (X) sobre el catálogo completo (Y).`;
   const agentsHeadlineTitle =
     `Agentes totales del catálogo (${agentCounts.sdd} SDD + ${agentCounts.jd} JD + ${agentCounts.review} review).`;
   const html = `
@@ -135,19 +137,19 @@ export function render(targetEl, data, options) {
           data-test="hero-stats-headline"
           data-headline="models"
           title="${modelsHeadlineTitle}"
-        >${modelCounts.active}</strong>
-        <span>activos</span>
+        >${eligibleCounts.active}</strong>
+        <span>de ${totalCounts.active} visibles</span>
         ${
-          modelCounts.reference > 0
+          totalCounts.reference > 0
             ? `<span class="text-slate-600">·</span>
-               <span>${modelCounts.reference}</span>
+               <span>${totalCounts.reference}</span>
                <span>reference</span>`
             : ''
         }
         ${
-          modelCounts.legacy > 0
+          totalCounts.legacy > 0
             ? `<span class="text-slate-600">·</span>
-               <span>${modelCounts.legacy}</span>
+               <span>${totalCounts.legacy}</span>
                <span>legacy</span>`
             : ''
         }
@@ -175,7 +177,7 @@ export function render(targetEl, data, options) {
       </span>
     </div>
   `;
-  const out = { html, mounted: false, modelCounts, agentCounts };
+  const out = { html, mounted: false, modelCounts: totalCounts, eligibleCounts, agentCounts, visible: { count: eligibleCounts.active, total: totalCounts.active } };
   if (targetEl && typeof targetEl.innerHTML === 'string') {
     targetEl.innerHTML = html;
     out.mounted = true;
