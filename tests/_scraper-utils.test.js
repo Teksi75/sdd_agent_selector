@@ -332,4 +332,27 @@ describe('preserveManualModelFields — availability is human-owned', () => {
     expect(result.models.foo.availability).toEqual({ p1: true });
     expect(result.models.foo.input).toBe(2);
   });
+
+  test('aborts (and writes nothing) when the candidate drops an on-disk id', () => {
+    fsImpl.writeFileSync(
+      tempFile,
+      JSON.stringify(
+        {
+          _meta: { schemaVersion: 5 },
+          models: { foo: { name: 'Foo', availability: { p1: true } }, keep: { name: 'Keep' } },
+        },
+        null,
+        2
+      ),
+      'utf-8'
+    );
+    const before = fsImpl.readFileSync(tempFile, 'utf-8');
+    const doc = {
+      _meta: { schemaVersion: 5 },
+      models: { foo: { name: 'Foo v2' } }, // `keep` accidentally dropped
+    };
+    expect(() => writeModelsJson(tempFile, doc, 'scrape-x')).toThrow(/keep/);
+    expect(fsImpl.readFileSync(tempFile, 'utf-8')).toBe(before); // canonical data untouched
+    expect(listTmpFiles(tmpDir, TARGET_NAME)).toEqual([]); // the guard runs before any tmp write
+  });
 });

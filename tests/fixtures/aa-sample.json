@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "fetchedAt": "2026-08-16T00:00:00Z",
-    "note": "REAL AA v2 payload slices (trimmed to the mapped fields) from the authenticated GET https://artificialanalysis.ai/api/v2/data/llms/models. Shape: UUID `id` (unstable, ignored), stable `slug` (identity), `pricing.price_1m_input_tokens`/`price_1m_output_tokens` (required), `evaluations.terminalbench_v2_1` (0-1 ratio → term = value*100), `evaluations.artificial_analysis_coding_index`, optional `evaluations.artificial_analysis_math_index`, root `median_*` speed fields. `price_1m_blended_3_to_1` is intentionally present but MUST be IGNORED — blended is computed locally as (3*input+output)/4. AA has NO cacheRead/cacheWrite keys."
+    "fetchedAt": "2026-09-13T01:03:29.104Z",
+    "note": "REAL AA v2 payload slices (trimmed to the mapped fields) from the authenticated GET https://artificialanalysis.ai/api/v2/data/llms/models captured 2026-09-13T01:03:29.104Z (live response: 646 models). Shape: UUID `id` (unstable, ignored), stable `slug` (identity), `pricing.price_1m_input_tokens`/`price_1m_output_tokens` (required), `pricing.price_1m_blended_3_to_1` (present but MUST be IGNORED - blended is computed locally as (3*input+output)/4), `evaluations.terminalbench_v2_1` (0-1 ratio -> term = value*100), `evaluations.artificial_analysis_coding_index`, `evaluations.artificial_analysis_intelligence_index` (nullable Intelligence Index -> intelligenceIndex; `gpt-5-4-pro` carries a real null), optional `evaluations.artificial_analysis_math_index`, root `median_*` speed fields. AA has NO cacheRead/cacheWrite keys; the API key never appears in the payload."
   },
   "data": [
     {
@@ -11,16 +11,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.808988764044944,
         "artificial_analysis_coding_index": 71.4,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 37.5
       },
       "pricing": {
         "price_1m_blended_3_to_1": 0.45,
         "price_1m_input_tokens": 0.2,
         "price_1m_output_tokens": 1.2
       },
-      "median_output_tokens_per_second": 165.737,
-      "median_time_to_first_token_seconds": 76.41,
-      "median_time_to_first_answer_token": 76.41
+      "median_output_tokens_per_second": 120.525,
+      "median_time_to_first_token_seconds": 79.241,
+      "median_time_to_first_answer_token": 79.241
     },
     {
       "id": "87110ff0-1f79-41b4-9976-eda250597317",
@@ -29,16 +30,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.779026217228464,
         "artificial_analysis_coding_index": 68.6,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 34.8
       },
       "pricing": {
         "price_1m_blended_3_to_1": 0.45,
         "price_1m_input_tokens": 0.2,
         "price_1m_output_tokens": 1.2
       },
-      "median_output_tokens_per_second": 170.161,
-      "median_time_to_first_token_seconds": 21.142,
-      "median_time_to_first_answer_token": 21.142
+      "median_output_tokens_per_second": 129.947,
+      "median_time_to_first_token_seconds": 37.4,
+      "median_time_to_first_answer_token": 37.4
     },
     {
       "id": "aa55297e-8fbf-4372-b4ab-9b068dc6396c",
@@ -47,16 +49,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.696629213483146,
         "artificial_analysis_coding_index": 63.3,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 32.4
       },
       "pricing": {
         "price_1m_blended_3_to_1": 0.45,
         "price_1m_input_tokens": 0.2,
         "price_1m_output_tokens": 1.2
       },
-      "median_output_tokens_per_second": 165.495,
-      "median_time_to_first_token_seconds": 8.011,
-      "median_time_to_first_answer_token": 8.011
+      "median_output_tokens_per_second": 125.827,
+      "median_time_to_first_token_seconds": 12.105,
+      "median_time_to_first_answer_token": 12.105
     },
     {
       "id": "58b812bf-8498-46db-b834-f43ccc614b61",
@@ -65,16 +68,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.531835205992509,
         "artificial_analysis_coding_index": 50.7,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 25.5
       },
       "pricing": {
         "price_1m_blended_3_to_1": 0.45,
         "price_1m_input_tokens": 0.2,
         "price_1m_output_tokens": 1.2
       },
-      "median_output_tokens_per_second": 156.913,
-      "median_time_to_first_token_seconds": 2.398,
-      "median_time_to_first_answer_token": 2.398
+      "median_output_tokens_per_second": 111.472,
+      "median_time_to_first_token_seconds": 3.131,
+      "median_time_to_first_answer_token": 3.131
     },
     {
       "id": "050c61cd-cddc-463a-a30a-a82aaa37be59",
@@ -83,16 +87,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.434456928838951,
         "artificial_analysis_coding_index": 44.2,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 21.5
       },
       "pricing": {
         "price_1m_blended_3_to_1": 0.45,
         "price_1m_input_tokens": 0.2,
         "price_1m_output_tokens": 1.2
       },
-      "median_output_tokens_per_second": 161.388,
-      "median_time_to_first_token_seconds": 1.597,
-      "median_time_to_first_answer_token": 1.597
+      "median_output_tokens_per_second": 120.725,
+      "median_time_to_first_token_seconds": 1.662,
+      "median_time_to_first_answer_token": 1.662
     },
     {
       "id": "dc64f856-3ded-497d-9527-d41d31267ed5",
@@ -101,16 +106,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.389513108614232,
         "artificial_analysis_coding_index": 39.3,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 16.8
       },
       "pricing": {
         "price_1m_blended_3_to_1": 0.45,
         "price_1m_input_tokens": 0.2,
         "price_1m_output_tokens": 1.2
       },
-      "median_output_tokens_per_second": 155.137,
-      "median_time_to_first_token_seconds": 0.706,
-      "median_time_to_first_answer_token": 0.706
+      "median_output_tokens_per_second": 124.784,
+      "median_time_to_first_token_seconds": 0.873,
+      "median_time_to_first_answer_token": 0.873
     },
     {
       "id": "1f054429-397e-4fdb-9e71-67bc92c1735e",
@@ -119,7 +125,8 @@
       "evaluations": {
         "terminalbench_v2_1": 0.842696629213483,
         "artificial_analysis_coding_index": 74.9,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 38.6
       },
       "pricing": {
         "price_1m_blended_3_to_1": 11.25,
@@ -137,16 +144,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.805243445692884,
         "artificial_analysis_coding_index": 71.5,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 38.4
       },
       "pricing": {
         "price_1m_blended_3_to_1": 4,
         "price_1m_input_tokens": 2,
         "price_1m_output_tokens": 10
       },
-      "median_output_tokens_per_second": 79.985,
-      "median_time_to_first_token_seconds": 132.838,
-      "median_time_to_first_answer_token": 132.838
+      "median_output_tokens_per_second": 87.517,
+      "median_time_to_first_token_seconds": 122.958,
+      "median_time_to_first_answer_token": 122.958
     },
     {
       "id": "f7d2fc3e-1f7b-405f-818c-07952a4af78f",
@@ -155,16 +163,17 @@
       "evaluations": {
         "terminalbench_v2_1": 0.850187265917603,
         "artificial_analysis_coding_index": 76.2,
-        "artificial_analysis_math_index": null
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": 43.8
       },
       "pricing": {
         "price_1m_blended_3_to_1": 6,
         "price_1m_input_tokens": 3,
         "price_1m_output_tokens": 15
       },
-      "median_output_tokens_per_second": 39.961,
-      "median_time_to_first_token_seconds": 2.141,
-      "median_time_to_first_answer_token": 52.19
+      "median_output_tokens_per_second": 37.2,
+      "median_time_to_first_token_seconds": 3.145,
+      "median_time_to_first_answer_token": 56.907
     },
     {
       "id": "f0083258-8646-45b8-8082-7aaf6c2ea82a",
@@ -173,16 +182,36 @@
       "evaluations": {
         "terminalbench_v2_1": 0.262172284644195,
         "artificial_analysis_coding_index": 30.4,
-        "artificial_analysis_math_index": 93.4
+        "artificial_analysis_math_index": 93.4,
+        "artificial_analysis_intelligence_index": 12.3
       },
       "pricing": {
-        "price_1m_blended_3_to_1": 0.262,
+        "price_1m_blended_3_to_1": 0.261,
         "price_1m_input_tokens": 0.15,
-        "price_1m_output_tokens": 0.6
+        "price_1m_output_tokens": 0.595
       },
-      "median_output_tokens_per_second": 178.041,
-      "median_time_to_first_token_seconds": 0.498,
-      "median_time_to_first_answer_token": 11.731
+      "median_output_tokens_per_second": 191.193,
+      "median_time_to_first_token_seconds": 0.478,
+      "median_time_to_first_answer_token": 10.939
+    },
+    {
+      "id": "5bb1f426-2d64-4d03-99fb-8041ee85c33b",
+      "name": "GPT-5.4 Pro (xhigh)",
+      "slug": "gpt-5-4-pro",
+      "evaluations": {
+        "terminalbench_v2_1": null,
+        "artificial_analysis_coding_index": null,
+        "artificial_analysis_math_index": null,
+        "artificial_analysis_intelligence_index": null
+      },
+      "pricing": {
+        "price_1m_blended_3_to_1": 67.5,
+        "price_1m_input_tokens": 30,
+        "price_1m_output_tokens": 180
+      },
+      "median_output_tokens_per_second": 0,
+      "median_time_to_first_token_seconds": 0,
+      "median_time_to_first_answer_token": 0
     }
   ]
 }
