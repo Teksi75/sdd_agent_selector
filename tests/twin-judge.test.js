@@ -88,8 +88,15 @@ describe('twin-judge constraint', () => {
     // reproduce the legacy fixture's intent:
     //   premium clears the minReasoning=90 floor with margin (94);
     //   budget also clears (91) but loses on cost.
+    // S3c II-only alignment (aa-only-scoring): compositeScore reads ONLY
+    // `intelligenceIndex`; benchlm blocks are inert datum. Finite II mirrors
+    // the benchlm-era scores so the divergence arithmetic holds: premium
+    // (II 94, cost 0.0575) wins judge-a's wide ceiling (0.0575) while budget
+    // (II 91, cost 0.00175) alone clears judge-b's tight ceiling (0.00575).
+    // Zero expects touched.
     const premium = {
       name: 'Premium-A',
+      intelligenceIndex: 94,
       benchlm: { score: 94, verified: true, reliability: 0.95, categories: {} },
       input: 5.00,
       output: 25.00,
@@ -97,6 +104,7 @@ describe('twin-judge constraint', () => {
     };
     const budget = {
       name: 'Budget-B',
+      intelligenceIndex: 91,
       benchlm: { score: 91, verified: true, reliability: 0.9, categories: {} },
       input: 0.10,
       output: 1.00,
@@ -129,6 +137,7 @@ describe('twin-judge constraint', () => {
     // floors), judgeB_unique = 88 (clears 85 but costs out for judgeA).
     const judgeA_only = {
       name: 'JudgeA-Only',
+      intelligenceIndex: 95,
       benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
       input: 5.00,
       output: 25.00,
@@ -136,6 +145,7 @@ describe('twin-judge constraint', () => {
     };
     const judgeB_unique = {
       name: 'JudgeB-Unique',
+      intelligenceIndex: 88,
       benchlm: { score: 88, verified: true, reliability: 0.92, categories: {} },
       input: 4.00,
       output: 20.00,
@@ -198,11 +208,16 @@ describe('twin-judge — V5 Slice 3 filtered eligible set', () => {
     p1only: { p1: true, p2: false },
     p2only: { p1: false, p2: true },
   };
+  // S3c II-only alignment: finite II mirrors the benchlm-era scores so the
+  // twin arithmetic holds — refCost = (5/1e6)*1000 + (25/1e6)*500 = 0.0175,
+  // ceiling 1.0 * 0.0175; SHARED (II 85, cost 0.014) beats CHEAP (II 70,
+  // cost 0.001) for both judges; judge-b costRatio 0.0001 resolves null.
+  // Zero expects touched.
   const models = {
-    ref: { name: 'Ref', tier: 'reference', lifecycle: 'reference', benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} }, input: 5, output: 25 },
-    shared: { name: 'Shared', tier: 'high', lifecycle: 'active', benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} }, input: 4, output: 20 },
-    p1only: { name: 'P1 Only', tier: 'balanced', lifecycle: 'active', benchlm: { score: 70, verified: true, reliability: 0.8, categories: {} }, input: 0.5, output: 1 },
-    p2only: { name: 'P2 Only', tier: 'budget', lifecycle: 'active', benchlm: { score: 60, verified: false, reliability: 0.7, categories: {} }, input: 0.1, output: 0.2 },
+    ref: { name: 'Ref', tier: 'reference', lifecycle: 'reference', intelligenceIndex: 95, benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} }, input: 5, output: 25 },
+    shared: { name: 'Shared', tier: 'high', lifecycle: 'active', intelligenceIndex: 85, benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} }, input: 4, output: 20 },
+    p1only: { name: 'P1 Only', tier: 'balanced', lifecycle: 'active', intelligenceIndex: 70, benchlm: { score: 70, verified: true, reliability: 0.8, categories: {} }, input: 0.5, output: 1 },
+    p2only: { name: 'P2 Only', tier: 'budget', lifecycle: 'active', intelligenceIndex: 60, benchlm: { score: 60, verified: false, reliability: 0.7, categories: {} }, input: 0.1, output: 0.2 },
   };
   const alignedMatrix = {
     'jd-judge-a': { minReasoning: 40, costRatio: 1.0, role: 'judge-a' },

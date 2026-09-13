@@ -483,3 +483,54 @@ Skill `strict-tdd.md` leído; por orden explícita del parent (docs-only slice) 
 - **Consumido:** tasks 6.1–6.3, delta `specs/model-picker/spec.md`, diseño §11/§12, rama nueva desde `7643bf3`, superficies permitidas (4 paths), budget 400, skill strict-tdd (excepción docs-only).
 - **Producido:** sync canónico worktree-only, operator notes, esta bitácora, 3 checkboxes, commit docs-only S4.
 - **Gate ask-on-risk:** 6.3 test FAIL excede el set ambiental conocido (3 collect) → `status: partial` + detalle de gate; decisión del parent (whole-change verify) — nunca inferir excepción ni parchear tests.
+## S3c — Suite alignment follow-up (parent-diagnosed S3b regressions) — COMPLETE
+
+Fecha: 2026-09-14 · Rama: `feat/aa-only-s3c-suite-alignment` (base `origin/feat/aa-only-s3b-activation` = `7643bf3`) · Strict TDD activo · pnpm only.
+
+Alcance: 4 suites verdes en base `7674ae6` y rojas en el tip S3b — `aa-signal` (2), `lifecycle` (4), `provider-filter-integration` (3), `twin-judge` (4). Slices S1–S3b intactos; `tasks.md` no se renumera (esta bitácora es el único cambio documental del slice).
+
+### Diagnóstico por archivo (RED pre-existente = failing tests observados)
+
+| Suite | Lado | Expectativa exacta citada | Causa |
+|---|---|---|---|
+| `lifecycle` (4) | test | `expected null to be 'active'/'oldActive'/'old'` | Fixtures sintéticos sin II → `compositeScore` null → `getBestFor` null. Guards finite-II correctos; tests en era benchlm. |
+| `provider-filter-integration` (3) | test | `expected null not to be null` (línea 106+: baseline `betaOnly` invisible) | Mismo fixture `v5-surfaces-fixture` sin II (fixture NO editable). `app-filter` con igual fixture ya verde por inyección II en `bootWith` — precedente. |
+| `twin-judge` (4) | test | `expected null not to be null`; `expected [ref,shared,p1only] to include null`; `InvalidConfigError` ausente | Fixtures premium/budget + V5 `{ref,shared,p1only,p2only}` sin II → twins null. |
+| `aa-signal` (2) | producto + test | `expected +0 to be 3` / `expected +0 to be 2` | Contrato viejo Con-AA/Sin-AA por `hasAaSignal` amplio; con II-only todo es null-II → 0 filas. Diseño §7 + riesgo §12 exigen remover, no reinyectar. |
+
+### Remoción Sin-AA (producto; sin refactor ciego)
+
+- `js/components/ref-table.js`: fuera import `splitByAaSignal`; `orderRows` a ranked-only (active/non-active, `isRanked` finito); una sola tabla (testids `active-rows`/`non-active-rows`, `thead` 8 cols, `tbody` activo primero preservados); header/footer sin conteos Con/Sin-AA; nota compartida + hide-rule intactos; export JSON `withAa/withoutAa` → `ranked`.
+- `js/components/composite-chart.js`: fuera import, `unavailableRowHtml` muerta (S3b ya la neutralizaba con `unavailableBody = []`), `chartSectionHtml` → lista única `scoredBarsHtml`; header/footer/export homólogos; `rowsFor` + summary `{scored, unavailable, maxScore}` intactos.
+- `js/services/aa-signal.js` intacto: grep confirma que solo los 2 componentes lo importaban. Ningún otro test referenciaba las secciones → la maraña era solo agrupación de display.
+
+### Alineación tests (cero expects tocados, aritmética citada)
+
+- `lifecycle` / `twin-judge`: inyección inline `intelligenceIndex` espejando `benchlm.score` + comentario con refCost/ceiling (patrón config-selector S3b: ref 95/shared 85/p1only 70/p2only 60 → refCost 0.0175, ceiling 1.0×; premium 94/budget 91 → ceilings 0.0575/0.00575).
+- `provider-filter-integration`: inyección runtime en `bootApp` (patrón `bootWith` de `app-filter`, sin tocar el fixture).
+- `aa-signal`: reescrito al contrato nuevo (helper intacto + tabla/barras únicas II-desc + TRIANGULATE señal-sin-II oculta con empty-state).
+
+### Evidencia
+
+| Command | Result |
+|---|---|
+| `pnpm vitest run tests/lifecycle.test.js tests/twin-judge.test.js tests/provider-filter-integration.test.js` | 3 passed, 42/42 |
+| `pnpm vitest run tests/ref-table.test.js` | 32/32 (secciones removidas, contrato S3b intacto) |
+| `pnpm vitest run tests/composite-chart.test.js` | 22/22 |
+| `pnpm vitest run tests/aa-signal.test.js` | 5/5 (2 helper + 2 contrato nuevo + 1 triangulación) |
+| `pnpm test` (full) | 43 passed files / 3 failed-to-collect pre-existentes (availability-matrix, data-integrity, propagate-provider-availability) — 660/660 tests passed, 0 assertion FAILs |
+| `git diff --quiet -- tests/data-integrity.test.js js/services/aa-signal.js data/models.json` | vacío (green-by-untouched) |
+
+### TDD Cycle Evidence (S3c; RED pre-existente, no inventado)
+
+| Task | Test File | Layer | Safety Net | RED | GREEN | TRIANGULATE | REFACTOR |
+|------|-----------|-------|------------|-----|-------|-------------|----------|
+| lifecycle II-injection | `tests/lifecycle.test.js` | Unit | 4 failed observados (no baseline verde posible) | ✅ Pre-existente (`null to be 'active'`, etc.) | ✅ 42/42 con test-side fix | ➖ Comportamiento invariante (espejo exacto benchlm) | ➖ None needed |
+| twin-judge II-injection | `tests/twin-judge.test.js` | Unit | idem | ✅ Pre-existente (twins null, sin `InvalidConfigError`) | ✅ incluido en 42/42 | ✅ Divergencia cheap-vs-premium preservada por aritmética | ➖ None needed |
+| provider-filter II-injection | `tests/provider-filter-integration.test.js` | Integration | idem | ✅ Pre-existente (`null not to be null` línea 106) | ✅ incluido en 42/42 | ➖ Precedente `bootWith` idéntico | ➖ None needed |
+| Sin-AA removal | `js/components/ref-table.js` + `js/components/composite-chart.js` / `tests/aa-signal.test.js` | Integration | ✅ ref-table 32/32 + chart 22/22 post-cambio | ✅ Pre-existente (`+0 to be 3`) | ✅ 5/5 contrato nuevo | ✅ `signalOnly` (señal amplia, II null) oculta con empty-state | ✅ Solo agrupación display; `rowsFor`/summaries intactos |
+
+### Budget y entrega
+
+- Superficies review código/tests: **344 líneas (184+/160−) ≤ 400** — sin `size:exception`. Esta bitácora es artefacto SDD fuera de budget (precedente S1).
+- Commit S3c: solo las 6 superficies código/tests + esta bitácora. `tasks.md` sin cambios; `spec.md` y dirt humano fuera del commit.

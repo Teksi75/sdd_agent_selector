@@ -124,12 +124,20 @@ describe('lifecycle — constants', () => {
 // --- getBestFor lifecycle integration ------------------------------------
 
 describe('lifecycle — getBestFor excludes non-active models', () => {
+  // S3c II-only alignment (aa-only-scoring): compositeScore reads ONLY
+  // `intelligenceIndex`; the benchlm blocks below are inert datum.
+  // Finite II mirrors the benchlm-era scores so the original lifecycle
+  // arithmetic holds: refCost = (5/1e6)*1000 + (25/1e6)*500 = 0.0175,
+  // ceiling 1.0 * 0.0175; ACTIVE (II 80, cost 0.0025) clears minReasoning
+  // 50 and the ceiling while legacy/reference/benchmark-only stay
+  // excluded by lifecycle. Zero expects touched.
   const ACTIVE_MODEL = {
     name: 'Active One',
     tier: 'high',
     lifecycle: 'active',
     input: 1,
     output: 3,
+    intelligenceIndex: 80,
     benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
   };
   const LEGACY_MODEL = {
@@ -138,6 +146,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
     lifecycle: 'legacy',
     input: 0.5,
     output: 1.5,
+    intelligenceIndex: 85,
     benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} },
   };
   const REF_MODEL = {
@@ -147,6 +156,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
     isReference: true,
     input: 5,
     output: 25,
+    intelligenceIndex: 95,
     benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
   };
   const BENCHMARK_ONLY = {
@@ -155,6 +165,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
     lifecycle: 'benchmark-only',
     input: 0.1,
     output: 0.2,
+    intelligenceIndex: 99,
     benchlm: { score: 99, verified: true, reliability: 0.99, categories: {} },
   };
 
@@ -185,8 +196,8 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
   });
 
   test('backward compat: old records without lifecycle field still work (tier:reference excluded)', () => {
-    const oldRef = { name: 'Old Ref', tier: 'reference', isReference: true, input: 5, output: 25, benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} } };
-    const oldActive = { name: 'Old Active', tier: 'high', input: 1, output: 3, benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} } };
+    const oldRef = { name: 'Old Ref', tier: 'reference', isReference: true, input: 5, output: 25, intelligenceIndex: 95, benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} } };
+    const oldActive = { name: 'Old Active', tier: 'high', input: 1, output: 3, intelligenceIndex: 80, benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} } };
     const result = getBestFor('test-agent', { oldRef, oldActive }, ROLE_MATRIX, PROFILES, 'balanced');
     expect(result.key).toBe('oldActive');
   });
@@ -199,6 +210,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
       isReference: true,
       input: 5,
       output: 25,
+      intelligenceIndex: 95,
       benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
     };
     const activeModel = {
@@ -207,6 +219,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
       lifecycle: 'active',
       input: 1,
       output: 3,
+      intelligenceIndex: 80,
       benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
     };
     const models = { gpt56terra: refModel, glm52: activeModel };
@@ -228,6 +241,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
       isReference: true,
       input: 5,
       output: 25,
+      intelligenceIndex: 95,
       benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
     };
     const models = { ref: refModel };
@@ -247,6 +261,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
       isReference: true,
       input: 50,
       output: 100,
+      intelligenceIndex: 99,
       benchlm: { score: 99, verified: true, reliability: 0.99, categories: {} },
     };
     const activeModel = {
@@ -255,6 +270,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
       lifecycle: 'active',
       input: 1,
       output: 3,
+      intelligenceIndex: 40,
       benchlm: { score: 40, verified: true, reliability: 0.9, categories: {} },
     };
     const models = { ref: refModel, active: activeModel };
@@ -268,7 +284,7 @@ describe('lifecycle — getBestFor excludes non-active models', () => {
   });
 
   test('omitted lifecycle: backward compat allows old active fixtures to be selected', () => {
-    const oldActive = { name: 'Old', tier: 'high', input: 1, output: 3, benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} } };
+    const oldActive = { name: 'Old', tier: 'high', input: 1, output: 3, intelligenceIndex: 80, benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} } };
     const models = { old: oldActive };
     const result = getBestFor('test-agent', models, ROLE_MATRIX, PROFILES, 'balanced');
     expect(result.key).toBe('old');

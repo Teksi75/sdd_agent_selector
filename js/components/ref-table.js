@@ -24,7 +24,6 @@
 
 import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
 import { buildIiRankingContext, formatHiddenIiNote } from '../services/ii-ranking.js';
-import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
 import { effortTagHtml, effortLabel } from './effort-tag.js';
@@ -171,35 +170,29 @@ export function rowsFor(models) {
 }
 
 /**
- * Order rows for display/export: Con-AA first, Sin-AA second, active before
- * non-active inside each block. Shared by render() and the export builders so
- * the file mirrors exactly the eligible set the user saw.
+ * Order rows for display/export: ranked (finite II) only, active before
+ * non-active. II-less rows are hidden, never rendered (S3b hide rule).
+ * S3c removed the broad Con-AA/Sin-AA split by `aa-signal.js` — finite II
+ * is the sole ranking predicate (design §7/§12). Shared by render() and
+ * the export builders so the file mirrors exactly the eligible set the
+ * user saw.
  *
  * @param {Object<string, Object>} models
  * @returns {Object}
  */
 function orderRows(models) {
   const { active, nonActive } = rowsFor(models);
-  const groupedActive = splitByAaSignal(active, ([, m]) => m);
-  const groupedNonActive = splitByAaSignal(nonActive, ([, m]) => m);
-  const rankingCtx = (typeof options !== 'undefined' && options && options.rankingContext) || buildIiRankingContext(models, (typeof options !== 'undefined' && options && options.modelsMeta) || undefined);
   const isRanked = ([, mm]) => compositeScore(mm) != null;
-  const fActiveWith = groupedActive.withAa.filter(isRanked);
-  const fActiveWithout = groupedActive.withoutAa.filter(isRanked);
-  const fNonActiveWith = groupedNonActive.withAa.filter(isRanked);
-  const fNonActiveWithout = groupedNonActive.withoutAa.filter(isRanked);
-  const withAaRows = [...fActiveWith, ...fNonActiveWith];
-  const withoutAaRows = [...fActiveWithout, ...fNonActiveWithout];
+  const rankedActive = active.filter(isRanked);
+  const rankedNonActive = nonActive.filter(isRanked);
   return {
     active,
     nonActive,
-    groupedActive,
-    groupedNonActive,
     activeCount: active.length,
     nonActiveCount: nonActive.length,
-    withAa: withAaRows.length,
-    withoutAa: withoutAaRows.length,
-    groupedRows: [...withAaRows, ...withoutAaRows],
+    rankedActive,
+    rankedNonActive,
+    groupedRows: [...rankedActive, ...rankedNonActive],
   };
 }
 
@@ -233,8 +226,7 @@ function buildExportPayload(order, context, scope) {
     {
       active: order.activeCount,
       nonActive: order.nonActiveCount,
-      withAa: order.withAa,
-      withoutAa: order.withoutAa,
+      ranked: order.groupedRows.length,
       models: order.groupedRows.map(([k, m]) => [k, m]),
     },
     ctx
@@ -368,7 +360,7 @@ export function render(targetEl, models, options) {
     targetEl.innerHTML = `
       <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
         <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
-          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold" data-test="ref-table-empty-count">0 activos · 0 Con-AA / 0 Sin-AA</span>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold" data-test="ref-table-empty-count">0 activos</span>
           <div data-test="ref-table-export"></div>
         </div>
         <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-6 text-center text-slate-400" data-test="empty-state">
@@ -391,47 +383,27 @@ export function render(targetEl, models, options) {
 
   const activeCount = ordered.activeCount;
   const nonActiveCount = ordered.nonActiveCount;
-  const groupedActive = ordered.groupedActive;
-  const groupedNonActive = ordered.groupedNonActive;
+  const rankedActive = ordered.rankedActive;
+  const rankedNonActive = ordered.rankedNonActive;
   const rankingCtx = (typeof options !== 'undefined' && options && options.rankingContext) || buildIiRankingContext(models, (typeof options !== 'undefined' && options && options.modelsMeta) || undefined);
-  const isRanked = ([, mm]) => compositeScore(mm) != null;
-  const fActiveWith = groupedActive.withAa.filter(isRanked);
-  const fActiveWithout = groupedActive.withoutAa.filter(isRanked);
-  const fNonActiveWith = groupedNonActive.withAa.filter(isRanked);
-  const fNonActiveWithout = groupedNonActive.withoutAa.filter(isRanked);
-  const withAaRows = [...fActiveWith, ...fNonActiveWith];
-  const withoutAaRows = [...fActiveWithout, ...fNonActiveWithout];
-  const groupedRows = ordered.groupedRows.filter(isRanked);
   const hiddenNote = formatHiddenIiNote(rankingCtx.hiddenCount, rankingCtx.asOfDate || new Date().toISOString().slice(0, 10));
   const hiddenNoteHtml = hiddenNote ? '<p class="mt-2 text-xs text-slate-400" data-test="hidden-ii-note">' + hiddenNote + '</p>' : '';
 
-  function tableSectionHtml({ title, rows, activeRows, nonActiveRows, testId }) {
-    if (rows.length === 0) {
-      return `
-      <details class="border-t border-slate-800/60 first:border-t-0" open data-test="${testId}">
-        <summary class="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800/40">
-          ${title} <span class="ml-2 text-[11px] font-normal text-slate-500">0 modelos</span>
-        </summary>
-        <p class="px-4 pb-4 text-xs text-slate-500">No hay modelos en esta sección.</p>
-      </details>`;
-    }
+  // S3c: single ranked table (finite II only). The broad Con-AA/Sin-AA
+  // <details> sections are removed — finite II is the sole ranking
+  // predicate. Lifecycle testids are preserved for the suite contract.
+  function rankedTableHtml({ activeRows, nonActiveRows }) {
     const activeBody = activeRows
       .map(([key, m]) => rowHtml(key, m, false))
       .join('');
     const nonActiveBody = nonActiveRows
       .map(([key, m]) => rowHtml(key, m, true))
       .join('');
-    const activeTestId = testId === 'ref-table-without-aa' ? 'active-rows' : `${testId}-active-rows`;
-    const nonActiveTestId = testId === 'ref-table-without-aa' ? 'non-active-rows' : `${testId}-non-active-rows`;
     const nonActiveSection = nonActiveRows.length > 0 ? `
-          <tbody class="divide-y divide-slate-800/30 border-t-2 border-slate-700/50" data-test="${nonActiveTestId}">
+          <tbody class="divide-y divide-slate-800/30 border-t-2 border-slate-700/50" data-test="non-active-rows">
             ${nonActiveBody}
           </tbody>` : '';
     return `
-      <details class="border-t border-slate-800/60 first:border-t-0" open data-test="${testId}">
-        <summary class="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800/40">
-          ${title} <span class="ml-2 text-[11px] font-normal text-slate-500">${rows.length} modelos</span>
-        </summary>
         <div class="overflow-x-auto">
           <table class="w-full text-left text-sm text-slate-200">
             <thead class="bg-slate-900/80 text-[11px] uppercase tracking-wider text-slate-400">
@@ -446,13 +418,12 @@ export function render(targetEl, models, options) {
                 <th scope="col" class="py-2.5 px-3 font-semibold text-center">Sources</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-800/60" data-test="${activeTestId}">
-              ${activeBody || `<tr><td colspan="8" class="py-3 px-3 text-center text-xs text-slate-500">Sin modelos activos en esta sección.</td></tr>`}
+            <tbody class="divide-y divide-slate-800/60" data-test="active-rows">
+              ${activeBody || `<tr><td colspan="8" class="py-3 px-3 text-center text-xs text-slate-500">Sin modelos activos en esta vista.</td></tr>`}
             </tbody>
             ${nonActiveSection}
           </table>
-        </div>
-      </details>`;
+        </div>`;
   }
 
   // V5 Slice 3 — the default export is the filtered view; the full catalog
@@ -462,17 +433,15 @@ export function render(targetEl, models, options) {
   targetEl.innerHTML = `
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 overflow-hidden">
       <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-slate-800/60">
-        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${activeCount} activos${nonActiveCount > 0 ? ` + ${nonActiveCount} reference` : ''} · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
+        <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${activeCount} activos${nonActiveCount > 0 ? ` + ${nonActiveCount} reference` : ''}</span>
         <div data-test="ref-table-export"></div>
       </div>
-      ${tableSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, activeRows: fActiveWith, nonActiveRows: fNonActiveWith, testId: 'ref-table-with-aa' })}
-      ${tableSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, activeRows: fActiveWithout, nonActiveRows: fNonActiveWithout, testId: 'ref-table-without-aa' })}
+      ${rankedTableHtml({ activeRows: rankedActive, nonActiveRows: rankedNonActive })}
     </div>
     ${hiddenNoteHtml}
         <p class="mt-3 text-xs text-slate-500">
-      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference)` : ''} ·
-      grouped by Artificial Analysis signal ·
-      sorted by Artificial Analysis Intelligence Index (desc) inside each lifecycle bucket ·
+      Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference)` : ''},
+      sorted by Artificial Analysis Intelligence Index (desc) inside each lifecycle bucket;
       rows without Intelligence Index are hidden "—" (awaiting first scrape).
     </p>
   `;
@@ -492,7 +461,7 @@ export function render(targetEl, models, options) {
 
   return {
     rows: allRows.length,
-    topKey: groupedRows[0]?.[0] ?? null,
+    topKey: allRows[0]?.[0] ?? null,
     referenceModel,
   };
 }

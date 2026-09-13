@@ -32,7 +32,6 @@
 
 import { compositeScore, isActive } from '../services/model-scorer.js';
 import { buildIiRankingContext, formatHiddenIiNote, resolveIiFreshness } from '../services/ii-ranking.js';
-import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
 
@@ -201,18 +200,6 @@ function barRowHtml(key, m, score, width, bgClass, bgValue) {
     </div>`;
 }
 
-/** Build one UNAVAILABLE row's HTML. NO bar fill, "unavailable" label. */
-function unavailableRowHtml(key, m) {
-  return `
-    <div class="flex items-center gap-3 opacity-60" data-model-key="${esc(key)}" data-unavailable="true" data-score="0">
-      <div class="w-32 md:w-40 text-xs font-medium text-slate-400 truncate">${esc(m.name || key)}</div>
-      <div class="flex-1 bar-track rounded-full bg-slate-800/40 overflow-hidden h-3">
-        <span class="text-[10px] uppercase tracking-wider text-slate-500 pl-2 leading-3" data-test="unavailable-label">— unavailable —</span>
-      </div>
-      <div class="w-14 text-right text-xs font-mono text-slate-500">—</div>
-    </div>`;
-}
-
 /**
  * Compute days since `lastRun` ISO string. Returns Infinity when
  * the timestamp is missing or unparseable (treat as "we don't know
@@ -296,43 +283,15 @@ export function render(targetEl, models, _meta, options) {
   const doc = targetEl.ownerDocument ?? document;
   // PR-B: one neutral fill for every bar (resolved once per render).
   const { value: fillValue, tw: fillClass } = neutralFill(doc);
-  const groupedScored = splitByAaSignal(scored, ([, m]) => m);
-  const groupedUnavailable = splitByAaSignal(unavailable, ([, m]) => m);
-  const withAaRows = [...groupedScored.withAa, ...groupedUnavailable.withAa];
-  const withoutAaRows = [...groupedScored.withoutAa, ...groupedUnavailable.withoutAa];
-  const groupedRows = [...withAaRows, ...withoutAaRows];
-
-  function chartSectionHtml({ title, rows, scoredRows, unavailableRows, testId }) {
-    if (rows.length === 0) {
-      return `
-        <details class="rounded-lg border border-slate-800/70 bg-slate-950/20" open data-test="${testId}">
-          <summary class="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/40">
-            ${title} <span class="ml-2 font-normal text-slate-500">0 modelos</span>
-          </summary>
-          <p class="px-3 pb-3 text-xs text-slate-500">No hay modelos en esta sección.</p>
-        </details>`;
-    }
-    const scoredBody = scoredRows
-      .map(([key, m, score]) => {
-        const width = widthPct(score, maxScore);
-        return barRowHtml(key, m, score, width, fillClass, fillValue);
-      })
-      .join('');
-    const unavailableBody = [];
-  const _ignoredUnavailable = unavailableRows
-      .map(([key, m]) => unavailableRowHtml(key, m))
-      .join('');
-    return `
-        <details class="rounded-lg border border-slate-800/70 bg-slate-950/20" open data-test="${testId}">
-          <summary class="cursor-pointer select-none px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800/40">
-            ${title} <span class="ml-2 font-normal text-slate-500">${rows.length} modelos</span>
-          </summary>
-          <div class="space-y-2.5 px-3 pb-3" data-test="${testId}-bars">
-            ${scoredBody}${unavailableBody}
-          </div>
-        </details>`;
-  }
-
+  // S3c: single ranked bar list (finite II only). The broad Con-AA/Sin-AA
+  // sections are removed; finite II is the sole ranking predicate.
+  // II-less models stay hidden under the S3b hide rule.
+  const scoredBarsHtml = scored
+    .map(([key, m, score]) => {
+      const width = widthPct(score, maxScore);
+      return barRowHtml(key, m, score, width, fillClass, fillValue);
+    })
+    .join('');
   const stale = staleBadgeHtml(_meta);
   const rankingCtx = (options && options.rankingContext) || buildIiRankingContext(models, _meta || undefined);
   const hiddenNote = formatHiddenIiNote(rankingCtx.hiddenCount, rankingCtx.asOfDate || resolveIiFreshness(_meta) || new Date().toISOString().slice(0, 10));
@@ -357,10 +316,8 @@ export function render(targetEl, models, _meta, options) {
     {
       scored: scored.length,
       unavailable: unavailable.length,
-      withAa: withAaRows.length,
-      withoutAa: withoutAaRows.length,
       maxScore,
-      models: groupedRows.map(([k, m]) => [k, m]),
+      models: scored.map(([k, m]) => [k, m]),
     },
     exportContext
   );
@@ -370,15 +327,14 @@ export function render(targetEl, models, _meta, options) {
       <div class="flex items-center justify-between gap-2 mb-3">
         <div class="flex items-baseline gap-3">
           <h3 class="text-sm font-semibold text-slate-200">Artificial Analysis Intelligence Index</h3>
-          <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · Artificial Analysis Intelligence Index (0-100) · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
+          <span class="text-[11px] text-slate-500">${scored.length} models · Artificial Analysis Intelligence Index (0-100)</span>
         </div>
         <div data-test="composite-chart-export"></div>
       </div>
       ${stale}
           ${hiddenNoteHtml}
       <div class="space-y-3" data-test="composite-bars">
-        ${chartSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, scoredRows: groupedScored.withAa, unavailableRows: groupedUnavailable.withAa, testId: 'composite-with-aa' })}
-        ${chartSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, scoredRows: groupedScored.withoutAa, unavailableRows: groupedUnavailable.withoutAa, testId: 'composite-without-aa' })}
+        ${scoredBarsHtml}
       </div>
       <details class="mt-3 text-[11px] text-slate-500 group" data-test="composite-legend">
         <summary class="cursor-pointer text-slate-400 hover:text-slate-300 select-none">Cómo leer las barras</summary>
@@ -391,7 +347,6 @@ export function render(targetEl, models, _meta, options) {
       </details>
       <p class="mt-3 text-[11px] text-slate-500">
         Scores vienen de Artificial Analysis Intelligence Index (<code>benchlm</code> con score/verified/reliability);
-        agrupado por señal de Artificial Analysis;
         fallback a Tailwind cuando el token no está definido.
       </p>
     </div>`;

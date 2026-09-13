@@ -37,6 +37,17 @@ function setupDom() {
 
 async function bootApp() {
   const fixture = buildSurfaceFixture();
+  // S3c II-only alignment (aa-only-scoring, app-filter bootWith precedent):
+  // compositeScore reads ONLY `intelligenceIndex`; the fixture file is NOT
+  // edited — finite II mirrors benchlm at runtime (ref 95, shared 85,
+  // alphaOnly 70, betaOnly 60). Arithmetic: refCost =
+  // (5/1e6)*1000 + (25/1e6)*500 = 0.0175, ceiling 1.0 * 0.0175; shared
+  // (cost 0.014) beats alphaOnly/betaOnly (cost 0.001) for every role, so
+  // assignments resolve 'shared' with the eligible exclusive as alternative.
+  // Zero expects touched.
+  for (const m of Object.values(fixture.models || {})) {
+    if (m && typeof m === 'object' && m.intelligenceIndex == null && m.benchlm && Number.isFinite(m.benchlm.score)) m.intelligenceIndex = m.benchlm.score;
+  }
   const app = createApp({
     load: async () => fixture,
     document,
