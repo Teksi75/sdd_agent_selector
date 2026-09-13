@@ -1218,7 +1218,7 @@
       "sweVer": 83.4,
       "term": 84.2696629213483,
       "benchlm": {
-        "score": 73.51,
+        "score": 38.6,
         "verified": false,
         "reliability": 0.88,
         "categories": {
@@ -1240,7 +1240,7 @@
       "tier": "reference",
       "lifecycle": "reference",
       "isReference": true,
-      "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "notes": "OpenAI flagship, 23 abr 2026. No en Go. Arena=Text Arena. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized) AA 2026-09-13 backfill (one-shot D2-B, gpt-5.5): benchlm.score = 38.6 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "codingIndex": 74.9,
       "outputTokensPerSecond": 0,
       "timeToFirstTokenSeconds": 0,
@@ -1252,8 +1252,14 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 38.6
     },
     "gpt55High": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1400,7 +1406,7 @@
       "sweVer": 91.5,
       "term": 88.0149812734082,
       "benchlm": {
-        "score": 72.57,
+        "score": 42.3,
         "verified": false,
         "reliability": 0.75,
         "categories": {
@@ -1421,7 +1427,7 @@
       "cacheRead": 0.25,
       "tier": "balanced",
       "lifecycle": "active",
-      "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "notes": "OpenAI balanced tier, 26 jun 2026. 2x cheaper than gpt-5.5 with competitive performance. SWE-bench Pro not officially published; swePro=58.6 is proxy from gpt-5.5 per OpenAI's 'competitive' claim. Arena=2200 estimated (not officially published). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized) AA 2026-09-13 backfill (one-shot D2-B, GPT-5.6 Terra): benchlm.score = 42.3 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "sources": [
         {
           "url": "https://openai.com/index/previewing-gpt-5-6-sol/",
@@ -1439,6 +1445,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "codingIndex": 76.7,
@@ -1446,7 +1457,8 @@
       "timeToFirstTokenSeconds": 127.03,
       "timeToFirstAnswerTokenSeconds": 127.03,
       "blended": 4.5,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 42.3
     },
     "gpt56terraXhigh": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1627,7 +1639,7 @@
       "sweVer": null,
       "term": 80.8988764044944,
       "benchlm": {
-        "score": 67.17,
+        "score": 37.5,
         "verified": false,
         "reliability": 0.5,
         "categories": {
@@ -1649,7 +1661,7 @@
       "pricingSource": "artificialanalysis",
       "tier": "budget",
       "lifecycle": "active",
-      "notes": "OpenAI budget tier, 26 Jun 2026. Canonical max-effort entry after consolidating the former gpt56lunaMax record. BenchLM public score is provisional (67.17). Artificial Analysis pricing: $0.20 input / $1.20 output per 1M tokens; cache pricing is not published. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "notes": "OpenAI budget tier, 26 Jun 2026. Canonical max-effort entry after consolidating the former gpt56lunaMax record. BenchLM public score is provisional (67.17). Artificial Analysis pricing: $0.20 input / $1.20 output per 1M tokens; cache pricing is not published. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized) AA 2026-09-13 backfill (one-shot D2-B, GPT-5.6 Luna): benchlm.score = 37.5 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "sources": [
         {
           "url": "https://benchlm.ai/models/gpt-5-6-luna",
@@ -1668,6 +1680,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "requestsPer5h": 2050,
@@ -1676,7 +1693,8 @@
       "codingIndex": 71.4,
       "outputTokensPerSecond": 165.737,
       "timeToFirstTokenSeconds": 76.41,
-      "timeToFirstAnswerTokenSeconds": 76.41
+      "timeToFirstAnswerTokenSeconds": 76.41,
+      "intelligenceIndex": 37.5
     },
     "gpt56lunaXhigh": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -1853,7 +1871,7 @@
       "name": "GPT-5.6 Sol",
       "effort": "max",
       "benchlm": {
-        "score": 81.96,
+        "score": 47.1,
         "verified": true,
         "reliability": 0.75,
         "categories": {
@@ -1874,7 +1892,7 @@
       "input": 5,
       "output": 30,
       "cacheRead": 0.5,
-      "notes": "OpenAI flagship tier, 26 jun 2026. BenchLM rank #3 as of 2026-07-17. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "notes": "OpenAI flagship tier, 26 jun 2026. BenchLM rank #3 as of 2026-07-17. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized) AA 2026-09-13 backfill (one-shot D2-B, GPT-5.6 Sol): benchlm.score = 47.1 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "sources": [
         {
           "url": "https://benchlm.ai/models/gpt-5-6-sol",
@@ -1884,6 +1902,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "term": 88.0149812734082,
@@ -1892,7 +1915,8 @@
       "timeToFirstTokenSeconds": 67.199,
       "timeToFirstAnswerTokenSeconds": 67.199,
       "blended": 11.25,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 47.1
     },
     "gpt56solXhigh": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2076,19 +2100,27 @@
       "cacheRead": 1,
       "cacheWrite": 12.5,
       "benchlm": {
-        "score": null,
+        "score": 52.8,
         "verified": false,
         "reliability": 0,
         "categories": {}
       },
-      "notes": "Manual curation from OpenAI model docs on 2026-09-10: pricing per 1M tokens input $10.00, cached input $1.00, cache writes $12.50, output $50.00; context 1.05M; knowledge cutoff Apr 30 2026.",
+      "notes": "Manual curation from OpenAI model docs on 2026-09-10: pricing per 1M tokens input $10.00, cached input $1.00, cache writes $12.50, output $50.00; context 1.05M; knowledge cutoff Apr 30 2026. AA 2026-09-13 backfill (one-shot D2-B, GPT-6 Astra max): benchlm.score = 52.8 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "sources": [
         {
           "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
           "date": "2026-09-10",
           "scraper": "manual-curation"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
-      ]
+      ],
+      "intelligenceIndex": 52.8,
+      "pricingSource": "artificialanalysis",
+      "blended": 20
     },
     "gpt6astraLow": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2121,7 +2153,7 @@
       "name": "gpt-5.4",
       "effort": "xhigh",
       "benchlm": {
-        "score": 74.24,
+        "score": 39,
         "verified": true,
         "reliability": 0.63,
         "categories": {
@@ -2142,7 +2174,7 @@
       "input": 2.5,
       "output": 15,
       "cacheRead": 0.5,
-      "notes": "Output price was null on the 2026-07-06 snapshot; backfilled to 30 to match sister model gpt-5.5 ($5/$30 short-context tier). Re-verify when the openai-pricing scraper leaves cooldown (5d) and the source URL responds again (current WAF returns 403 from this network). Fixing output unblocks the data bug where gpt-5.4 was being chosen by getBestFor as the soft-fallback for many roles (sdd-explore, review-readability, etc.) because Number(null) = 0 made the cost estimate ~$0.005 instead of the real ~$0.020. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "notes": "Output price was null on the 2026-07-06 snapshot; backfilled to 30 to match sister model gpt-5.5 ($5/$30 short-context tier). Re-verify when the openai-pricing scraper leaves cooldown (5d) and the source URL responds again (current WAF returns 403 from this network). Fixing output unblocks the data bug where gpt-5.4 was being chosen by getBestFor as the soft-fallback for many roles (sdd-explore, review-readability, etc.) because Number(null) = 0 made the cost estimate ~$0.005 instead of the real ~$0.020. AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized) AA 2026-09-13 backfill (one-shot D2-B, gpt-5.4): benchlm.score = 39 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "sources": [
         {
           "url": "https://platform.openai.com/docs/pricing",
@@ -2157,6 +2189,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "term": 78.2771535580524,
@@ -2165,7 +2202,8 @@
       "timeToFirstTokenSeconds": 0,
       "timeToFirstAnswerTokenSeconds": 0,
       "blended": 5.625,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 39
     },
     "gpt54Low": {
       "availability": { "opencode-go": false, "chatgpt-plus": true, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -2578,7 +2616,7 @@
       "sweVer": null,
       "term": 89.1385767790262,
       "benchlm": {
-        "score": 82.5,
+        "score": 50.7,
         "verified": false,
         "reliability": 0.5,
         "categories": {
@@ -2600,7 +2638,7 @@
       "tier": "high",
       "lifecycle": "active",
       "isNew": true,
-      "notes": "Anthropic next-gen flagship, provisional data. Will supersede opus48 as cost anchor once verified. Pricing matches opus48 (Anthropic stable pricing policy). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
+      "notes": "Anthropic next-gen flagship, provisional data. Will supersede opus48 as cost anchor once verified. Pricing matches opus48 (Anthropic stable pricing policy). AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized) AA 2026-09-13 backfill (one-shot D2-B, Claude Opus 5): benchlm.score = 50.7 taken from the live AA v2 payload (fetched 2026-09-13T01:11:12Z; the public chart renders it rounded). BenchLM subfields preserved; audited by the AA sources[] entry and evidence/aa-2026-09-13-backfill-manifest.md.",
       "sources": [
         {
           "url": "https://www.anthropic.com/news/claude-opus-5",
@@ -2610,6 +2648,11 @@
           "url": "https://artificialanalysis.ai/",
           "date": "2026-08-17",
           "scraper": "scrape-artificialanalysis"
+        },
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ],
       "codingIndex": 78,
@@ -2617,7 +2660,8 @@
       "timeToFirstTokenSeconds": 31.923,
       "timeToFirstAnswerTokenSeconds": 31.923,
       "blended": 10,
-      "pricingSource": "artificialanalysis"
+      "pricingSource": "artificialanalysis",
+      "intelligenceIndex": 50.7
     },
     "claudeOpus5High": {
       "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
@@ -3297,6 +3341,32 @@
           "url": "https://opencode.ai/docs/es/go/#usage-limits",
           "date": "2026-09-10",
           "scraper": "scrape-opencode-prices"
+        }
+      ]
+    },
+    "musespark13": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "name": "Muse Spark 1.3 (max)",
+      "effort": "max",
+      "lifecycle": "benchmark-only",
+      "tier": "high",
+      "input": 1.25,
+      "output": 4.25,
+      "blended": 2,
+      "pricingSource": "artificialanalysis",
+      "benchlm": {
+        "score": 48.2,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "intelligenceIndex": 48.2,
+      "notes": "New distinct entry for the 2026-09-13 AA chart row \"Muse Spark 1.3 (max)\" (48.2 exact live payload; the chart renders 48). One-shot traced backfill; availability fail-closed (all providers false, lifecycle benchmark-only) until a provider sourceOfTruth is evidenced. musespark13contributor (xhigh, non-AA) stays a separate record — no re-attribution.",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
         }
       ]
     }
