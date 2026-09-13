@@ -13,16 +13,16 @@
 // justification UI in Phase 2 reuse the same scoring math.
 
 // js/services/model-scorer.js
-// PR3 (benchlm-replace-custom-scoring) — compositeScore now reads
-// `benchlm.score` directly per the benchlm-score-contract (spec).
+// S3b (aa-only-scoring) — compositeScore now reads
+// `intelligenceIndex` directly per the II-only contract (spec).
 // The 4-benchmark weighted-average math from Phase 1 is removed; the
 // legacy `arena`/`swePro`/`sweVer`/`term` fields stay in `data/models.json`
 // for reference but are NOT consulted by `compositeScore` anymore.
 //
 // Public API (unchanged signatures):
-//   - compositeScore(model)         — benchlm.score clamped to [0,100]
+//   - compositeScore(model)         — intelligenceIndex clamped to [0,100]
 //   - costEstimate(model, profile?) — USD cost of a single request
-//   - findReferenceModel(models)    — tier:reference or highest benchlm
+//   - findReferenceModel(models)    — lifecycle:reference or highest II
 //   - applyStrategy(role, strat)    — modify role by config strategy
 //   - getBestFor(agent, ...)        — pick the best model for an agent
 //
@@ -36,6 +36,8 @@
  *
  * @type {ReadonlyArray<string>}
  */
+import { iiScore } from './ii-score.js';
+
 export const VALID_LIFECYCLES = Object.freeze([
   'active',
   'reference',
@@ -119,11 +121,11 @@ function clamp(value, min, max) {
 /**
  * Compute the composite score for a model, in [0, 100].
  *
- * PR3 contract (spec "Scoring Service — compositeScore", benchlm-score-contract):
- *   - Returns `model.benchlm.score` clamped to [0, 100].
- *   - Returns `null` when benchlm data is missing/non-finite (NOT 0; the
+ * S3b contract (spec "Scoring Service — compositeScore", II-only):
+ *   - Returns `model.intelligenceIndex` clamped to [0, 100].
+ *   - Returns `null` when II data is missing/non-finite (NOT 0; the
  *     chart + readers render null as an "unavailable" placeholder to honor
- *     the benchlm-fail-soft contract — never a stale zero bar).
+ *     the II fail-soft contract — never a stale zero bar).
  *   - Pure: deterministic, no side effects on the input.
  *
  * The legacy 4-benchmark weighted average (arena/swePro/sweVer/term) is
@@ -131,15 +133,19 @@ function clamp(value, min, max) {
  * reference but are inert to this function.
  *
  * @param {Object} model - LLM model record (one entry from data/models.json)
- * @returns {number|null} score in [0, 100], or null when BenchLM data missing
+ * @returns {number|null} score in [0, 100], or null when II data missing
  */
+export function hasFiniteIi(model) {
+  return compositeScore(model) != null;
+}
+
 export function compositeScore(model) {
   if (!model || typeof model !== 'object') return null;
 
-  const score = model.benchlm?.score;
-  if (typeof score !== 'number' || !Number.isFinite(score)) return null;
+  return iiScore(model);
+  
 
-  return clamp(score, 0, 100);
+  
 }
 
 /**
@@ -184,15 +190,21 @@ export function findReferenceModel(models) {
   if (list.length === 0) return null;
 
   const refs = list.filter((m) => lifecycleOf(m) === 'reference');
+  const pickHigherIi = (best, m) => {
+    const sb = compositeScore(best);
+    const sm = compositeScore(m);
+    const fb = sb != null;
+    const fm = sm != null;
+    if (fm && !fb) return m;
+    if (!fm && fb) return best;
+    if (!fm && !fb) return best;
+    if (sm !== sb) return sm > sb ? m : best;
+    return best;
+  };
   if (refs.length > 0) {
-    return refs.reduce((best, m) =>
-      compositeScore(m) > compositeScore(best) ? m : best
-    );
+    return refs.reduce(pickHigherIi);
   }
-
-  return list.reduce((best, m) =>
-    compositeScore(m) > compositeScore(best) ? m : best
-  );
+  return list.reduce(pickHigherIi);
 }
 
 /**
@@ -301,7 +313,9 @@ export function getBestFor(
   for (const [key, m] of list) {
     if (!m || typeof m !== 'object') continue;
     if (!isActive(m)) continue;
+          if (!hasFiniteIi(m)) continue;
     const score = compositeScore(m);
+        if (score == null) continue; // (redundant with hasFiniteIi above, kept for clarity)
     const cost = costEstimate(m, profile);
     if (score >= modified.minReasoning && cost <= effectiveMaxCost) {
       eligible.push({ key, model: m, score, cost });
@@ -317,7 +331,7 @@ export function getBestFor(
     //   the user has designated a specific model by hand.
     //   Non-active models (reference/legacy) are NEVER returned here.
     const roleRefKey = modified.referenceModelId;
-    if (roleRefKey && models && models[roleRefKey] && isActive(models[roleRefKey])) {
+    if (roleRefKey && models && models[roleRefKey] && isActive(models[roleRefKey]) && hasFiniteIi(models[roleRefKey])) {
       const roleRefModel = models[roleRefKey];
       const roleRefScore = compositeScore(roleRefModel);
       const roleRefCost = costEstimate(roleRefModel, profile);
@@ -352,6 +366,7 @@ export function getBestFor(
     for (const [key, m] of list) {
       if (!m || typeof m !== 'object') continue;
       if (!isActive(m)) continue;
+          if (!hasFiniteIi(m)) continue;
       const cost = costEstimate(m, profile);
       if (cost <= effectiveMaxCost) {
         costClearing.push({ key, model: m, score: compositeScore(m), cost });
@@ -360,7 +375,7 @@ export function getBestFor(
     if (costClearing.length > 0) {
       costClearing.sort((a, b) => {
         // Null scores sort AFTER any numeric score (so the soft fallback
-        // prefers a model with a real score over one whose BenchLM data
+        // prefers a model with a real score over one whose II data
         // is missing).
         const aS = a.score;
         const bS = b.score;

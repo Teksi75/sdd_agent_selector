@@ -102,13 +102,13 @@ describe('config-selector — twin judge constraint', () => {
     const divergentModels = {
       judgeA_only: {
         name: 'Judge-A-Only',
-        benchlm: { score: 94, verified: true, reliability: 0.95, categories: {} },
+        intelligenceIndex: 94, benchlm: { score: 94, verified: true, reliability: 0.95, categories: {} },
         input: 5.00, output: 25.00,
         tier: 'high',
       },
       judgeB_only: {
         name: 'Judge-B-Only',
-        benchlm: { score: 91, verified: true, reliability: 0.9, categories: {} },
+        intelligenceIndex: 91, benchlm: { score: 91, verified: true, reliability: 0.9, categories: {} },
         input: 0.10, output: 1.00,
         tier: 'balanced',
       },
@@ -322,18 +322,31 @@ describe('config-selector — V5 Slice 3 recomputeActiveConfig', () => {
   const REAL_CONFIGS = JSON.parse(
     readFileSync(join(ROOT, 'data', 'configs.json'), 'utf-8')
   ).configs;
+  // S3b II-only (aa-only-scoring 5.2): compositeScore reads
+  // `intelligenceIndex`; the benchlm blocks below are inert datum.
+  // Finite II mirrors the benchlm-era scores so the original ranking
+  // arithmetic holds: refCost = (5/1e6)*1000 + (25/1e6)*500 = 0.0175,
+  // ceiling 1.0 * 0.0175; SHARED (II 85, cost 0.014) and CHEAP (II 70,
+  // cost 0.001) both clear minReasoning 40 → sdd-apply resolves
+  // 'shared' (85 > 70), then 'cheap' after the filter change. The
+  // divergent twin case (judge-b costRatio 0.0001 → ceiling 0.00000175
+  // < cheapest active 0.001) resolves judge-a 'shared' vs judge-b null
+  // → InvalidConfigError, as designed.
   const REF = {
     name: 'Ref', tier: 'reference', lifecycle: 'reference',
+    intelligenceIndex: 95,
     benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
     input: 5, output: 25,
   };
   const SHARED = {
     name: 'Shared', tier: 'high', lifecycle: 'active',
+    intelligenceIndex: 85,
     benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} },
     input: 4, output: 20,
   };
   const CHEAP = {
     name: 'Cheap', tier: 'budget', lifecycle: 'active',
+    intelligenceIndex: 70,
     benchlm: { score: 70, verified: false, reliability: 0.8, categories: {} },
     input: 0.5, output: 1,
   };

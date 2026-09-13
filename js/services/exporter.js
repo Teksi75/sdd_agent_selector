@@ -123,14 +123,14 @@ export function markdownTable(headers, rows) {
  * fragment and no soft-fallback marker, even when `softFallback` is true
  * (the flag remains a machine-readable assignment/JSON field).
  *
- * @param {Array<{key: string, role?: string, model?: {name?: string, tier?: string, benchlm?: {score?: number}}, score?: number, cost?: number, effectiveMaxCost?: number, softFallback?: boolean}>} assignments
+ * @param {Array<{key: string, role?: string, model?: {name?: string, tier?: string, intelligenceIndex?: number}, score?: number, cost?: number, effectiveMaxCost?: number, softFallback?: boolean}>} assignments
  * @param {{ now?: Date }} [options]
  * @returns {string}
  */
 export function agentsMarkdown(assignments, options) {
   const opts = options || {};
   const today = opts.now instanceof Date ? opts.now.toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10);
-  const header = exportHeader(opts.context);
+  const header = exportHeader(opts.context); const nl = String.fromCharCode(10); const noteLine = (typeof opts.hiddenNote === 'string' && opts.hiddenNote.length > 0) ? (opts.hiddenNote + String.fromCharCode(10)) : '';
   const blocks = [];
   for (const a of assignments || []) {
     const m = a.model || {};
@@ -150,7 +150,7 @@ export function agentsMarkdown(assignments, options) {
       `_role:_ ${role}  ·  _score:_ ${scoreCheck}  ·  _cost:_ ${costCheck}`
     );
   }
-  return `${header}\n# SDD Agent Assignments (${today})\n\n${blocks.join('\n\n')}\n`;
+  return `${header}\n${noteLine}# SDD Agent Assignments (${today})\n\n${blocks.join('\n\n')}\n`;
 }
 
 /* ─────────────────────────── browser actions ─────────────────────────── */

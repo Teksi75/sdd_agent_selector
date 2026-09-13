@@ -9,6 +9,18 @@
 // We mock globalThis.fetch + sessionStorage so the test stays pure.
 
 import { describe, test, expect, beforeEach, vi, afterEach } from 'vitest';
+// S3b task 5.8: catalogRevision envelope.
+
+describe('data-loader S3b catalogRevision task 5.8', () => {
+  test('catalogRevision distinguishes AA runs', async () => {
+    const m = await import('../js/services/data-loader.js');
+    expect(typeof m.catalogRevision).toBe('function');
+    const a = m.catalogRevision({ lastSynced: '2026-09-10' });
+    const b = m.catalogRevision({ lastSynced: '2026-09-11' });
+    expect(a).not.toBe(b);
+  });
+});
+
 
 class FakeStorage {
   constructor(initial = {}) {

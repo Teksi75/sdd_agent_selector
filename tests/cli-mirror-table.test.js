@@ -9,6 +9,28 @@
 // Imports declared at the bottom so the test file reads top-down.
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
+// S3b task 5.6 RED: 18 rows always; II-less/unassigned Sin modelo zero badges.
+
+describe('cli-mirror-table — S3b II-only (task 5.6)', () => {
+  test('II-less eligible set renders 18 Sin modelo rows with zero badges', async () => {
+    const { render } = await import('../js/components/cli-mirror-table.js');
+    const { getBestFor } = await import('../js/services/model-scorer.js');
+    const models = { b: { name: 'B', lifecycle: 'active', intelligenceIndex: null, benchlm: { score: 99 }, input: 0.1, output: 0.2 } };
+    const roles = { 'sdd-archive': { minReasoning: 50, costRatio: 1.0, role: 'archive' } };
+    const a = getBestFor('sdd-archive', models, roles, {}, 'balanced');
+    expect(a.key).toBeNull();
+    const t = document.createElement('section'); document.body.appendChild(t);
+    const roleMatrix = {};
+    for (const k of ['gentle-orchestrator','sdd-init','sdd-explore','sdd-propose','sdd-spec','sdd-design','sdd-tasks','sdd-apply','sdd-verify','sdd-archive','sdd-onboard','jd-judge-a','jd-judge-b','jd-fix-agent','review-risk','review-readability','review-reliability','review-resilience']) roleMatrix[k] = { role: k };
+    const assignments = {}; for (const k of Object.keys(roleMatrix)) assignments[k] = { key: null, reason: 'no II' };
+    const summary = render(t, assignments, roleMatrix);
+    expect(summary.rows).toBe(18);
+    expect(t.querySelectorAll('.warn-row').length).toBe(18);
+    expect(t.querySelectorAll('[data-effort]').length).toBe(0);
+  });
+});
+
+
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';

@@ -4,6 +4,23 @@
 // (copyToClipboard, downloadFile, showToast) covered in jsdom.
 
 import { describe, test, expect, beforeEach, afterEach, vi } from 'vitest';
+// S3b task 5.7: II scores, shared note line two, no tier fragment.
+
+describe('exporter S3b II-only task 5.7', () => {
+  test('agentsMarkdown II with shared note second, no tier', async () => {
+    const { agentsMarkdown } = await import('../js/services/exporter.js');
+    const note = '1 models hidden on 2026-09-13';
+    const md = agentsMarkdown(
+      [{ key: 'sdd-archive', role: 'archive', model: { name: 'M' }, score: 48.2, cost: 0.00028, effectiveMaxCost: 0.0024 }],
+      { context: { providerIds: ['a'], providerNames: ['A'], timestamp: '2026-09-13T00:00:00.000Z' }, hiddenNote: note }
+    );
+    expect(md.startsWith('<!-- sdd-export scope=filtered')).toBe(true);
+    expect(md.includes('1 models hidden')).toBe(true);
+    expect(md.includes('48.2')).toBe(true);
+    expect(md.includes('Tier')).toBe(false);
+  });
+});
+
 import {
   toJSON,
   markdownTable,

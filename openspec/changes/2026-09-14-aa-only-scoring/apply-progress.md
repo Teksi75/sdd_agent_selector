@@ -414,3 +414,15 @@ Sustitución data-only (regla global tasks.md): 2.1–2.5 usan manifiesto + gate
 
 1. **Grep de imports por patrón, no substring** (tests/data-integrity): `ii-score.js` se nombra en su propio header, así que un `includes('ii-score')` da falso positivo sobre sí mismo. El assert usa regex `from/import()/require()` — más fiel al "imports" de la tarea 4.4.
 2. **Sin `verify-report.md` top-level** (orden explícita del padre).
+
+## S3b — Atomic activation (tasks 5.1–5.11) — COMPLETE con size:exception
+
+Fecha: 2026-09-14 · Rama: `feat/aa-only-s3b-activation` · Modo: worker-fallback (sdd-apply launcher stalleado) + fix dirigido por padre.
+
+- **Scorer**: `compositeScore` delega al núcleo `ii-score` probado; refs de orden benchlm eliminadas; `findReferenceModel` → mayor II finito (lifecycle, nulls-last, tie-break estable); guards finite-II en elegibilidad normal + ambos fallbacks + alternatives (predicado `hasFiniteIi` compartido).
+- **ii-ranking.js** (nuevo): `resolveIiFreshness` (AA lastRun → lastSynced), `buildIiRankingContext` (ranked = II finito, hidden = II null), `formatHiddenIiNote` (N = 0 → vacío).
+- **Superficies**: ref-table + composite-chart ocultan filas null-II (no dimmer) con nota compartida y chrome AA II; cli-mirror/justification sin cambio productivo (alcanzan los guards); exporter con nota en línea 2; freshness/sync retarget a AA lastRun; loader con `catalogRevision`; app construye UN contexto por render.
+- **Bug real hallado por el padre en re-verificación**: `renderAll()` referenciaba `rankingContext` no declarado → ReferenceError que vaciaba todos los mounts (los unitarios pasaban porque no cruzan app.js). Fix: import + 2 líneas. Luego 2 tests config-selector alineados por inyección II (cero expects tocados). El worker lo había diagnosticado como test-side; era producto + resto test-side.
+- **Evidencia**: RED por flips → GREEN; focused S3b 252/252 ejecutados en verde (único collect-fail pre-existente data-integrity/Node24); regresión 125/125; rollback S3b probado en ida (coherencia benchlm) y restaurado.
+- **Budget**: ~673 líneas review vs cap 400 → size:exception explícita de maintainer (el corte atómico no admite split sin shipear híbrido). Rollback: revertir activación + tests en un commit; nunca borrar II backfilleado.
+- **Notas de review**: model-card conserva display benchlm como dato inerte (fuera de superficies del slice); comentarios dark en ii-score.js intactos a propósito.

@@ -10,6 +10,28 @@
 // are tested directly so jsdom DOM noise is kept to a minimum.
 
 import { describe, test, expect, beforeEach } from 'vitest';
+// S3b task 5.8 RED: AA lastRun wins, benchlm irrelevant, warning references AA II.
+
+describe('freshness-badge S3b II-only task 5.8', () => {
+  test('render uses AA lastRun over lastSynced; benchlm timestamps irrelevant', async () => {
+    const { render } = await import('../js/components/freshness-badge.js');
+    const t = document.createElement('section'); document.body.appendChild(t);
+    const now = new Date('2026-09-20T12:00:00Z');
+    const meta = { lastSynced: '2026-09-10', scrapers: { 'scrape-artificialanalysis': { lastRun: '2026-09-18T00:00:00.000Z' } }, benchlm: { lastRun: '2020-01-01T00:00:00.000Z' } };
+    const out = render(t, meta, { now });
+    expect(out.daysOld).toBe(2);
+    expect(t.textContent.includes('18/09/2026')).toBe(true);
+  });
+  test('warning references AA II, never benchlm', async () => {
+    const { buildBadge } = await import('../js/components/freshness-badge.js');
+    const out = buildBadge('2026-09-01', { now: new Date('2026-09-20T12:00:00Z') });
+    expect(out.warning).toBe(true);
+    expect(out.html.includes('Artificial Analysis')).toBe(true);
+    expect(out.html.includes('benchlm')).toBe(false);
+    expect(out.html.includes('BenchLM')).toBe(false);
+  });
+});
+
 
 let target;
 beforeEach(() => {
@@ -116,7 +138,7 @@ describe('freshness-badge — pure helpers', () => {
     expect(out.daysOld).toBe(8);
     expect(out.warning).toBe(true);
     expect(out.html).toMatch(/freshness-warning/);
-    expect(out.html).toMatch(/Los benchmarks tienen m.*s de 7 d.*as/);
+    expect(out.html).toMatch(/Artificial Analysis Intelligence Index/);
   });
 });
 

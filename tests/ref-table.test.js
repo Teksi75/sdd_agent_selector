@@ -16,6 +16,37 @@
 //     group (score/price tie-break unchanged inside each bucket).
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
+// S3b task 5.5 RED: II score/sort, null-II removed (not dimmed), shared note iff N>0.
+
+describe('ref-table — S3b II-only (task 5.5)', () => {
+  test('Score cell reads II and sorts II-desc; null-II rows removed with shared note', async () => {
+    const { render } = await import('../js/components/ref-table.js');
+    const models = {
+      hi: { name: 'Hi', lifecycle: 'active', intelligenceIndex: 61.5, input: 2, output: 4, effort: 'high' },
+      lo: { name: 'Lo', lifecycle: 'active', intelligenceIndex: 55.2, input: 1, output: 2, effort: 'medium' },
+      nodata: { name: 'NoData', lifecycle: 'active', intelligenceIndex: null, input: 0.5, output: 1, effort: 'low' },
+    };
+    const t = document.createElement('div');
+    document.body.appendChild(t);
+    const summary = render(t, models, { modelsMeta: { lastSynced: '2026-09-13' } });
+    expect(summary.rows).toBe(2);
+    expect(t.querySelector('[data-model-key="nodata"]')).toBeNull();
+    expect(t.textContent).toMatch(/1 models hidden/);
+    expect(t.textContent).toMatch(/Artificial Analysis Intelligence Index/);
+    const keys = Array.from(t.querySelectorAll('tr[data-model-key]')).map((tr) => tr.getAttribute('data-model-key'));
+    expect(keys[0]).toBe('hi');
+  });
+  test('N=0 renders no hidden note', async () => {
+    const { render } = await import('../js/components/ref-table.js');
+    const models = { a: { name: 'A', lifecycle: 'active', intelligenceIndex: 42.3, input: 1, output: 2 } };
+    const t = document.createElement('div');
+    document.body.appendChild(t);
+    render(t, models, { modelsMeta: { lastSynced: '2026-09-13' } });
+    expect(t.textContent).not.toMatch(/models hidden/);
+  });
+});
+
+
 import { render, rowsFor, buildExportFormats } from '../js/components/ref-table.js';
 
 // Mixed-fixture: verified + estimated + unavailable + reference. Score
@@ -25,6 +56,7 @@ const FIXTURE = {
   alpha: {
     name: 'Alpha-1',
     tier: 'high',
+    intelligenceIndex: 85,
     benchlm: { score: 85, verified: true, reliability: 0.92, categories: {} },
     input: 1.00,
     output: 3.00,
@@ -32,6 +64,7 @@ const FIXTURE = {
   beta: {
     name: 'Beta-2',
     tier: 'balanced',
+    intelligenceIndex: 65,
     benchlm: { score: 65, verified: false, reliability: 0.7, categories: {} },
     input: 0.50,
     output: 2.00,
@@ -40,12 +73,14 @@ const FIXTURE = {
   pending: {
     name: 'Pending',
     tier: 'balanced',
+    intelligenceIndex: 70,
     benchlm: { score: null, verified: false, reliability: 0, categories: {} },
     input: 1.0,
     output: 2.0,
   },
   gamma: {
     name: 'Gamma-Reference',
+    intelligenceIndex: 95,
     benchlm: { score: 95, verified: true, reliability: 0.95, categories: {} },
     input: 5.00,
     output: 25.00,
@@ -57,6 +92,7 @@ const FIXTURE = {
   // (matches the legacy V3 baseline-comparison intent).
   delta: {
     name: 'Delta-Flagged-Reference',
+    intelligenceIndex: 97,
     benchlm: { score: 97, verified: true, reliability: 0.9, categories: {} },
     input: 4.00,
     output: 20.00,
@@ -163,14 +199,15 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
     expect(filledBeta).toBe(3);
   });
 
-  test('null benchlm.score renders "—" in the score column (no number, no badge)', () => {
-    render(target, FIXTURE);
+  test('benchlm-null with finite II shows II; truly II-less rows hidden (S3b)', () => {
+    render(target, FIXTURE, { modelsMeta: { lastSynced: '2026-09-13' } });
     const pending = target.querySelector('tr[data-model-key="pending"]');
-    // No "verified"/"estimated" badge text on a null-score row.
-    expect(pending.querySelector('[data-badge="verified"]')).toBeNull();
-    expect(pending.querySelector('[data-badge="estimated"]')).toBeNull();
-    // Score cell shows em-dash.
-    expect(pending.textContent).toMatch(/—/);
+    expect(pending, 'pending II 70 benchlm-null stays visible').not.toBeNull();
+    expect(pending.textContent).toMatch(/70/);
+    const t2 = document.createElement('div'); document.body.appendChild(t2);
+    render(t2, { ok: { name: 'Ok', lifecycle: 'active', intelligenceIndex: 42.3, input: 1, output: 1 }, x: { name: 'X', lifecycle: 'active', intelligenceIndex: null, input: 1, output: 1 } }, { modelsMeta: { lastSynced: '2026-09-13' } });
+    expect(t2.querySelector('[data-model-key="x"]')).toBeNull();
+    expect(t2.textContent).toMatch(/1 models hidden/);
   });
 
   test('returns a summary with referenceModel when present', () => {
@@ -211,6 +248,7 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
       x: {
         name: '<img src=x onerror=alert(1)>',
         tier: 'high',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
         input: 1,
         output: 2,
@@ -228,6 +266,7 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
         tier: 'high',
         lifecycle: 'active',
         effort: 'xhigh',
+        intelligenceIndex: 85,
         benchlm: { score: 85, verified: true, reliability: 0.9, categories: {} },
       },
       gpt55High: {
@@ -235,6 +274,7 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
         tier: 'high',
         lifecycle: 'active',
         effort: 'high',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
       },
       gpt55Medium: {
@@ -242,12 +282,14 @@ describe('ref-table — render() (PR3 benchlm columns)', () => {
         tier: 'high',
         lifecycle: 'active',
         effort: 'medium',
+        intelligenceIndex: 75,
         benchlm: { score: 75, verified: true, reliability: 0.7, categories: {} },
       },
       legacy: {
         name: 'Legacy model',
         tier: 'balanced',
         lifecycle: 'active',
+        intelligenceIndex: 60,
         benchlm: { score: 60, verified: false, reliability: 0.6, categories: {} },
       },
     };
@@ -272,6 +314,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       name: 'GLM-5.2',
       tier: 'high',
       lifecycle: 'active',
+      intelligenceIndex: 63.96,
       benchlm: { score: 63.96, verified: false, reliability: 0.63, categories: {} },
       input: 1.4,
       output: 4.4,
@@ -281,6 +324,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       tier: 'reference',
       lifecycle: 'reference',
       isReference: true,
+      intelligenceIndex: 81.96,
       benchlm: { score: 81.96, verified: true, reliability: 0.75, categories: {} },
       input: 5,
       output: 30,
@@ -291,6 +335,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       tier: 'reference',
       lifecycle: 'reference',
       isReference: true,
+      intelligenceIndex: 78.34,
       benchlm: { score: 78.34, verified: true, reliability: 0.63, categories: {} },
       input: 5,
       output: 25,
@@ -300,6 +345,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       tier: 'reference',
       lifecycle: 'reference',
       isReference: true,
+      intelligenceIndex: 73.51,
       benchlm: { score: 73.51, verified: false, reliability: 0.88, categories: {} },
       input: 5,
       output: 30,
@@ -309,6 +355,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       tier: 'reference',
       lifecycle: 'reference',
       isReference: true,
+      intelligenceIndex: 72.57,
       benchlm: { score: 72.57, verified: false, reliability: 0.75, categories: {} },
       input: 2.5,
       output: 15,
@@ -319,6 +366,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       tier: 'budget',
       lifecycle: 'reference',
       isReference: true,
+      intelligenceIndex: 67.17,
       benchlm: { score: 67.17, verified: false, reliability: 0.5, categories: {} },
       input: 1,
       output: 6,
@@ -327,6 +375,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       name: 'GLM-5.1',
       tier: 'high',
       lifecycle: 'legacy',
+      intelligenceIndex: 67.74,
       benchlm: { score: 67.74, verified: true, reliability: 0.5, categories: {} },
       input: 1.4,
       output: 4.4,
@@ -335,6 +384,7 @@ describe('ref-table — reference display order and legacy filtering', () => {
       name: 'GLM-5',
       tier: 'budget',
       lifecycle: 'legacy',
+      intelligenceIndex: 66.06,
       benchlm: { score: 66.06, verified: true, reliability: 0.88, categories: {} },
       input: 1,
       output: 3.2,
@@ -413,6 +463,7 @@ describe('ref-table — V5 Slice 3 eligible-only + filtered export', () => {
     catalogOnly: {
       name: 'Catalog Only',
       tier: 'balanced',
+      intelligenceIndex: 50,
       benchlm: { score: 50, verified: true, reliability: 0.5, categories: {} },
       input: 1,
       output: 2,
@@ -514,6 +565,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
     scoredOld: {
       name: 'Scored Old',
       tier: 'high',
+      intelligenceIndex: 90,
       benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} },
       input: 1,
       output: 2,
@@ -521,6 +573,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
     newScored: {
       name: 'New Scored',
       tier: 'high',
+      intelligenceIndex: 70,
       benchlm: { score: 70, verified: true, reliability: 0.7, categories: {} },
       input: 1,
       output: 2,
@@ -547,6 +600,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
       lifecycle: 'reference',
       isReference: true,
       isNew: true,
+      intelligenceIndex: 99,
       benchlm: { score: 99, verified: true, reliability: 0.9, categories: {} },
       input: 5,
       output: 25,
@@ -572,7 +626,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
     const keys = Array.from(activeTable.querySelectorAll('tr')).map((tr) =>
       tr.getAttribute('data-model-key')
     );
-    expect(keys).toEqual(['newScored', 'newUnscored', 'scoredOld', 'oldUnscored']);
+    expect(keys).toEqual(['newScored', 'scoredOld']);
   });
 
   test('inside a bucket, equal scores fall back to the cheaper input (tie-break as today)', () => {
@@ -580,6 +634,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
       newPricey: {
         name: 'New Pricey',
         tier: 'high',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
         input: 3,
         output: 2,
@@ -588,6 +643,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
       newCheap: {
         name: 'New Cheap',
         tier: 'high',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
         input: 1,
         output: 2,
@@ -596,6 +652,7 @@ describe('ref-table — isNew pin inside the active group (V5 follow-up)', () =>
       oldCheapest: {
         name: 'Old Cheapest',
         tier: 'high',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.8, categories: {} },
         input: 0.5,
         output: 2,
@@ -615,6 +672,7 @@ describe('ref-table — effort-only export (PR-B)', () => {
       tier: 'high',
       effort: 'max',
       lifecycle: 'active',
+      intelligenceIndex: 85,
       benchlm: { score: 85, verified: true, reliability: 0.92, categories: {} },
       input: 1.0,
       output: 3.0,
@@ -623,6 +681,7 @@ describe('ref-table — effort-only export (PR-B)', () => {
       name: 'Legacy-No-Effort',
       tier: 'balanced',
       lifecycle: 'active',
+      intelligenceIndex: 50,
       benchlm: { score: 50, verified: false, reliability: 0.5, categories: {} },
       input: 1.0,
       output: 2.0,
@@ -647,7 +706,7 @@ describe('ref-table — effort-only export (PR-B)', () => {
   });
 
   test('out-of-vocabulary effort renders no badge and no invented label', () => {
-    render(target, { weird: { name: 'Weird', tier: 'high', effort: 'turbo', lifecycle: 'active', benchlm: { score: 70, verified: true, reliability: 0.7, categories: {} } } });
+    render(target, { weird: { name: 'Weird', tier: 'high', effort: 'turbo', lifecycle: 'active', intelligenceIndex: 42.3, benchlm: { score: 70, verified: true, reliability: 0.7, categories: {} } } });
     const row = target.querySelector('[data-model-key="weird"]');
     expect(row.querySelector('[data-effort]')).toBeNull();
     expect(row.textContent).not.toMatch(/turbo/);

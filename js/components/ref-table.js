@@ -9,7 +9,7 @@
 //   - Every non-reference model renders as one `<tr>` carrying:
 //       Modelo | Esfuerzo | Score | BenchLM (badge + reliability) |
 //       Input $ | Output $ | Sources
-//   - The score column reads `benchlm.score` directly (1 decimal).
+//   - The score column reads `intelligenceIndex` directly (1 decimal).
 //   - The BenchLM column shows a verified/estimated badge PLUS a
 //     5-dot reliability scale. Null score → "—" placeholder; no
 //     badge or dots.
@@ -23,6 +23,7 @@
 // the user can see the model exists but BenchLM hasn't ingested it.
 
 import { compositeScore, lifecycleOf } from '../services/model-scorer.js';
+import { buildIiRankingContext, formatHiddenIiNote } from '../services/ii-ranking.js';
 import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
@@ -181,8 +182,14 @@ function orderRows(models) {
   const { active, nonActive } = rowsFor(models);
   const groupedActive = splitByAaSignal(active, ([, m]) => m);
   const groupedNonActive = splitByAaSignal(nonActive, ([, m]) => m);
-  const withAaRows = [...groupedActive.withAa, ...groupedNonActive.withAa];
-  const withoutAaRows = [...groupedActive.withoutAa, ...groupedNonActive.withoutAa];
+  const rankingCtx = (typeof options !== 'undefined' && options && options.rankingContext) || buildIiRankingContext(models, (typeof options !== 'undefined' && options && options.modelsMeta) || undefined);
+  const isRanked = ([, mm]) => compositeScore(mm) != null;
+  const fActiveWith = groupedActive.withAa.filter(isRanked);
+  const fActiveWithout = groupedActive.withoutAa.filter(isRanked);
+  const fNonActiveWith = groupedNonActive.withAa.filter(isRanked);
+  const fNonActiveWithout = groupedNonActive.withoutAa.filter(isRanked);
+  const withAaRows = [...fActiveWith, ...fNonActiveWith];
+  const withoutAaRows = [...fActiveWithout, ...fNonActiveWithout];
   return {
     active,
     nonActive,
@@ -247,7 +254,7 @@ function buildExportPayload(order, context, scope) {
 export function buildExportFormats(models, options) {
   const opts = options || {};
   const context = opts.exportContext || {};
-  const filtered = buildExportPayload(orderRows(models || {}), context, 'filtered');
+  const filtered = buildExportPayload(orderRows(models || {}), context, 'filtered'); const rankForExport = (opts && opts.rankingContext) || buildIiRankingContext(models || {}, (opts && opts.modelsMeta) || undefined); const noteForExport = formatHiddenIiNote(rankForExport.hiddenCount, rankForExport.asOfDate || new Date().toISOString().slice(0, 10)); if (noteForExport) { const nl = String.fromCharCode(10); const parts = filtered.md.split(nl); parts.splice(1, 0, noteForExport); filtered.md = parts.join(nl); }
   const formats = [
     { id: 'copy-md', label: 'Copiar markdown', description: 'Tabla de modelos visibles', content: filtered.md, scope: 'filtered' },
     {
@@ -386,9 +393,17 @@ export function render(targetEl, models, options) {
   const nonActiveCount = ordered.nonActiveCount;
   const groupedActive = ordered.groupedActive;
   const groupedNonActive = ordered.groupedNonActive;
-  const withAaRows = [...groupedActive.withAa, ...groupedNonActive.withAa];
-  const withoutAaRows = [...groupedActive.withoutAa, ...groupedNonActive.withoutAa];
-  const groupedRows = ordered.groupedRows;
+  const rankingCtx = (typeof options !== 'undefined' && options && options.rankingContext) || buildIiRankingContext(models, (typeof options !== 'undefined' && options && options.modelsMeta) || undefined);
+  const isRanked = ([, mm]) => compositeScore(mm) != null;
+  const fActiveWith = groupedActive.withAa.filter(isRanked);
+  const fActiveWithout = groupedActive.withoutAa.filter(isRanked);
+  const fNonActiveWith = groupedNonActive.withAa.filter(isRanked);
+  const fNonActiveWithout = groupedNonActive.withoutAa.filter(isRanked);
+  const withAaRows = [...fActiveWith, ...fNonActiveWith];
+  const withoutAaRows = [...fActiveWithout, ...fNonActiveWithout];
+  const groupedRows = ordered.groupedRows.filter(isRanked);
+  const hiddenNote = formatHiddenIiNote(rankingCtx.hiddenCount, rankingCtx.asOfDate || new Date().toISOString().slice(0, 10));
+  const hiddenNoteHtml = hiddenNote ? '<p class="mt-2 text-xs text-slate-400" data-test="hidden-ii-note">' + hiddenNote + '</p>' : '';
 
   function tableSectionHtml({ title, rows, activeRows, nonActiveRows, testId }) {
     if (rows.length === 0) {
@@ -450,14 +465,15 @@ export function render(targetEl, models, options) {
         <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">${activeCount} activos${nonActiveCount > 0 ? ` + ${nonActiveCount} reference` : ''} · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
         <div data-test="ref-table-export"></div>
       </div>
-      ${tableSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, activeRows: groupedActive.withAa, nonActiveRows: groupedNonActive.withAa, testId: 'ref-table-with-aa' })}
-      ${tableSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, activeRows: groupedActive.withoutAa, nonActiveRows: groupedNonActive.withoutAa, testId: 'ref-table-without-aa' })}
+      ${tableSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, activeRows: fActiveWith, nonActiveRows: fNonActiveWith, testId: 'ref-table-with-aa' })}
+      ${tableSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, activeRows: fActiveWithout, nonActiveRows: fNonActiveWithout, testId: 'ref-table-without-aa' })}
     </div>
-    <p class="mt-3 text-xs text-slate-500">
+    ${hiddenNoteHtml}
+        <p class="mt-3 text-xs text-slate-500">
       Showing ${activeCount} active model${activeCount === 1 ? '' : 's'}${nonActiveCount > 0 ? ` + ${nonActiveCount} non-active (reference)` : ''} ·
       grouped by Artificial Analysis signal ·
-      sorted by BenchLM score (desc) inside each lifecycle bucket ·
-      rows without BenchLM data show "—" (awaiting first scrape).
+      sorted by Artificial Analysis Intelligence Index (desc) inside each lifecycle bucket ·
+      rows without Intelligence Index are hidden "—" (awaiting first scrape).
     </p>
   `;
 

@@ -14,6 +14,32 @@
 //      dataset where no model qualifies
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
+// S3b task 5.6 RED: 18 cards; alternatives finite-II II-desc; empty-set critical warning.
+
+describe('justification-ui — S3b II-only (task 5.6)', () => {
+  test('alternatives finite-II II-desc; empty set critical warning', async () => {
+    const { render } = await import('../js/components/justification-ui.js');
+    const { getBestFor } = await import('../js/services/model-scorer.js');
+    const ref = { name: 'Ref', lifecycle: 'reference', intelligenceIndex: 50, input: 5, output: 25 };
+    const hi = { name: 'Hi', lifecycle: 'active', intelligenceIndex: 48.2, input: 1, output: 2, effort: 'high' };
+    const mid = { name: 'Mid', lifecycle: 'active', intelligenceIndex: 44.1, input: 1, output: 2, effort: 'medium' };
+    const benchOnly = { name: 'BenchOnly', lifecycle: 'active', intelligenceIndex: null, benchlm: { score: 99 }, input: 0.1, output: 0.2 };
+    const models = { ref, hi, mid, benchOnly };
+    const roles = { 'sdd-archive': { minReasoning: 40, costRatio: 1.0, role: 'archive' } };
+    const a = getBestFor('sdd-archive', models, roles, {}, 'balanced');
+    expect(a.key).toBe('hi');
+    expect(a.alternatives.map((x) => x.key)).toEqual(['mid']);
+    const t = document.createElement('section'); document.body.appendChild(t);
+    const fullRoles = {};
+    for (const k of ['gentle-orchestrator','sdd-init','sdd-explore','sdd-propose','sdd-spec','sdd-design','sdd-tasks','sdd-apply','sdd-verify','sdd-archive','sdd-onboard','jd-judge-a','jd-judge-b','jd-fix-agent','review-risk','review-readability','review-reliability','review-resilience']) fullRoles[k] = { minReasoning: 95, costRatio: 0.0001, role: k };
+    const empty = {}; for (const k of Object.keys(fullRoles)) empty[k] = { key: null, reason: 'No model meets minReasoning=95' };
+    const summary = render(t, empty, fullRoles, {});
+    expect(summary.cards).toBe(18);
+    expect(t.querySelectorAll('.justification-card[data-has-assignment="false"]').length).toBe(18);
+  });
+});
+
+
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -102,8 +128,8 @@ describe('justification-ui — render() contract (spec.md)', () => {
     // PR3 fixture: benchlm blocks carry deterministic scores (m_a=77,
     //   m_b=55). Both clear cost; m_a wins on score under the soft path.
     const lowScoreModels = {
-      m_a: { name: 'A', benchlm: { score: 77, verified: true, reliability: 0.9, categories: {} }, input: 1, output: 3, tier: 'balanced' },
-      m_b: { name: 'B', benchlm: { score: 55, verified: false, reliability: 0.7, categories: {} }, input: 1, output: 3, tier: 'balanced' },
+      m_a: { name: 'A', intelligenceIndex: 77, benchlm: { score: 77, verified: true, reliability: 0.9, categories: {} }, input: 1, output: 3, tier: 'balanced' },
+      m_b: { name: 'B', intelligenceIndex: 55, benchlm: { score: 55, verified: false, reliability: 0.7, categories: {} }, input: 1, output: 3, tier: 'balanced' },
     };
     const divergentRoles = {
       ...ROLE_MATRIX,
@@ -161,7 +187,7 @@ describe('justification-ui — render() contract (spec.md)', () => {
     ({ render } = await import('../js/components/justification-ui.js'));
 
     const lowScoreModels = {
-      m_a: { name: 'A', benchlm: { score: 77, verified: true, reliability: 0.9, categories: {} }, input: 1, output: 3, tier: 'balanced' },
+      m_a: { name: 'A', intelligenceIndex: 77, benchlm: { score: 77, verified: true, reliability: 0.9, categories: {} }, input: 1, output: 3, tier: 'balanced' },
     };
     const divergentRoles = {
       ...ROLE_MATRIX,

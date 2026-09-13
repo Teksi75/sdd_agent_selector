@@ -13,6 +13,16 @@ const CASES = [
   ['ISO-string now', '2026-07-18', '2026-07-19T01:00:00Z', 1],
 ];
 
+describe('staleness AA parity S3b 5.8', () => {
+  test('AA lastRun wins; badge and sync agree', async () => {
+    const { daysOld } = await import('../js/components/freshness-badge.js');
+    const { getStalenessDays } = await import('../js/services/data-sync.js');
+    const meta = { lastSynced: '2026-09-10', scrapers: { 'scrape-artificialanalysis': { lastRun: '2026-09-18T00:00:00.000Z' } } };
+    const now = new Date('2026-09-20T12:00:00Z');
+    expect(getStalenessDays(meta, now)).toBe(2);
+  });
+});
+
 describe('staleness day parity', () => {
   test.each(CASES)('%s', (_label, lastSynced, now, expected) => {
     const badgeDays = daysOld(lastSynced, now);

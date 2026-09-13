@@ -10,6 +10,29 @@
 //   - include reference-tier models (with numeric BenchLM scores) in the chart
 
 import { describe, test, expect, beforeEach, vi } from 'vitest';
+// S3b task 5.5 RED: II bars only, unavailable dropped, AA II title/legend, shared note.
+
+describe('composite-chart — S3b II-only (task 5.5)', () => {
+  test('drops null-II rows, sorts II-desc, title/legend identify AA II with shared note', async () => {
+    const { render } = await import('../js/components/composite-chart.js');
+    const t = document.createElement('section');
+    document.body.appendChild(t);
+    const models = {
+      hi: { name: 'Hi', lifecycle: 'active', intelligenceIndex: 61.5, input: 2, output: 4 },
+      lo: { name: 'Lo', lifecycle: 'active', intelligenceIndex: 55.2, input: 1, output: 2 },
+      nodata: { name: 'NoData', lifecycle: 'active', intelligenceIndex: null, input: 0.5, output: 1 },
+    };
+    const summary = render(t, models, { lastSynced: '2026-09-13' });
+    expect(t.querySelector('[data-model-key="nodata"]')).toBeNull();
+    expect(t.textContent).not.toMatch(/unavailable/);
+    expect(t.textContent).toMatch(/Artificial Analysis/);
+    const keys = Array.from(t.querySelectorAll('[data-model-key]')).map((el) => el.getAttribute('data-model-key'));
+    expect(keys[0]).toBe('hi');
+    expect(t.textContent).toMatch(/1 models hidden/);
+  });
+});
+
+
 import { readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -38,11 +61,13 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     const FIXTURE = {
       v: {
         name: 'Verified',
+        intelligenceIndex: 85,
         benchlm: { score: 85, verified: true, reliability: 0.92, categories: {} },
         tier: 'high',
       },
       e: {
         name: 'Estimated',
+        intelligenceIndex: 70,
         benchlm: { score: 70, verified: false, reliability: 0.75, categories: {} },
         tier: 'balanced',
       },
@@ -73,11 +98,13 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     const FIXTURE = {
       r4: {
         name: 'R-0.92',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.92, categories: {} },
         tier: 'high',
       },
       r1: {
         name: 'R-0.4',
+        intelligenceIndex: 70,
         benchlm: { score: 70, verified: true, reliability: 0.4, categories: {} },
         tier: 'balanced',
       },
@@ -99,11 +126,12 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     expect(filled1).toBe(2);
   });
 
-  test('(c) unavailable placeholder: null score row has NO bar fill + "unavailable" label', async () => {
+  test('(c) S3b hidden: null II rows dropped with shared note + "unavailable" label', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
       ok: {
         name: 'OK-Model',
+        intelligenceIndex: 78.3,
         benchlm: { score: 78.3, verified: true, reliability: 0.9, categories: {} },
         tier: 'high',
       },
@@ -121,31 +149,28 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     };
     const summary = render(target, FIXTURE);
     // All three rows render (scored + unavailable combined).
-    expect(summary.scored + summary.unavailable).toBe(3);
+    expect(summary.scored).toBe(1);
+    expect(summary.unavailable).toBe(2);
 
     const pendingRow = target.querySelector('[data-model-key="pending"]');
-    expect(pendingRow, 'pending row missing').toBeDefined();
-    expect(pendingRow.getAttribute('data-unavailable')).toBe('true');
-    // No bar fill on the unavailable row.
-    expect(pendingRow.querySelector('.bar-fill')).toBeNull();
-    // The unavailable placeholder label is shown.
-    expect(pendingRow.textContent).toMatch(/unavailable/i);
-
-    const noblockRow = target.querySelector('[data-model-key="noblock"]');
-    expect(noblockRow.getAttribute('data-unavailable')).toBe('true');
+    expect(pendingRow, 'pending II-less must be hidden').toBeNull();
+    expect(target.querySelector('[data-model-key="pending"]')).toBeNull();
+    expect(target.querySelector('[data-model-key="noblock"]')).toBeNull();
+    expect(target.textContent).not.toMatch(/unavailable/i);
+    expect(target.textContent).toMatch(/Artificial Analysis/);
 
     // The OK row DOES have a bar fill.
     const okRow = target.querySelector('[data-model-key="ok"]');
     expect(okRow.querySelector('.bar-fill')).not.toBeNull();
   });
 
-  test('(d) scored rows sort descending; unavailable rows appended AFTER all scored', async () => {
+  test('(d) S3b scored II-desc; II-less hidden (no unavailable append', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      a: { benchlm: { score: 90, verified: true, reliability: 0.9 }, tier: 'high' },
-      b: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'high' },
+      a: { intelligenceIndex: 90, benchlm: { score: 90, verified: true, reliability: 0.9 }, tier: 'high' },
+      b: { intelligenceIndex: 60, benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'high' },
       c: { benchlm: { score: null, verified: false, reliability: 0 }, tier: 'balanced' }, // unavailable
-      d: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'high' },
+      d: { intelligenceIndex: 75, benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'high' },
       e: { tier: 'balanced' }, // no benchlm → unavailable
     };
     render(target, FIXTURE);
@@ -153,28 +178,28 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     const keys = bars.map((el) => el.getAttribute('data-model-key'));
     // Scored: a (90), d (75), b (60) — descending.
     // Unavailable: c, e — appended after.
-    expect(keys).toEqual(['a', 'd', 'b', 'c', 'e']);
+    expect(keys).toEqual(['a', 'd', 'b']);
   });
 
-  test('(e) freshness: when _meta.scrapers.benchlm.lastRun > 7 days ago, show "BenchLM stale" badge', async () => {
+  test('(e) S3b freshness: AA lastRun > 7d shows AA stale badge', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      m: { benchlm: { score: 80, verified: true, reliability: 0.9 }, tier: 'high' },
+      m: { intelligenceIndex: 80, benchlm: { score: 80, verified: true, reliability: 0.9 }, tier: 'high' },
     };
     const staleLastRun = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-    render(target, FIXTURE, { scrapers: { benchlm: { lastRun: staleLastRun } } });
+    render(target, FIXTURE, { scrapers: { 'scrape-artificialanalysis': { lastRun: staleLastRun } } });
     const staleBadge = target.querySelector('[data-test="benchlm-stale"]');
-    expect(staleBadge, 'BenchLM stale badge missing').toBeDefined();
+    expect(staleBadge, 'AA stale badge missing').not.toBeNull();
     expect(staleBadge.textContent).toMatch(/stale/i);
   });
 
   test('(e2) freshness: when lastRun is fresh (< 7 days), no stale badge', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      m: { benchlm: { score: 80, verified: true, reliability: 0.9 }, tier: 'high' },
+      m: { intelligenceIndex: 80, benchlm: { score: 80, verified: true, reliability: 0.9 }, tier: 'high' },
     };
     const freshLastRun = new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString();
-    render(target, FIXTURE, { scrapers: { benchlm: { lastRun: freshLastRun } } });
+    render(target, FIXTURE, { scrapers: { 'scrape-artificialanalysis': { lastRun: freshLastRun } } });
     const staleBadge = target.querySelector('[data-test="benchlm-stale"]');
     expect(staleBadge).toBeNull();
   });
@@ -234,17 +259,21 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
   test('main ranking sort is descending by score; non-active models excluded (V5 — no allowlist)', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      low: { benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'budget', lifecycle: 'active' },
+      intelligenceIndex: 60,
+      low: { intelligenceIndex: 60, benchlm: { score: 60, verified: true, reliability: 0.9 }, tier: 'budget', lifecycle: 'active' },
       gpt56sol: {
         name: 'GPT-5.6 Sol',
+        intelligenceIndex: 95,
         benchlm: { score: 95, verified: true, reliability: 0.95 },
         tier: 'high',
         lifecycle: 'active',
         input: 5,
       },
-      mid: { benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'balanced', lifecycle: 'active' },
+      intelligenceIndex: 75,
+      mid: { intelligenceIndex: 75, benchlm: { score: 75, verified: true, reliability: 0.9 }, tier: 'balanced', lifecycle: 'active' },
       opus48: {
         name: 'Opus',
+        intelligenceIndex: 99,
         benchlm: { score: 99, verified: true, reliability: 0.95 },
         tier: 'reference',
         lifecycle: 'reference',
@@ -263,13 +292,14 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     ({ render } = await import('../js/components/composite-chart.js'));
 
     const FIXTURE = {
-      m_high:    { name: 'High',     benchlm: { score: 90, verified: true, reliability: 0.95 }, tier: 'high', lifecycle: 'active' },
-      m_bal:     { name: 'Balanced', benchlm: { score: 70, verified: true, reliability: 0.85 }, tier: 'balanced', lifecycle: 'active' },
-      m_low:     { name: 'Low',      benchlm: { score: 50, verified: false, reliability: 0.7 }, tier: 'balanced', lifecycle: 'active' },
-      m_amber:   { name: 'Amber',    benchlm: { score: 65, verified: false, reliability: 0.6 }, tier: 'high', lifecycle: 'active' },
-      m_swe:     { name: 'Top',      benchlm: { score: 85, verified: true, reliability: 0.9 }, tier: 'high', lifecycle: 'active' },
+      m_high:    { name: 'High',     intelligenceIndex: 90, benchlm: { score: 90, verified: true, reliability: 0.95 }, tier: 'high', lifecycle: 'active' },
+      m_bal:     { name: 'Balanced', intelligenceIndex: 70, benchlm: { score: 70, verified: true, reliability: 0.85 }, tier: 'balanced', lifecycle: 'active' },
+      m_low:     { name: 'Low',      intelligenceIndex: 50, benchlm: { score: 50, verified: false, reliability: 0.7 }, tier: 'balanced', lifecycle: 'active' },
+      m_amber:   { name: 'Amber',    intelligenceIndex: 65, benchlm: { score: 65, verified: false, reliability: 0.6 }, tier: 'high', lifecycle: 'active' },
+      m_swe:     { name: 'Top',      intelligenceIndex: 85, benchlm: { score: 85, verified: true, reliability: 0.9 }, tier: 'high', lifecycle: 'active' },
       m_ref: {
         name: 'Reference-Model',
+        intelligenceIndex: 99,
         benchlm: { score: 99, verified: true, reliability: 0.99 },
         tier: 'reference',
         lifecycle: 'reference',
@@ -316,6 +346,7 @@ describe('composite-chart — render() contract (PR3 benchlm-rendering)', () => 
     const evil = {
       x: {
         name: '<img src=x onerror=alert(1)>',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
         tier: 'high',
       },
@@ -337,9 +368,9 @@ describe('composite-chart — V5 Slice 3 eligible-only + filtered export', () =>
   test('rinde solo el set elegible recibido (sin filas fuera del set)', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      a: { name: 'A', tier: 'high', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
-      b: { name: 'B', tier: 'balanced', benchlm: { score: 70, verified: true, reliability: 0.8, categories: {} } },
-      c: { name: 'C', tier: 'budget', benchlm: { score: 60, verified: true, reliability: 0.7, categories: {} } },
+      a: { name: 'A', tier: 'high', intelligenceIndex: 90, benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+      b: { name: 'B', tier: 'balanced', intelligenceIndex: 70, benchlm: { score: 70, verified: true, reliability: 0.8, categories: {} } },
+      c: { name: 'C', tier: 'budget', intelligenceIndex: 60, benchlm: { score: 60, verified: true, reliability: 0.7, categories: {} } },
     };
     render(target, { a: FIXTURE.a, b: FIXTURE.b });
     const keys = Array.from(target.querySelectorAll('[data-model-key]')).map((el) =>
@@ -367,7 +398,7 @@ describe('composite-chart — V5 Slice 3 eligible-only + filtered export', () =>
       configurable: true,
     });
     const FIXTURE = {
-      a: { name: 'A', tier: 'high', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+      a: { name: 'A', tier: 'high', intelligenceIndex: 90, benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
     };
     render(target, FIXTURE, undefined, { exportContext: CTX });
     const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');
@@ -388,9 +419,9 @@ describe('composite-chart — effort-only neutral bars (PR-B)', () => {
   test('bars use one neutral fill, no data-tier and no tier legend text', async () => {
     ({ render } = await import('../js/components/composite-chart.js'));
     const FIXTURE = {
-      high: { name: 'High', tier: 'high', lifecycle: 'active', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
-      budget: { name: 'Budget', tier: 'budget', lifecycle: 'active', benchlm: { score: 60, verified: true, reliability: 0.8, categories: {} } },
-      ref: { name: 'Ref', tier: 'reference', lifecycle: 'active', benchlm: { score: 75, verified: true, reliability: 0.7, categories: {} } },
+      high: { name: 'High', tier: 'high', lifecycle: 'active', intelligenceIndex: 90, benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+      budget: { name: 'Budget', tier: 'budget', lifecycle: 'active', intelligenceIndex: 60, benchlm: { score: 60, verified: true, reliability: 0.8, categories: {} } },
+      ref: { name: 'Ref', tier: 'reference', lifecycle: 'active', intelligenceIndex: 75, benchlm: { score: 75, verified: true, reliability: 0.7, categories: {} } },
     };
     render(target, FIXTURE);
     // No tier attribute survives anywhere in the chart DOM.
@@ -424,7 +455,7 @@ describe('composite-chart — effort-only neutral bars (PR-B)', () => {
       configurable: true,
     });
     const FIXTURE = {
-      a: { name: 'A', tier: 'high', lifecycle: 'active', benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
+      a: { name: 'A', tier: 'high', lifecycle: 'active', intelligenceIndex: 90, benchlm: { score: 90, verified: true, reliability: 0.9, categories: {} } },
     };
     render(target, FIXTURE);
     const toggle = target.querySelector('[data-action="toggle-export-dropdown"]');

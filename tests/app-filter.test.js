@@ -40,7 +40,7 @@ function setupDom() {
   document.body.innerHTML = MOUNT_IDS.map((id) => `<section id="${id}"></section>`).join('');
 }
 
-function bootWith(fixture) {
+function bootWith(fixture) { for (const m of Object.values((fixture && fixture.models) || {})) { if (m && typeof m === 'object' && m.intelligenceIndex == null && m.benchlm && Number.isFinite(m.benchlm.score)) m.intelligenceIndex = m.benchlm.score; }
   const app = createApp({
     load: async () => fixture,
     document,
@@ -162,7 +162,7 @@ describe('app-filter — state explícito y transacción recompute', () => {
     const beforeEligible = before.eligibleModels;
 
     // A refresh with divergent judge roles must NOT commit.
-    const divergent = buildSurfaceFixture();
+    const divergent = buildSurfaceFixture(); for (const m of Object.values(divergent.models || {})) { if (m && typeof m === 'object' && m.intelligenceIndex == null && m.benchlm && Number.isFinite(m.benchlm.score)) m.intelligenceIndex = m.benchlm.score; }
     divergent.roles['jd-judge-b'] = { minReasoning: 99, costRatio: 0.0001, role: 'divergente' };
     const result = app.applyData(divergent);
 
@@ -175,9 +175,9 @@ describe('app-filter — state explícito y transacción recompute', () => {
 
   test('applyData (refresh) re-deriva el eligible y re-renderiza el payload nuevo', async () => {
     const app = await bootWith(buildSurfaceFixture());
-    const fresh = buildSurfaceFixture();
+    const fresh = buildSurfaceFixture(); for (const m of Object.values(fresh.models || {})) { if (m && typeof m === 'object' && m.intelligenceIndex == null && m.benchlm && Number.isFinite(m.benchlm.score)) m.intelligenceIndex = m.benchlm.score; }
     fresh.models.extraBeta = {
-      name: 'Extra Beta',
+      name: 'Extra Beta', intelligenceIndex: 55,
       tier: 'budget',
       lifecycle: 'active',
       benchlm: { score: 55, verified: false, reliability: 0.6, categories: {} },

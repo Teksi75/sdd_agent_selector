@@ -23,14 +23,15 @@
 //   - Models with `compositeScore === null` render as an "unavailable"
 //     placeholder row (NO bar fill, full-width text "unavailable",
 //     data-unavailable="true"). Null rows append AFTER all scored rows.
-//   - Sort: scored descending by benchlm.score; tie-break cheaper input
+//   - Sort: scored descending by Intelligence Index; tie-break cheaper input
 //     price. Unavailable rows appended last (preserves the descending
 //     ordering of the scored pool).
-//   - Freshness: when _meta.scrapers.benchlm.lastRun is older than 7 days,
+//   - Freshness: when AA lastRun is older than 7 days,
 //     render a "BenchLM stale" amber badge above the bars. When fresh (or
 //     metadata absent), the badge is omitted.
 
 import { compositeScore, isActive } from '../services/model-scorer.js';
+import { buildIiRankingContext, formatHiddenIiNote, resolveIiFreshness } from '../services/ii-ranking.js';
 import { splitByAaSignal } from '../services/aa-signal.js';
 import { render as renderExportButton } from './export-button.js';
 import { toJSON, markdownTable, exportFilename, exportHeader } from '../services/exporter.js';
@@ -240,7 +241,8 @@ function isBenchlmStale(meta, now = new Date()) {
   if (!meta || typeof meta !== 'object') return false;
   const scrapers = meta.scrapers;
   if (!scrapers || typeof scrapers !== 'object') return false;
-  const benchlm = scrapers.benchlm;
+  const aa = scrapers['scrape-artificialanalysis'];
+  const benchlm = aa;
   if (!benchlm || typeof benchlm !== 'string' && typeof benchlm !== 'object') return false;
   const lastRun = typeof benchlm === 'string' ? benchlm : benchlm.lastRun;
   const days = daysSince(lastRun, now);
@@ -257,7 +259,7 @@ function isBenchlmStale(meta, now = new Date()) {
  */
 function staleBadgeHtml(meta, now = new Date()) {
   if (!isBenchlmStale(meta, now)) return '';
-  return `<div data-test="benchlm-stale" role="status" class="text-[11px] text-amber-300 mb-3 rounded-md border border-amber-700 bg-amber-900/30 px-2 py-1 inline-flex items-center gap-1.5"><span aria-hidden="true">⚠</span><span>BenchLM data is stale (&gt; ${STALE_THRESHOLD_DAYS} days); scores may be outdated.</span></div>`;
+  return `<div data-test="benchlm-stale" role="status" class="text-[11px] text-amber-300 mb-3 rounded-md border border-amber-700 bg-amber-900/30 px-2 py-1 inline-flex items-center gap-1.5"><span aria-hidden="true">⚠</span><span>Artificial Analysis Intelligence Index data is stale (&gt; ${STALE_THRESHOLD_DAYS} days); scores may be outdated.</span></div>`;
 }
 
 /**
@@ -316,7 +318,8 @@ export function render(targetEl, models, _meta, options) {
         return barRowHtml(key, m, score, width, fillClass, fillValue);
       })
       .join('');
-    const unavailableBody = unavailableRows
+    const unavailableBody = [];
+  const _ignoredUnavailable = unavailableRows
       .map(([key, m]) => unavailableRowHtml(key, m))
       .join('');
     return `
@@ -331,19 +334,25 @@ export function render(targetEl, models, _meta, options) {
   }
 
   const stale = staleBadgeHtml(_meta);
+  const rankingCtx = (options && options.rankingContext) || buildIiRankingContext(models, _meta || undefined);
+  const hiddenNote = formatHiddenIiNote(rankingCtx.hiddenCount, rankingCtx.asOfDate || resolveIiFreshness(_meta) || new Date().toISOString().slice(0, 10));
+  const hiddenNoteHtml = hiddenNote ? '<p class="mt-2 text-xs text-slate-400" data-test="hidden-ii-note">' + hiddenNote + '</p>' : '';
 
   // V5 — build export formats. Markdown is a table of every ranked
   // model (score + lifecycle); JSON is the full record set.
-  const exportRows = groupedRows.map(([key, m, score]) => [
+  const exportRows = scored.map(([key, m, score]) => [
     m.name || key,
     m.lifecycle || '—',
     Number.isFinite(score) ? score.toFixed(1) : '—',
   ]);
   const exportContext = (options && options.exportContext) || {};
+  const exportNoteLine = hiddenNote ? hiddenNote : '';
+  const exportNl = String.fromCharCode(10);
   const exportMd = `${exportHeader(exportContext)}\n# Composite benchmark (${scored.length + unavailable.length} modelos)\n\n` + markdownTable(
     ['Modelo', 'Lifecycle', 'Score'],
     exportRows
   ) + '\n';
+  if (exportNoteLine) { const p = exportMd.split(exportNl); p.splice(1, 0, exportNoteLine); var exportMdWithNote = p.join(exportNl); } else { var exportMdWithNote = exportMd; }
   const exportJson = toJSON(
     {
       scored: scored.length,
@@ -360,12 +369,13 @@ export function render(targetEl, models, _meta, options) {
     <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
       <div class="flex items-center justify-between gap-2 mb-3">
         <div class="flex items-baseline gap-3">
-          <h3 class="text-sm font-semibold text-slate-200">Composite benchmark</h3>
-          <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · BenchLM (0-100) · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
+          <h3 class="text-sm font-semibold text-slate-200">Artificial Analysis Intelligence Index</h3>
+          <span class="text-[11px] text-slate-500">${scored.length + unavailable.length} models · Artificial Analysis Intelligence Index (0-100) · ${withAaRows.length} Con-AA / ${withoutAaRows.length} Sin-AA</span>
         </div>
         <div data-test="composite-chart-export"></div>
       </div>
       ${stale}
+          ${hiddenNoteHtml}
       <div class="space-y-3" data-test="composite-bars">
         ${chartSectionHtml({ title: 'Con valoración en AA', rows: withAaRows, scoredRows: groupedScored.withAa, unavailableRows: groupedUnavailable.withAa, testId: 'composite-with-aa' })}
         ${chartSectionHtml({ title: 'Sin valoración en AA', rows: withoutAaRows, scoredRows: groupedScored.withoutAa, unavailableRows: groupedUnavailable.withoutAa, testId: 'composite-without-aa' })}
@@ -374,13 +384,13 @@ export function render(targetEl, models, _meta, options) {
         <summary class="cursor-pointer text-slate-400 hover:text-slate-300 select-none">Cómo leer las barras</summary>
         <div class="mt-2 space-y-1.5 pl-2">
           <p><strong class="text-slate-300">Color neutral</strong>: todas las barras usan el mismo relleno indigo (<code>--composite-score-fill</code>) — el color ya no codifica el precio ni el rol del modelo.</p>
-          <p><strong class="text-slate-300">Badge verified / estimated</strong>: <span class="text-emerald-300">verified</span> = BenchLM con datos confirmados; <span class="text-amber-300">estimated</span> = provisional, puede cambiar.</p>
-          <p><strong class="text-slate-300">5 puntos de reliability</strong> (escala 0–5): cuántos más puntos verdes, más consistente es el score de BenchLM en el tiempo.</p>
-          <p><strong class="text-slate-300">— unavailable —</strong> = modelo todavía sin scrape de BenchLM (llega en la próxima sync).</p>
+          <p><strong class="text-slate-300">Badge verified / estimated</strong>: <span class="text-emerald-300">verified</span> = Artificial Analysis con datos confirmados; <span class="text-amber-300">estimated</span> = provisional, puede cambiar.</p>
+          <p><strong class="text-slate-300">5 puntos de reliability</strong> (escala 0–5): cuántos más puntos verdes, más consistente es el score de Artificial Analysis Intelligence Index en el tiempo.</p>
+          <p><strong class="text-slate-300">Modelos ocultos</strong> = modelos sin Intelligence Index se ocultan de la vista (ver nota).</p>
         </div>
       </details>
       <p class="mt-3 text-[11px] text-slate-500">
-        Scores y badges vienen de BenchLM (<code>benchlm</code> con score/verified/reliability);
+        Scores vienen de Artificial Analysis Intelligence Index (<code>benchlm</code> con score/verified/reliability);
         agrupado por señal de Artificial Analysis;
         fallback a Tailwind cuando el token no está definido.
       </p>
@@ -391,12 +401,12 @@ export function render(targetEl, models, _meta, options) {
     renderExportButton(exportMount, {
       sectionId: 'composite-chart',
       formats: [
-        { id: 'copy-md', label: 'Copiar tabla', description: 'Markdown con score compuesto', content: exportMd },
+        { id: 'copy-md', label: 'Copiar tabla', description: 'Markdown con score compuesto', content: (typeof exportMdWithNote !== 'undefined' ? exportMdWithNote : exportMd) },
         {
           id: 'download-md',
           label: 'Descargar markdown',
           description: 'Archivo .md con todos los modelos',
-          content: exportMd,
+          content: (typeof exportMdWithNote !== 'undefined' ? exportMdWithNote : exportMd),
           filename: exportFilename('composite-chart', 'md'),
         },
         {

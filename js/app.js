@@ -28,6 +28,7 @@
 
 import { loadAll } from './services/data-loader.js';
 import { applyProviderFilter } from './services/provider-filter.js';
+import { buildIiRankingContext } from './services/ii-ranking.js';
 import { render as renderRefTable } from './components/ref-table.js';
 import {
   render as renderConfigSelector,
@@ -187,6 +188,8 @@ export function createApp(options = {}) {
     const eligible = state.eligibleModels || {};
     const eligibleCount = Object.keys(eligible).length;
     const exportContext = buildExportContext();
+    const modelsMeta = (state.data && state.data.modelsMeta) || undefined;
+    const rankingContext = buildIiRankingContext(eligible, modelsMeta);
 
     // Subscription selector: live count + empty-state CTA.
     setVisibleCount(eligibleCount);
@@ -201,12 +204,14 @@ export function createApp(options = {}) {
     );
     renderInto('ref-table-mount', 'ref-table', (el) =>
       renderRefTable(el, eligible, {
+            rankingContext,
+            modelsMeta: (state.data && state.data.modelsMeta) || undefined,
         exportContext,
         fullCatalogModels: state.data.models,
       })
     );
     renderInto('composite-chart-mount', 'composite-chart', (el) =>
-      renderCompositeChart(el, eligible, undefined, { exportContext })
+      renderCompositeChart(el, eligible, (state.data && state.data.modelsMeta) || undefined, { exportContext, rankingContext })
     );
     renderInto('pricing-chart-mount', 'pricing-chart', (el) =>
       renderPricingChart(el, eligible, { exportContext })

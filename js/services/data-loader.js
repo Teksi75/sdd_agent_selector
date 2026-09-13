@@ -50,6 +50,13 @@ export const CURRENT_SCHEMA_VERSION = 5;
  *
  * @type {ReadonlyArray<readonly [string, string]>}
  */
+export function catalogRevision(modelsMeta) {
+  const m = modelsMeta || {};
+  const lastSynced = typeof m.lastSynced === 'string' ? m.lastSynced : '';
+  const lastRun = m.scrapers && m.scrapers['scrape-artificialanalysis'] && typeof m.scrapers['scrape-artificialanalysis'].lastRun === 'string' ? m.scrapers['scrape-artificialanalysis'].lastRun : '';
+  return lastSynced + '|' + lastRun;
+}
+
 export const DATA_FILES = Object.freeze([
   ['data/models.json', 'models'],
   ['data/providers.json', 'providers'],
@@ -116,6 +123,7 @@ export function composePayload(results) {
     availability[modelId] = composed.models[modelId].availability;
   }
   composed.availability = availability;
+  composed.modelsMeta = raws.models && raws.models._meta ? raws.models._meta : null;
   return { data: composed, sourceSchemaVersions: { models: 5, providers: 1 } };
 }
 

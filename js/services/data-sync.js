@@ -33,6 +33,7 @@ import {
   CURRENT_SCHEMA_VERSION,
   DATA_FILES,
 } from './data-loader.js';
+import { resolveIiFreshness } from './ii-ranking.js';
 
 /**
  * Default upstream URL for the auto-sync source. Points at the
@@ -111,7 +112,7 @@ export function resolveUrl(filePath, baseUrl) {
  */
 export function getStalenessDays(meta, now) {
   if (!meta || typeof meta !== 'object') return 0;
-  const lastSynced = meta.lastSynced;
+  const lastSynced = resolveIiFreshness(meta) || meta.lastSynced;
   if (!lastSynced || typeof lastSynced !== 'string') return 0;
   const sync = new Date(`${lastSynced}T00:00:00Z`);
   if (Number.isNaN(sync.getTime())) return 0;

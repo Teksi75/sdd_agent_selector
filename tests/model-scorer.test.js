@@ -40,6 +40,7 @@ const GLM52 = {
   output: 4.40,
   cacheRead: 0.26,
   tier: 'high',
+  intelligenceIndex: 79.4,
   benchlm: { score: 79.4, verified: true, reliability: 0.92, categories: {} },
 };
 
@@ -51,6 +52,7 @@ const MIMOV25 = {
   output: 0.28,
   cacheRead: 0.0028,
   tier: 'budget',
+  intelligenceIndex: 87.0,
   benchlm: { score: 87.0, verified: true, reliability: 0.88, categories: {} },
 };
 
@@ -65,6 +67,7 @@ const OPUS48 = {
   output: 25.00,
   tier: 'reference',
   isReference: true,
+  intelligenceIndex: 92.0,
   benchlm: { score: 92.0, verified: true, reliability: 0.95, categories: {} },
 };
 
@@ -80,6 +83,7 @@ const GPT55 = {
   cacheRead: 0.50,
   tier: 'reference',
   isReference: true,
+  intelligenceIndex: 96.0,
   benchlm: { score: 96.0, verified: true, reliability: 0.97, categories: {} },
 };
 
@@ -130,19 +134,19 @@ const REQUEST_PROFILES = {
 //   - "Missing data"    no benchlm key     → returns null  (NOT 0)
 
 describe('model-scorer — compositeScore (PR3 benchlm contract)', () => {
-  test('(a) returns benchlm.score directly when present and finite', () => {
-    const m = { benchlm: { score: 78.3, verified: true, reliability: 0.9, categories: {} } };
-    expect(compositeScore(m)).toBe(78.3);
+  test('(a) returns intelligenceIndex directly when present and finite', () => {
+    const m = { intelligenceIndex: 42.3, benchlm: { score: 99.9, verified: true, reliability: 0.9, categories: {} } };
+    expect(compositeScore(m)).toBe(42.3);
   });
 
-  test('(b) returns null when benchlm.score is null (NOT 0)', () => {
-    const m = { benchlm: { score: null, verified: false, reliability: 0, categories: {} } };
+  test('(b) returns null when intelligenceIndex is null (NOT 0)', () => {
+    const m = { intelligenceIndex: null, benchlm: { score: 88.8, verified: false, reliability: 0, categories: {} } };
     expect(compositeScore(m)).toBeNull();
     // Critical: must NOT be 0 (which would render as a stale zero bar).
     expect(compositeScore(m)).not.toBe(0);
   });
 
-  test('(c) returns null when benchlm block is absent', () => {
+  test('(c) returns null when intelligenceIndex key is absent', () => {
     // Spec "Missing data returns null" — the model has no benchlm key at all
     // (pre-PR1 backfill state, or a model BenchLM never published).
     expect(compositeScore(NO_BENCHLM)).toBeNull();
@@ -150,30 +154,30 @@ describe('model-scorer — compositeScore (PR3 benchlm contract)', () => {
     expect(compositeScore({})).toBeNull();
   });
 
-  test('(d) returns null when benchlm.score is NaN', () => {
-    const m = { benchlm: { score: NaN, verified: true, reliability: 0.9, categories: {} } };
+  test('(d) returns null when intelligenceIndex is NaN', () => {
+    const m = { intelligenceIndex: NaN, benchlm: { score: 77.7, verified: true, reliability: 0.9, categories: {} } };
     expect(compositeScore(m)).toBeNull();
   });
 
-  test('(e) clamps benchlm.score above 100 down to 100', () => {
-    const m = { benchlm: { score: 150, verified: true, reliability: 0.9, categories: {} } };
+  test('(e) clamps intelligenceIndex above 100 down to 100', () => {
+    const m = { intelligenceIndex: 124.5 };
     expect(compositeScore(m)).toBe(100);
   });
 
-  test('(f) clamps benchlm.score below 0 up to 0', () => {
-    const m = { benchlm: { score: -10, verified: true, reliability: 0.9, categories: {} } };
+  test('(f) clamps intelligenceIndex below 0 up to 0', () => {
+    const m = { intelligenceIndex: -3 };
     expect(compositeScore(m)).toBe(0);
   });
 
   test('(g) is pure (same input → same output; no global state)', () => {
     const spy = vi.fn(() => compositeScore);
-    const m = { benchlm: { score: 42.5, verified: true, reliability: 0.9, categories: {} } };
+    const m = { intelligenceIndex: 42.5, benchlm: { score: 99.1, verified: true, reliability: 0.9, categories: {} } };
     const r1 = compositeScore(m);
     const r2 = compositeScore(m);
     expect(r1).toBe(r2);
     expect(r1).toBe(42.5);
     // compositeScore must not have any side effects on the input.
-    expect(m.benchlm.score).toBe(42.5);
+    expect(m.intelligenceIndex).toBe(42.5);
     spy.mockRestore();
   });
 
@@ -198,7 +202,7 @@ describe('model-scorer — compositeScore (PR3 benchlm contract)', () => {
   });
 
   test('returns null when model exists but benchlm is missing the score sub-field', () => {
-    const m = { benchlm: { verified: true, reliability: 0.9, categories: {} } };
+    const m = { benchlm: { verified: true, reliability: 0.9, categories: {} }, intelligenceIndex: undefined };
     expect(compositeScore(m)).toBeNull();
   });
 });
@@ -358,6 +362,7 @@ describe('model-scorer — getBestFor', () => {
       input: 5.00,
       output: 25.00,
       tier: 'high',
+      intelligenceIndex: 98.0,
       benchlm: { score: 98.0, verified: true, reliability: 0.96, categories: {} },
     };
     const result = getBestFor(
@@ -401,6 +406,7 @@ describe('model-scorer — getBestFor', () => {
         arena: 1500,
         input: 1,
         output: 3,
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
       },
     };
@@ -484,6 +490,7 @@ describe('model-scorer — getBestFor soft fallback (general)', () => {
     output: 25,
     tier: 'reference',
     isReference: true,
+    intelligenceIndex: 99.0,
     benchlm: { score: 99.0, verified: true, reliability: 0.95, categories: {} },
   };
   // benchlm.score 77 < max-quality floor 80 → triggers soft fallback path.
@@ -496,6 +503,7 @@ describe('model-scorer — getBestFor soft fallback (general)', () => {
     input: 1,
     output: 2,
     tier: 'high',
+    intelligenceIndex: 77.0,
     benchlm: { score: 77.0, verified: true, reliability: 0.9, categories: {} },
   };
   // benchlm.score 55 → cheap but dumb; loses to STRONG in soft fallback.
@@ -508,6 +516,7 @@ describe('model-scorer — getBestFor soft fallback (general)', () => {
     input: 1,
     output: 2,
     tier: 'balanced',
+    intelligenceIndex: 55.0,
     benchlm: { score: 55.0, verified: false, reliability: 0.6, categories: {} },
   };
   const SOFT_POOL = { ref: FANTASY_REF, strong: STRONG_NONREF, weak: WEAK_NONREF };
@@ -629,6 +638,7 @@ describe('model-scorer — role-designated reference soft fallback', () => {
     cacheRead: 0.25,
     tier: 'reference',
     isReference: true,
+    intelligenceIndex: 95.0,
     benchlm: { score: 95.0, verified: true, reliability: 0.95, categories: {} },
   };
   const CHEAP = {
@@ -639,6 +649,7 @@ describe('model-scorer — role-designated reference soft fallback', () => {
     output: 1.2,
     cacheRead: 0.06,
     tier: 'balanced',
+    intelligenceIndex: 65.0,
     benchlm: { score: 65.0, verified: false, reliability: 0.7, categories: {} },
   };
   const POOL = { 'orch-ref': ORCH_REF, cheap: CHEAP };
@@ -701,11 +712,13 @@ describe('getBestFor — V5 Slice 3 eligible-set boundaries', () => {
   const PASSED = {
     a: {
       name: 'A', tier: 'high', lifecycle: 'active',
+      intelligenceIndex: 80,
       benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
       input: 1, output: 3,
     },
     b: {
       name: 'B', tier: 'balanced', lifecycle: 'active',
+      intelligenceIndex: 60,
       benchlm: { score: 60, verified: true, reliability: 0.8, categories: {} },
       input: 0.5, output: 1,
     },
@@ -729,6 +742,7 @@ describe('getBestFor — V5 Slice 3 eligible-set boundaries', () => {
     const passed = {
       orchRef: {
         name: 'Orch Ref', tier: 'high', lifecycle: 'active',
+        intelligenceIndex: 80,
         benchlm: { score: 80, verified: true, reliability: 0.9, categories: {} },
         input: 1, output: 3,
       },
@@ -772,7 +786,7 @@ describe('getBestFor — V5 Slice 3 eligible-set boundaries', () => {
 // source grep pins the contract so a future edit cannot silently wire the
 // field into the scorer.
 
-describe('model-scorer — intelligenceIndex is inert (AA 2026-09-13 change)', () => {
+describe('model-scorer — benchlm is inert (S3b AA-only change)', () => {
   const highIndex = () => ({
     key: 'pairA',
     name: 'Pair A',
@@ -780,8 +794,8 @@ describe('model-scorer — intelligenceIndex is inert (AA 2026-09-13 change)', (
     lifecycle: 'active',
     input: 1,
     output: 3,
-    benchlm: { score: 70, verified: true, reliability: 0.9, categories: {} },
-    intelligenceIndex: 53,
+    benchlm: { score: 83.68, verified: true, reliability: 0.9, categories: {} },
+    intelligenceIndex: 52.8,
   });
   const lowIndex = () => ({
     key: 'pairB',
@@ -790,17 +804,17 @@ describe('model-scorer — intelligenceIndex is inert (AA 2026-09-13 change)', (
     lifecycle: 'active',
     input: 1,
     output: 3,
-    benchlm: { score: 70, verified: true, reliability: 0.9, categories: {} },
-    intelligenceIndex: null,
+    benchlm: { score: null, verified: false, reliability: 0, categories: {} },
+    intelligenceIndex: 52.8,
   });
 
-  test('two models differing only in intelligenceIndex score identically', () => {
-    expect(compositeScore(highIndex())).toBe(70);
-    expect(compositeScore(lowIndex())).toBe(70);
+  test('two models differing only in benchlm score identically', () => {
+    expect(compositeScore(highIndex())).toBe(52.8);
+    expect(compositeScore(lowIndex())).toBe(52.8);
     expect(compositeScore(highIndex())).toBe(compositeScore(lowIndex()));
   });
 
-  test('flipping intelligenceIndex never flips the getBestFor winner', () => {
+  test('flipping benchlm never flips the getBestFor winner', () => {
     const role = { 'test-role': { minReasoning: 50, costRatio: 1.0, role: 'test' } };
     const before = { pairA: highIndex(), pairB: lowIndex() };
     const after = { pairA: lowIndex(), pairB: highIndex() };
@@ -811,9 +825,9 @@ describe('model-scorer — intelligenceIndex is inert (AA 2026-09-13 change)', (
     expect(first.score).toBe(second.score);
   });
 
-  test('the scorer source never mentions intelligenceIndex', () => {
+  test('the scorer source pins the II contract (contains II, no benchlm ordering)', () => {
     const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
-    expect(source).not.toContain('intelligenceIndex');
+    expect(source).toContain('intelligenceIndex');
   });
 });
 
@@ -917,6 +931,25 @@ describe('model-scorer — ii-score triangulation (S3a task 4.3)', () => {
     // Distinguishes falsy-check implementations (`score || null` → null)
     // from the finite-check contract.
     expect(iiScore({ intelligenceIndex: 0 })).toBe(0);
+  });
+});
+
+// === S3b task 5.3 TRIANGULATE: II-less leakage =================================
+// BenchLM-only models (finite benchlm.score, null II) must never leak through
+// the cost-only fallback nor into alternatives, even when cheap.
+
+describe('model-scorer — S3b II-less leakage (task 5.3)', () => {
+  test('benchlm-only cheap model cannot leak via general cost fallback or alternatives', async () => {
+    const { getBestFor } = await import('../js/services/model-scorer.js');
+    const ref = { name: 'Ref', lifecycle: 'reference', intelligenceIndex: 50, input: 5, output: 25 };
+    const benchOnly = { name: 'BenchOnly', lifecycle: 'active', intelligenceIndex: null, benchlm: { score: 99 }, input: 0.1, output: 0.2 };
+    const iiLow = { name: 'IiLow', lifecycle: 'active', intelligenceIndex: 40, input: 0.1, output: 0.2 };
+    const models = { ref, benchOnly, iiLow };
+    const role = { 'r': { minReasoning: 90, costRatio: 1.0, role: 'test' } };
+    const res = getBestFor('r', models, role, {}, 'balanced');
+    expect(res.key).not.toBe('benchOnly');
+    expect(res.key).toBe('iiLow');
+    for (const alt of (res.alternatives || [])) expect(alt.key).not.toBe('benchOnly');
   });
 });
 

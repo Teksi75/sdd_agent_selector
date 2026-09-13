@@ -757,9 +757,9 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
     }
   });
 
-  test('compositeScore source stays untouched: no intelligenceIndex reference', () => {
+  test('compositeScore source pins II contract: contains intelligenceIndex', () => {
     const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
-    expect(source).not.toContain('intelligenceIndex');
+    expect(source).toContain('intelligenceIndex');
   });
 });
 
@@ -837,9 +837,9 @@ describe('data-integrity: S3a dark-path readiness (ii-score unreachable)', () =>
     expect(hits).toEqual([]);
   });
 
-  test('public compositeScore source still benchlm (contains benchlm, NOT intelligenceIndex)', () => {
+  test('public compositeScore source is II-only (contains intelligenceIndex, no benchlm ordering)', () => {
     const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
-    expect(source).toContain('benchlm');
-    expect(source).not.toContain('intelligenceIndex');
+    expect(source).toContain('intelligenceIndex');
+    expect(source).not.toContain('benchlm');
   });
 });

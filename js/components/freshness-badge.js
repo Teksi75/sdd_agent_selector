@@ -22,9 +22,11 @@
 //   "Datos del DD/MM/YYYY — hace N días"   (N >= 2)
 //
 // A warning banner appears when daysOld > thresholdDays (default 7):
-//   "Los benchmarks tienen más de 7 días. Verificá manualmente."
+//   "Artificial Analysis Intelligence Index tiene más de 7 días. Verificá manualmente."
 
 /** Minimal HTML escaper. */
+import { resolveIiFreshness } from '../services/ii-ranking.js';
+
 function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, (ch) => {
     const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -119,7 +121,7 @@ export function buildBadge(lastSynced, options) {
   const warningBanner = warning
     ? `<div class="rounded-lg border border-amber-700 bg-amber-900/40 p-2.5 text-xs text-amber-200 flex items-start gap-2" role="alert" data-test="freshness-warning">
         <span aria-hidden="true">⚠</span>
-        <span>Los benchmarks tienen más de ${threshold} días. Verificá manualmente.</span>
+        <span>Artificial Analysis Intelligence Index tiene más de ${threshold} días. Verificá manualmente.</span>
       </div>`
     : '';
 
@@ -148,7 +150,7 @@ export function buildBadge(lastSynced, options) {
  * @returns {{ html: string, mounted: boolean, daysOld: number, warning: boolean }}
  */
 export function render(targetEl, meta, options) {
-  const lastSynced = meta && meta.lastSynced;
+  const lastSynced = resolveIiFreshness(meta) || (meta && meta.lastSynced);
   const opts = options || {};
   const out = buildBadge(lastSynced, opts);
 
