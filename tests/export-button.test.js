@@ -288,4 +288,30 @@ describe('export-button — V5+ critique v3 P1-2 per-section styling', () => {
     const iconSpan = btn.querySelector('span[aria-hidden="true"]');
     expect(iconSpan.textContent).toBe('★');
   });
+
+  // V5 Slice 3 — filtered vs. full-catalog export scope. Each format row
+  // carries `data-export-scope` so the explicit full-catalog action is
+  // distinguishable from the default filtered export (never inferred).
+  test('format rows expose data-export-scope (filtered default, full-catalog explicit)', () => {
+    const html = renderButton({
+      sectionId: 'ref-table',
+      formats: [
+        { id: 'copy-md', label: 'Copiar', content: 'x' },
+        { id: 'download-md', label: 'Descargar', content: 'x', filename: 'a.md' },
+        {
+          id: 'download-md-full-catalog',
+          label: 'Catálogo completo (ignorar filtro)',
+          content: 'y',
+          filename: 'b.md',
+          scope: 'full-catalog',
+        },
+      ],
+    });
+    const scopes = (html.match(/data-export-scope="[^"]+"/g) || []);
+    expect(scopes).toEqual([
+      'data-export-scope="filtered"',
+      'data-export-scope="filtered"',
+      'data-export-scope="full-catalog"',
+    ]);
+  });
 });
