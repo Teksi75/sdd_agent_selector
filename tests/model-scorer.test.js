@@ -14,6 +14,12 @@
 // Coverage target: model-scorer.js ≥ 80% lines/functions/statements.
 
 import { describe, test, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = resolve(HERE, '..');
 
 // --- Fixtures ----------------------------------------------------------
 //
@@ -753,6 +759,61 @@ describe('getBestFor — V5 Slice 3 eligible-set boundaries', () => {
     for (const alt of res.alternatives) {
       expect(alt.key).not.toBe('ghost');
     }
+  });
+});
+
+// === intelligenceIndex inert characterization (change 2026-09-13) ========
+//
+// Task 2.6 — characterization of the existing scorer against the new AA field.
+// `intelligenceIndex` is datum-inerte in this slice: `compositeScore` reads
+// only `benchlm.score`, and `getBestFor` ordering must be unchanged by the
+// field. This is a characterization suite (no production-code change); the
+// behavioral pair below is green against the untouched implementation, and the
+// source grep pins the contract so a future edit cannot silently wire the
+// field into the scorer.
+
+describe('model-scorer — intelligenceIndex is inert (AA 2026-09-13 change)', () => {
+  const highIndex = () => ({
+    key: 'pairA',
+    name: 'Pair A',
+    tier: 'high',
+    lifecycle: 'active',
+    input: 1,
+    output: 3,
+    benchlm: { score: 70, verified: true, reliability: 0.9, categories: {} },
+    intelligenceIndex: 53,
+  });
+  const lowIndex = () => ({
+    key: 'pairB',
+    name: 'Pair B',
+    tier: 'high',
+    lifecycle: 'active',
+    input: 1,
+    output: 3,
+    benchlm: { score: 70, verified: true, reliability: 0.9, categories: {} },
+    intelligenceIndex: null,
+  });
+
+  test('two models differing only in intelligenceIndex score identically', () => {
+    expect(compositeScore(highIndex())).toBe(70);
+    expect(compositeScore(lowIndex())).toBe(70);
+    expect(compositeScore(highIndex())).toBe(compositeScore(lowIndex()));
+  });
+
+  test('flipping intelligenceIndex never flips the getBestFor winner', () => {
+    const role = { 'test-role': { minReasoning: 50, costRatio: 1.0, role: 'test' } };
+    const before = { pairA: highIndex(), pairB: lowIndex() };
+    const after = { pairA: lowIndex(), pairB: highIndex() };
+    const first = getBestFor('test-role', before, role, {}, 'balanced');
+    const second = getBestFor('test-role', after, role, {}, 'balanced');
+    expect(first.key).not.toBeNull();
+    expect(first.key).toBe(second.key);
+    expect(first.score).toBe(second.score);
+  });
+
+  test('the scorer source never mentions intelligenceIndex', () => {
+    const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
+    expect(source).not.toContain('intelligenceIndex');
   });
 });
 

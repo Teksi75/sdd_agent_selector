@@ -343,9 +343,14 @@ describe('lifecycle — data/models.json catalog classification', () => {
     }
   });
 
-  test('no model in the current catalog uses benchmark-only (schema supports it but no member)', () => {
+  test('benchmark-only is reserved for fail-closed chart newcomers (musespark13)', () => {
+    // 2026-09-13 AA backfill: the new Muse Spark 1.3 (max) entry lands
+    // benchmark-only with every provider false until a sourceOfTruth exists.
     const bmOnly = Object.entries(models).filter(([, m]) => m.lifecycle === 'benchmark-only');
-    expect(bmOnly.length).toBe(0);
+    expect(bmOnly.map(([id]) => id).sort()).toEqual(['musespark13']);
+    for (const [, model] of bmOnly) {
+      expect(Object.values(model.availability).every((value) => value === false)).toBe(true);
+    }
   });
 
   test('lifecycle partitions the catalog without a fixed model count', () => {

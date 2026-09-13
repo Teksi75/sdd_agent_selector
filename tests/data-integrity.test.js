@@ -302,7 +302,6 @@ describe('data-integrity: BenchLM-shape contract (PR3)', () => {
 // keep the export name identical and add a JSDoc note so future
 // contributors don't treat the export as part of the public consumer
 // API — it's a test affordance.
-import { CURRENT_SCHEMA_VERSION } from '../js/services/data-loader.js';
 
 describe('data-integrity: loader cache migration gate', () => {
   test('CURRENT_SCHEMA_VERSION in data-loader is 5 for the V5 registry join', () => {
@@ -612,5 +611,134 @@ describe('data-integrity: GPT-5.6 Luna catalog (BenchLM 2026-07-20)', () => {
   test('notes document the provisional score and consolidation', () => {
     expect(luna.notes).toMatch(/provisional/i);
     expect(luna.notes).toMatch(/consolidat/i);
+  });
+});
+
+// --- AA 2026-09-13 backfill (Fase 2, PR-A) ----------------------------------
+//
+// The one-shot backfill of the AA 2026-09-13 chart is audited by BOTH sides:
+// the catalog (`data/models.json`) and the manifest of evidence
+// (`openspec/changes/2026-09-13-aa-intelligence-refresh/evidence/`). Every
+// manifest row must resolve to the exact catalog value plus its AA source
+// tuple; every catalog model carrying the AA 2026-09-13 tuple must be
+// enumerated in the manifest. No number without evidence, no evidence without
+// number.
+
+describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', () => {
+  const raw = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
+  const models = raw.models;
+  const MANIFEST_PATH = join(
+    ROOT,
+    'openspec',
+    'changes',
+    '2026-09-13-aa-intelligence-refresh',
+    'evidence',
+    'aa-2026-09-13-backfill-manifest.md'
+  );
+  const AA_BACKFILL_DATE = '2026-09-13';
+
+  // Markdown table row shape: | # | Fila del chart | model id | Campo | Valor |
+  // url | date | scraper | Nota |. The model id is the only backticked id cell;
+  // field/value/url/date/scraper follow it, so rows are located structurally
+  // (this skips the manifest's other tables and header rows).
+  const parseBackfillManifest = (markdown) => {
+    const rows = [];
+    for (const line of markdown.split('\n')) {
+      if (!line.trim().startsWith('|')) continue;
+      const cells = line.split('|').map((cell) => cell.trim());
+      const idIndex = cells.findIndex((cell) => /^`[^`]+`$/.test(cell));
+      if (idIndex < 0 || cells.length < idIndex + 6) continue;
+      const url = cells[idIndex + 3];
+      const date = cells[idIndex + 4];
+      if (!/^https?:\/\//.test(url) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) continue;
+      rows.push({
+        modelId: cells[idIndex].slice(1, -1),
+        field: cells[idIndex + 1].replace(/`/g, ''),
+        value: cells[idIndex + 2].replace(/`/g, ''),
+        url,
+        date,
+        scraper: cells[idIndex + 5].replace(/`/g, ''),
+      });
+    }
+    return rows;
+  };
+
+  const manifestRows = parseBackfillManifest(readFileSync(MANIFEST_PATH, 'utf-8'));
+
+  test('the manifest enumerates every traced backfill number exactly once', () => {
+    expect(manifestRows.length).toBeGreaterThanOrEqual(16); // >= 8 models x 2 fields
+    const seen = new Set();
+    for (const row of manifestRows) {
+      const key = `${row.modelId}.${row.field}`;
+      expect(seen.has(key), `${key} duplicated in the manifest`).toBe(false);
+      seen.add(key);
+    }
+  });
+
+  test('every manifest row resolves to the exact catalog value + AA source tuple', () => {
+    for (const row of manifestRows) {
+      const model = models[row.modelId];
+      expect(model, `${row.modelId} (manifest row) must exist in data/models.json`).toBeDefined();
+      const expected = Number(row.value);
+      expect(Number.isFinite(expected), `${row.modelId}.${row.field} manifest value`).toBe(true);
+
+      if (row.field === 'intelligenceIndex') {
+        expect(model.intelligenceIndex, `${row.modelId}.intelligenceIndex`).toBe(expected);
+      } else if (row.field === 'benchlm.score') {
+        expect(model.benchlm?.score, `${row.modelId}.benchlm.score`).toBe(expected);
+      } else {
+        throw new Error(`unexpected manifest field: ${row.field}`);
+      }
+
+      expect(model.sources, `${row.modelId}.sources`).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ url: row.url, date: row.date, scraper: row.scraper }),
+        ])
+      );
+    }
+  });
+
+  test('every catalog model carrying the AA 2026-09-13 tuple is enumerated in the manifest', () => {
+    const backfilled = Object.entries(models)
+      .filter(([, model]) =>
+        (model.sources || []).some(
+          (source) => source.url === 'https://artificialanalysis.ai/' &&
+            source.date === AA_BACKFILL_DATE &&
+            source.scraper === 'scrape-artificialanalysis'
+        )
+      )
+      .map(([id]) => id)
+      .sort();
+    const manifestIds = [...new Set(manifestRows.map((row) => row.modelId))].sort();
+    expect(backfilled).toEqual(manifestIds);
+  });
+
+  test('intelligenceIndex is finite-or-null catalog-wide, never a fabricated 0', () => {
+    const covered = Object.entries(models).filter(([, model]) =>
+      Object.hasOwn(model, 'intelligenceIndex')
+    );
+    expect(covered.length).toBeGreaterThan(0);
+    for (const [id, model] of covered) {
+      const value = model.intelligenceIndex;
+      expect(
+        value === null || Number.isFinite(value),
+        `${id}.intelligenceIndex must be finite or null`
+      ).toBe(true);
+    }
+  });
+
+  test('no duplicated model names inside the AA-owned catalog (DeepSeek/MiniMax reconciliation)', () => {
+    const aaNames = new Map();
+    for (const [id, model] of Object.entries(models)) {
+      if (model.pricingSource !== 'artificialanalysis') continue;
+      const name = String(model.name || '').trim().toLowerCase();
+      expect(aaNames.has(name), `${id} duplicates AA-owned name "${name}"`).toBe(false);
+      aaNames.set(name, id);
+    }
+  });
+
+  test('compositeScore source stays untouched: no intelligenceIndex reference', () => {
+    const source = readFileSync(join(ROOT, 'js', 'services', 'model-scorer.js'), 'utf-8');
+    expect(source).not.toContain('intelligenceIndex');
   });
 });

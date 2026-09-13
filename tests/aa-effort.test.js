@@ -6,6 +6,9 @@ import { describe, expect, test } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join, resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { AA_EFFORTS } from '../scripts/_aa-safety.mjs';
+import { applyProviderFilter } from '../js/services/provider-filter.js';
+import { compositeScore } from '../js/services/model-scorer.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, '..');
@@ -27,7 +30,14 @@ const OPTIONAL_FIELDS = [
 const NO_BENCHLM_NOTE =
   'No BenchLM observation for this effort variant; scores documented as absent';
 
+// Pre-variant curated records: they existed (or land via one-shot curation)
+// outside the PR3A variant materialization, so the PR3B variant contract
+// below does not apply to them. gpt6astra/gpt6astraLow are manual OpenAI docs
+// curation; musespark13 is the 2026-09-13 AA max backfill (benchmark-only),
+// distinct from musespark13contributor (xhigh).
 const PRE_VARIANT_KEYS = new Set([
+  'gpt6astra',
+  'musespark13',
   'glm52',
   'qwen37max',
   'glm51',
@@ -227,7 +237,8 @@ describe('AA effort catalog: complete alias matrix (PR3F)', () => {
     const CURATED_NON_AA_EFFORT = new Map([
       ['musespark13contributor', 'xhigh'],
       ['musespark12contributor', 'xhigh'],
-      ['gpt6astra', 'max'],
+      // Astra low stays a curated non-AA row in this slice; the (max) base
+      // becomes AA-owned via the 2026-09-13 backfill.
       ['gpt6astraLow', 'low'],
     ]);
     for (const key of extraKeys) {
@@ -255,5 +266,137 @@ describe('AA effort catalog: complete alias matrix (PR3F)', () => {
       'xhigh',
       'non-reasoning',
     ]));
+  });
+});
+
+// --- Fase 2 (PR-A): backfill AA 2026-09-13 + gate Astra ----------------------
+//
+// Evidence: live AA v2 payload captured 2026-09-13T01:11:12.045Z (646 items),
+// archived as the manifest of record in
+// openspec/changes/2026-09-13-aa-intelligence-refresh/evidence/aa-2026-09-13-backfill-manifest.md.
+// The public chart renders rounded integers (53 / 51 / 48); the exact payload
+// values are stored. No number enters without that AA source tuple.
+
+const AA_BACKFILL_SOURCE = Object.freeze({
+  url: 'https://artificialanalysis.ai/',
+  date: '2026-09-13',
+  scraper: 'scrape-artificialanalysis',
+});
+
+const AA_BACKFILL = Object.freeze({
+  gpt6astra: 52.8,
+  claudeOpus5: 50.7,
+  musespark13: 48.2,
+  gpt56sol: 47.1,
+  gpt56terra: 42.3,
+  gpt54: 39,
+  gpt55: 38.6,
+  gpt56luna: 37.5,
+});
+
+describe('AA 2026-09-13 backfill — aliases, traced numbers, gate Astra', () => {
+  test('new confirmed slugs are curated with explicit effort, never inferred', () => {
+    for (const [slug, to, effort] of [
+      ['gpt-6-astra', 'gpt6astra', 'max'],
+      ['muse-spark-1-3', 'musespark13', 'max'],
+    ]) {
+      const alias = aliases.find((candidate) => candidate.slug === slug);
+      expect(alias, `${slug} must be curated in data/aa-aliases.json`).toBeDefined();
+      expect(alias.to).toBe(to);
+      expect(alias.effort).toBe(effort);
+    }
+  });
+
+  test('every alias keeps an explicit valid effort (closed vocabulary)', () => {
+    for (const alias of aliases) {
+      expect(AA_EFFORTS, `alias ${alias.slug} effort`).toContain(alias.effort);
+    }
+  });
+
+  test('every backfilled number lands exactly with its dated AA sources[] entry', () => {
+    for (const [id, value] of Object.entries(AA_BACKFILL)) {
+      const model = models[id];
+      expect(model, `${id} must exist`).toBeDefined();
+      expect(model.benchlm?.score, `${id}.benchlm.score`).toBe(value);
+      expect(model.intelligenceIndex, `${id}.intelligenceIndex`).toBe(value);
+      expect(model.sources, `${id}.sources`).toEqual(
+        expect.arrayContaining([expect.objectContaining(AA_BACKFILL_SOURCE)])
+      );
+    }
+  });
+
+  test('intelligenceIndex admits finite or null only, never a fabricated 0', () => {
+    const covered = Object.entries(models).filter(([, model]) =>
+      Object.hasOwn(model, 'intelligenceIndex')
+    );
+    // Non-vacuous: the traced backfill is visible in the catalog.
+    expect(covered.length).toBeGreaterThanOrEqual(Object.keys(AA_BACKFILL).length);
+    for (const [id, model] of covered) {
+      const value = model.intelligenceIndex;
+      expect(
+        value === null || Number.isFinite(value),
+        `${id}.intelligenceIndex must be finite or null`
+      ).toBe(true);
+    }
+    expect(covered.some(([, model]) => Number.isFinite(model.intelligenceIndex))).toBe(true);
+  });
+
+  test('Muse Spark 1.3 max is a distinct fail-closed entry; contributor keeps xhigh', () => {
+    const contributor = models.musespark13contributor;
+    expect(contributor.effort).toBe('xhigh');
+    expect(contributor.sources.some((source) => source.date === '2026-09-13')).toBe(false);
+
+    const spark = models.musespark13;
+    expect(spark).toBeDefined();
+    expect(spark.name).toBe('Muse Spark 1.3 (max)');
+    expect(spark.effort).toBe('max');
+    expect(spark.lifecycle).toBe('benchmark-only');
+    const availabilityValues = Object.values(spark.availability || {});
+    expect(availabilityValues.length).toBeGreaterThan(0);
+    expect(availabilityValues.every((value) => value === false)).toBe(true);
+  });
+
+  test('DeepSeek / MiniMax reconcile by alias, never by duplicated entries', () => {
+    const bySlug = new Map(aliases.map((alias) => [alias.slug, alias]));
+    // AA row "DeepSeek V4 Pro 0813" is the existing deepseek-v4-pro identity;
+    // "V4 Flash 0731" is the existing deepseek-v4-flash identity. Same for
+    // MiniMax-M3. No 0813/V4.1/M3 duplicates are created.
+    expect(bySlug.get('deepseek-v4-pro')?.to).toBe('deepseekv4p');
+    expect(bySlug.get('deepseek-v4-flash')?.to).toBe('deepseekv4f');
+    expect(bySlug.get('minimax-m3')?.to).toBe('minimaxm3');
+    const ids = Object.keys(models);
+    for (const id of ['deepseekv4p', 'deepseekv4f', 'minimaxm3']) {
+      expect(ids.filter((candidate) => candidate === id)).toHaveLength(1);
+    }
+    // The AA-owned catalog set equals the curated alias target set: no orphan
+    // duplicate can claim AA ownership without a curated slug.
+    const aaOwned = Object.entries(models)
+      .filter(([, model]) => model.pricingSource === 'artificialanalysis')
+      .map(([id]) => id)
+      .sort();
+    const aliasTargets = [...new Set(aliases.map((alias) => alias.to))].sort();
+    expect(aaOwned).toEqual(aliasTargets);
+  });
+
+  test('G1 — Astra is the real maximum of the chatgpt-plus eligible set (scorer intact)', () => {
+    expect(models.gpt6astra.availability['chatgpt-plus']).toBe(true);
+    const availability = Object.fromEntries(
+      Object.entries(models).map(([id, model]) => [id, model.availability])
+    );
+    const eligible = applyProviderFilter(models, availability, new Set(['chatgpt-plus']));
+    expect(Object.keys(eligible)).toContain('gpt6astra');
+
+    const ranked = Object.entries(eligible)
+      .map(([id, model]) => ({ id, score: compositeScore(model) }))
+      .sort(
+        (a, b) => (b.score ?? Number.NEGATIVE_INFINITY) - (a.score ?? Number.NEGATIVE_INFINITY) ||
+          a.id.localeCompare(b.id)
+      );
+    const finiteScores = ranked.filter((row) => row.score !== null).map((row) => row.score);
+    const realMax = Math.max(...finiteScores);
+    // The assertion compares against the computed maximum, never a hardcoded
+    // 53 — and the top row must be Astra (criterion 1 of the handoff).
+    expect(ranked[0].score).toBe(realMax);
+    expect(ranked[0].id).toBe('gpt6astra');
   });
 });
