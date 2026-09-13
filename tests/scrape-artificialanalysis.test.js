@@ -13,6 +13,8 @@
 //       evaluations.terminalbench_v2_1       → term  (×100: AA 0-1 → 0-100)
 //       evaluations.artificial_analysis_coding_index → codingIndex
 //       evaluations.artificial_analysis_math_index   → mathIndex (optional)
+//       evaluations.artificial_analysis_intelligence_index → intelligenceIndex
+//                                             (number|null — the ONE nullable field)
 //       median_output_tokens_per_second      → outputTokensPerSecond
 //       median_time_to_first_token_seconds   → timeToFirstTokenSeconds
 //       median_time_to_first_answer_token    → timeToFirstAnswerTokenSeconds
@@ -22,13 +24,22 @@
 //     pre-existing non-AA cache fields are preserved untouched).
 //   - Optional fields are finite-only: absent/non-finite values stay
 //     absent and are documented in `notes` (never synthesized as 0/null).
+//   - `intelligenceIndex` (AA-owned, nullable) is the exception to that
+//     rule: a finite AA value lands EXACT (no clamp, no normalization);
+//     an absent/non-finite value lands as `null` PLUS an omission note and
+//     the nullable key is NEVER deleted during the merge. A model AA never
+//     covers keeps the key ABSENT — never a synthesized `null`.
+//     `availability` stays human-owned: the write-guard restores it from
+//     disk (deep-equal) and forces `{}` for ids created by the scraper.
 //   - `effort` (from the alias table) is written on EVERY AA-covered entry.
 //   - AA slug → curated key that does NOT exist in models.json → a minimal
 //     new entry is CREATED (name/effort/AA fields/pricingSource/sources;
 //     benchlm placeholder {score:null,...}; NO fabricated benchlm; no
 //     arena/swePro/sweVer/tier).
 //   - benchlm/arena/swePro/sweVer on existing entries stay untouched.
-//   - schemaVersion = 4 on write. Consolidation is PR 3 — NOT this unit.
+//   - schemaVersion = 5 on write (the file on disk is already 5; writing 4
+//     would be a downgrade). The nullable `intelligenceIndex` extension rides
+//     on schema 5 — no schema 6 is created.
 //   - Missing known curated keys → WARN + preserve (never delete).
 //
 // Pre-PR2 (current scraper): pricing.input/output paths and schema 3. Every
@@ -84,6 +95,7 @@ function writeAliases() {
         { slug: 'gpt-5-6-luna-low', to: 'gpt56lunaLow', effort: 'low' },
         { slug: 'gpt-5-6-luna-non-reasoning', to: 'gpt56lunaNonReasoning', effort: 'non-reasoning' },
         { slug: 'deepseek-v4-flash', to: 'deepseekv4f', effort: 'max' },
+        { slug: 'gpt-5-4-pro', to: 'gpt54pro', effort: 'xhigh' },
       ],
     }, null, 2),
     'utf-8',
@@ -101,6 +113,9 @@ function writeModels() {
   const mk = (key, extra = {}) => ({
     name: key,
     tier: 'high',
+    // Human-owned availability: the V5 write-guard must restore this map
+    // byte-semantically on every scrape (scrapers never own availability).
+    availability: { 'chatgpt-plus': true, 'opencode-go': false },
     benchlm: { score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } },
     arena: 1507,
     swePro: 62.4,
@@ -153,6 +168,7 @@ function v2Entry(overrides = {}) {
       terminalbench_v2_1: 0.805243445692884, // 0-1 ratio → term ×100
       artificial_analysis_coding_index: 71.5,
       artificial_analysis_math_index: 93.4, // optional, present here
+      artificial_analysis_intelligence_index: 71.2, // AA-owned nullable (finite here)
     },
     median_output_tokens_per_second: 79.985,
     median_time_to_first_token_seconds: 132.838,
@@ -198,6 +214,7 @@ describe('scrape-artificialanalysis — v2 mapping + merge', () => {
     // Evaluations + speed fields mapped to their v2 curated names.
     expect(after.models.sonnet5.codingIndex).toBe(71.5);
     expect(after.models.sonnet5.mathIndex).toBe(93.4); // optional, present → written
+    expect(after.models.sonnet5.intelligenceIndex).toBe(71.2); // AA-owned: exact, never clamped
     expect(after.models.sonnet5.outputTokensPerSecond).toBe(79.985);
     expect(after.models.sonnet5.timeToFirstTokenSeconds).toBe(132.838);
     expect(after.models.sonnet5.timeToFirstAnswerTokenSeconds).toBe(132.838);
@@ -220,7 +237,7 @@ describe('scrape-artificialanalysis — v2 mapping + merge', () => {
     });
     expect(after._meta.sources).toContain('scrape-artificialanalysis');
     expect(after._meta.sources).toContain('scrape-benchlm'); // prior tags preserved
-    expect(after._meta.schemaVersion).toBe(4);
+    expect(after._meta.schemaVersion).toBe(5); // schema 5 — the scraper never downgrades to 4
 
     // benchlm / arena / swePro / sweVer MUST stay unchanged.
     expect(after.models.sonnet5.benchlm).toEqual({ score: 77, verified: true, reliability: 0.9, categories: { coding: 80 } });
@@ -315,6 +332,149 @@ describe('scrape-artificialanalysis — v2 mapping + merge', () => {
     expect(after.models.gpt55.timeToFirstAnswerTokenSeconds).toBe(0);
     // A returned 0 is NOT absence — no omission note for the speed fields.
     expect(after.models.gpt55.notes).not.toMatch(/omitted outputTokensPerSecond/);
+  });
+});
+
+describe('scrape-artificialanalysis — intelligenceIndex (AA-owned nullable contract)', () => {
+  test('finite Intelligence Index lands EXACT: no clamp, no normalization, no omission note', async () => {
+    writeAliases();
+    writeModels();
+
+    const fetchText = vi.fn(async () => aaResponse([
+      v2Entry({ evaluations: { ...v2Entry().evaluations, artificial_analysis_intelligence_index: 63.75 } }),
+      {
+        id: 'uuid-g55-ii', slug: 'gpt-5-5', name: 'GPT-5.5',
+        pricing: { price_1m_input_tokens: 1.25, price_1m_output_tokens: 10 },
+        evaluations: { artificial_analysis_intelligence_index: 0 },
+      },
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(true);
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(after.models.sonnet5.intelligenceIndex).toBe(63.75); // fractional → copied verbatim
+    expect(after.models.gpt55.intelligenceIndex).toBe(0); // 0 is a legitimate value, not absence
+    expect(after.models.sonnet5.notes).not.toMatch(/omitted .*intelligenceIndex/);
+    expect(after.models.gpt55.notes).not.toMatch(/omitted .*intelligenceIndex/);
+  });
+
+  test('missing Intelligence Index path → null + omission note; the nullable key is NEVER deleted', async () => {
+    writeAliases();
+    writeModels();
+
+    const entry = v2Entry();
+    delete entry.evaluations.artificial_analysis_intelligence_index;
+
+    const fetchText = vi.fn(async () => aaResponse([entry]));
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(true);
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect('intelligenceIndex' in after.models.sonnet5).toBe(true); // key survives the merge
+    expect(after.models.sonnet5.intelligenceIndex).toBeNull();
+    expect(after.models.sonnet5.intelligenceIndex).not.toBe(0); // never synthesized as 0
+    expect(after.models.sonnet5.notes).toMatch(/omitted .*intelligenceIndex/);
+  });
+
+  test('non-finite Intelligence Index (string / null) fails soft; a finite out-of-range value is copied EXACT (no clamp)', async () => {
+    writeAliases();
+    writeModels();
+
+    const stringEntry = v2Entry({ evaluations: { ...v2Entry().evaluations, artificial_analysis_intelligence_index: 'n/a' } });
+    const nullEntry = {
+      id: 'uuid-k3-ii', slug: 'kimi-k3', name: 'Kimi K3',
+      pricing: { price_1m_input_tokens: 0.6, price_1m_output_tokens: 2.2 },
+      evaluations: { artificial_analysis_intelligence_index: null },
+    };
+    const outlierEntry = {
+      id: 'uuid-g55-ii', slug: 'gpt-5-5', name: 'GPT-5.5',
+      pricing: { price_1m_input_tokens: 1.25, price_1m_output_tokens: 10 },
+      evaluations: { artificial_analysis_intelligence_index: 118.2 },
+    };
+
+    const fetchText = vi.fn(async () => aaResponse([stringEntry, nullEntry, outlierEntry]));
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(true);
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(after.models.sonnet5.intelligenceIndex).toBeNull();
+    expect(after.models.sonnet5.notes).toMatch(/omitted .*intelligenceIndex/);
+    expect(after.models.kimik3.intelligenceIndex).toBeNull();
+    expect(after.models.kimik3.notes).toMatch(/omitted .*intelligenceIndex/);
+    // The scraper copies what AA returns — clamping belongs to the consumers,
+    // never to this field. 118.2 is a synthetic in-memory probe for this guard
+    // only; nothing out of range ever lands in data/.
+    expect(after.models.gpt55.intelligenceIndex).toBe(118.2);
+  });
+
+  test('a model AA never covers keeps intelligenceIndex ABSENT — never a synthesized null', async () => {
+    writeAliases();
+    writeModels();
+
+    const fetchText = vi.fn(async () => aaResponse([v2Entry()])); // only sonnet5 is covered
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(true);
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect('intelligenceIndex' in after.models.mimo25).toBe(false);
+    expect(after.models.mimo25.intelligenceIndex).toBeUndefined();
+    expect(after.models.sonnet5.intelligenceIndex).toBe(71.2); // covered model carries the value
+  });
+
+  test('same-day re-runs dedupe sources[] by url+date+scraper while keeping older AA snapshots', async () => {
+    writeAliases();
+    writeModels();
+
+    const first = vi.fn(async () => aaResponse([v2Entry()]));
+    const r1 = await runScrape(BASE_ARGS(), { fetchText: first });
+    expect(r1.ok).toBe(true);
+
+    // Simulate an OLDER AA snapshot already on disk (different date): the
+    // dedupe must keep it (history) and still avoid a second tuple for today.
+    const mid = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    mid.models.sonnet5.sources.push({ url: 'https://artificialanalysis.ai/', date: '2026-08-16', scraper: 'scrape-artificialanalysis' });
+    fsImpl.writeFileSync(modelsPath, JSON.stringify(mid, null, 2), 'utf-8');
+
+    const second = vi.fn(async () => aaResponse([
+      v2Entry({ evaluations: { ...v2Entry().evaluations, artificial_analysis_coding_index: 72.5 } }),
+    ]));
+    const r2 = await runScrape(BASE_ARGS(), { fetchText: second });
+    expect(r2.ok).toBe(true);
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    expect(after.models.sonnet5.codingIndex).toBe(72.5); // the second run really wrote
+    const aaSources = after.models.sonnet5.sources.filter((s) => s.scraper === 'scrape-artificialanalysis');
+    expect(aaSources).toHaveLength(2); // older date kept, today deduped
+    expect(aaSources.map((s) => s.date)).toContain('2026-08-16');
+    const today = new Date().toISOString().slice(0, 10);
+    expect(aaSources.filter((s) => s.date === today)).toHaveLength(1);
+    expect(aaSources.every((s) => s.url === 'https://artificialanalysis.ai/')).toBe(true);
+  });
+
+  test('write-guard: availability stays deep-equal through the REAL write; a scraper-created id ships {}', async () => {
+    writeAliases();
+    writeModels();
+
+    const fetchText = vi.fn(async () => aaResponse([
+      v2Entry(),
+      {
+        id: 'uuid-luna-x', slug: 'gpt-5-6-luna-xhigh', name: 'GPT-5.6 Luna (xhigh)',
+        pricing: { price_1m_input_tokens: 0.2, price_1m_output_tokens: 1.2 },
+        evaluations: { terminalbench_v2_1: 0.779026217228464, artificial_analysis_intelligence_index: 34.8 },
+      },
+    ]));
+
+    const result = await runScrape(BASE_ARGS(), { fetchText });
+    expect(result.ok).toBe(true);
+
+    const after = JSON.parse(fsImpl.readFileSync(modelsPath, 'utf-8'));
+    // Existing ids: the human-owned map is restored deep-equal by the guard.
+    expect(after.models.sonnet5.availability).toEqual({ 'chatgpt-plus': true, 'opencode-go': false });
+    expect(after.models.gpt55.availability).toEqual({ 'chatgpt-plus': true, 'opencode-go': false });
+    // New id: fail-closed empty map, never a fabricated provider cell.
+    expect(after.models.gpt56lunaXhigh.availability).toEqual({});
+    expect(after._meta.schemaVersion).toBe(5);
   });
 });
 
@@ -531,7 +691,7 @@ describe('scrape-artificialanalysis — failure paths (v2)', () => {
       expect(after.models.sonnet5.input).toBe(2); // valid sibling merged
       expect(after.models.gpt55.input).toBe(0.5); // skipped entry keeps old values
       expect(after.models.gpt55.output).toBe(1.5);
-      expect(after._meta.schemaVersion).toBe(4); // write happened for sonnet5
+      expect(after._meta.schemaVersion).toBe(5); // write happened for sonnet5 (schema 5, never 4)
     } finally {
       logSpy.mockRestore();
     }
@@ -625,7 +785,7 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(fsImpl.readFileSync(defaultPath, 'utf-8')).toBe(defaultBefore);
   });
 
-  test('--source <real fixture>: reads tests/fixtures/aa-sample.json (true v2 shape), no HTTP; real merge + variant creation; uncurated slug ignored; schema 4', async () => {
+  test('--source <real fixture>: reads tests/fixtures/aa-sample.json (true v2 shape), no HTTP; real merge + variant creation; uncurated slug ignored; schema 5', async () => {
     writeAliases();
     writeModels();
 
@@ -646,9 +806,10 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(after.models.gpt56luna.term).toBeCloseTo(0.808988764044944 * 100, 10);
     expect(after.models.gpt56luna.codingIndex).toBe(71.4);
     expect(after.models.gpt56luna.effort).toBe('max');
-    expect(after.models.gpt56luna.outputTokensPerSecond).toBe(165.737);
-    expect(after.models.gpt56luna.timeToFirstTokenSeconds).toBe(76.41);
-    expect(after.models.gpt56luna.timeToFirstAnswerTokenSeconds).toBe(76.41);
+    expect(after.models.gpt56luna.intelligenceIndex).toBe(37.5); // live Intelligence Index — exact
+    expect(after.models.gpt56luna.outputTokensPerSecond).toBe(120.525);
+    expect(after.models.gpt56luna.timeToFirstTokenSeconds).toBe(79.241);
+    expect(after.models.gpt56luna.timeToFirstAnswerTokenSeconds).toBe(79.241);
 
     // gpt55: real zeros ARE written (finite-only), effort = xhigh (explicit).
     expect(after.models.gpt55.input).toBe(5);
@@ -656,6 +817,7 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(after.models.gpt55.term).toBeCloseTo(0.842696629213483 * 100, 10);
     expect(after.models.gpt55.effort).toBe('xhigh');
     expect(after.models.gpt55.outputTokensPerSecond).toBe(0);
+    expect(after.models.gpt55.intelligenceIndex).toBe(38.6);
 
     // claude-sonnet-5 + kimi-k3 merged; non-AA cache field preserved.
     expect(after.models.sonnet5.input).toBe(2);
@@ -663,6 +825,8 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(after.models.sonnet5.cacheRead).toBe(0.25);
     expect(after.models.kimik3.blended).toBe(6);
     expect(after.models.kimik3.effort).toBe('max');
+    expect(after.models.sonnet5.intelligenceIndex).toBe(38.4);
+    expect(after.models.kimik3.intelligenceIndex).toBe(43.8);
 
     // 6 luna slugs → 1 existing merged + 5 variants CREATED (no consolidation in PR 2).
     expect(after.models.gpt56lunaXhigh.effort).toBe('xhigh');
@@ -671,6 +835,11 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(after.models.gpt56lunaMedium.effort).toBe('medium');
     expect(after.models.gpt56lunaLow.effort).toBe('low');
     expect(after.models.gpt56lunaNonReasoning.effort).toBe('non-reasoning');
+    expect(after.models.gpt56lunaXhigh.intelligenceIndex).toBe(34.8);
+    expect(after.models.gpt56lunaHigh.intelligenceIndex).toBe(32.4);
+    expect(after.models.gpt56lunaMedium.intelligenceIndex).toBe(25.5);
+    expect(after.models.gpt56lunaLow.intelligenceIndex).toBe(21.5);
+    expect(after.models.gpt56lunaNonReasoning.intelligenceIndex).toBe(16.8);
     expect(after.models.gpt56lunaXhigh.benchlm).toEqual({ score: null, verified: false, reliability: 0, categories: {} });
 
     // Uncurated slug (gpt-oss-120b) is IGNORED — no entry created.
@@ -680,8 +849,18 @@ describe('scrape-artificialanalysis — CLI flags', () => {
     expect(result.missing).toEqual(['mimo25']);
     expect(after.models.mimo25).toBeDefined();
 
-    // Schema v4 on write.
-    expect(after._meta.schemaVersion).toBe(4);
+    // Real null case from the capture: gpt-5-4-pro returns II=null → the key
+    // lands as null (never deleted, never 0) with its omission note.
+    const pro = after.models.gpt54pro;
+    expect(pro).toBeDefined();
+    expect(pro.effort).toBe('xhigh');
+    expect('intelligenceIndex' in pro).toBe(true);
+    expect(pro.intelligenceIndex).toBeNull();
+    expect(pro.intelligenceIndex).not.toBe(0);
+    expect(pro.notes).toMatch(/omitted .*intelligenceIndex/);
+
+    // Schema v5 on write: the scraper must never downgrade the file to 4.
+    expect(after._meta.schemaVersion).toBe(5);
   });
 });
 

@@ -19,10 +19,16 @@
 //     tier, notes, rate limits) is preserved untouched. Optional fields
 //     are written only when the API returns a finite number; omissions
 //     are documented in `notes`, never synthesized as 0/null.
+//   - EXCEPTION: `intelligenceIndex` is the one NULLABLE AA-owned field.
+//     A finite value is copied EXACT (no clamp, no normalization); an
+//     absent/non-finite value is written as `null` + documented in `notes`,
+//     and the nullable key is NEVER deleted by the merge. A model AA never
+//     returns keeps the key absent — no synthesized null.
 //   - The 3:1 blended price is computed locally: (3*input + output)/4.
 //     An upstream `blended` field is never trusted.
-//   - On write, `_meta.schemaVersion` is explicitly set to 4 (the bump
-//     is atomic with the first AA field write).
+//   - On write, `_meta.schemaVersion` is explicitly set to 5 (the bump is
+//     atomic with the first AA field write; the on-disk file is already 5 —
+//     writing 4 would be a downgrade).
 //   - Missing `AA_API_KEY` for the LIVE endpoint is a SOFT-FAIL: a
 //     `::warning::` is written to stderr and the CLI exits 0 with
 //     `{ok:true, skipped:'missing-secret'}` so sibling scrapers in the
@@ -62,7 +68,24 @@ const SCRAPER_NAME = 'scrape-artificialanalysis';
 const SOURCE_URL = 'https://artificialanalysis.ai/api/v2/data/llms/models';
 const ATTRIBUTION_URL = 'https://artificialanalysis.ai/';
 const DEFAULT_ALIAS_PATH = resolve(REPO_ROOT, 'data/aa-aliases.json');
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
+
+/**
+ * Ownership contract (authoritative for this scraper):
+ *   - AA OWNS: every FIELD_MAP target (input, output, term, codingIndex,
+ *     mathIndex, intelligenceIndex, outputTokensPerSecond,
+ *     timeToFirstTokenSeconds, timeToFirstAnswerTokenSeconds) plus `blended`
+ *     and `pricingSource`. `intelligenceIndex` follows the nullable contract
+ *     declared in NULLABLE_FIELDS.
+ *   - AA NEVER writes `benchlm` (nor arena/swePro/sweVer/tier/notes/rate
+ *     limits/availability). Those stay curated or owned by their own
+ *     ingestion.
+ *   - `benchlm.score` on `data/models.json` was backfilled ONE-SHOT from the
+ *     public AA chart 2026-09-13 by a manual curation pass (proposal D2-B),
+ *     not by this scraper. Every backfilled number is audited by its model's
+ *     own `sources[]` entry ({url, date, scraper}); this scraper must never
+ *     start owning BenchLM.
+ */
 
 /**
  * Response path (dot-separated) → curated field name. THE single
@@ -79,10 +102,24 @@ const FIELD_MAP = {
   median_output_tokens_per_second: 'outputTokensPerSecond',
   median_time_to_first_token_seconds: 'timeToFirstTokenSeconds',
   median_time_to_first_answer_token: 'timeToFirstAnswerTokenSeconds',
+  // Intelligence Index — nullable AA-owned extension. Single CONFIRMED live
+  // path (2026-09-13 probe, 646/646 items carry it; same level as the
+  // coding/math indexes). No fallback chain: if AA ever moves it, change
+  // THIS one key plus the fixture together. Never guess a second path.
+  'evaluations.artificial_analysis_intelligence_index': 'intelligenceIndex',
 };
 
 /** Curated fields AA MUST return as finite numbers for every mapped entry. */
 const REQUIRED_FIELDS = ['input', 'output'];
+
+/**
+ * The ONE nullable AA-owned field. Unlike the finite-only optionals it is
+ * always patched: finite → the exact number; absent/non-finite → `null`
+ * PLUS an omission note. The merge must never delete this key, so a covered
+ * model always carries `number | null` while an uncovered model stays
+ * absent (no synthesized null).
+ */
+const NULLABLE_FIELDS = new Set(['intelligenceIndex']);
 
 /**
  * Return true when `src` looks like a local filesystem path rather than
@@ -145,9 +182,11 @@ function validateRequiredFields(entry, identity) {
  * copied verbatim (validated upstream by validateRequiredFields);
  * optional fields are written ONLY when the API returned a finite
  * number, otherwise they are collected into `absent` for documentation.
- * The terminal benchmark ratio is scaled from 0–1 to 0–100. The 3:1
- * blended price is computed locally — an upstream `blended` value is
- * never read.
+ * `intelligenceIndex` (NULLABLE_FIELDS) is always patched: finite →
+ * exact number; absent/non-finite → `null` + an `absent` entry (the merge
+ * keeps the key). The terminal benchmark ratio is scaled from 0–1 to
+ * 0–100. The 3:1 blended price is computed locally — an upstream
+ * `blended` value is never read.
  *
  * @param {Object} entry
  * @returns {{patch: Object, absent: string[]}}
@@ -162,6 +201,11 @@ function buildAaPatch(entry) {
       patch[curated] = v;
     } else if (typeof v === 'number' && Number.isFinite(v)) {
       patch[curated] = v;
+    } else if (NULLABLE_FIELDS.has(curated)) {
+      // Nullable contract: fail soft to `null` (never 0) and document the
+      // omission. The key stays in the record — see the merge below.
+      patch[curated] = null;
+      absent.push(curated);
     } else {
       absent.push(curated);
     }
@@ -367,7 +411,11 @@ export async function runScrape(args, deps) {
       continue;
     }
     let merged = { ...existing, ...patch, effort };
-    for (const field of absent) delete merged[field];
+    // Absent finite-only optionals are dropped; a nullable field keeps its
+    // `null` from the patch (the key is never deleted).
+    for (const field of absent) {
+      if (!NULLABLE_FIELDS.has(field)) delete merged[field];
+    }
     merged = appendAttribution(merged, today);
     merged = documentAbsent(merged, absent, today);
     updatedModels[curatedKey] = merged;
