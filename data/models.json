@@ -1,7 +1,7 @@
 {
   "_meta": {
-    "lastSynced": "2026-09-10",
-    "nextSync": "2026-09-15",
+    "lastSynced": "2026-09-13",
+    "nextSync": "2026-09-18",
     "schemaVersion": 5,
     "scrapers": {
       "benchlm": {
@@ -2607,6 +2607,156 @@
       "pricingSource": "artificialanalysis",
       "notes": "AA sync 2026-08-17: omitted mathIndex (not returned by API; never synthesized)",
       "intelligenceIndex": 49.7
+    },
+    "claudeFable51": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "name": "Claude Fable 5.1",
+      "effort": "max",
+      "lifecycle": "benchmark-only",
+      "input": 10,
+      "output": 50,
+      "blended": 20,
+      "pricingSource": "artificialanalysis",
+      "term": 91.3857677902622,
+      "codingIndex": 81.6,
+      "outputTokensPerSecond": 69.723,
+      "timeToFirstTokenSeconds": 118.062,
+      "timeToFirstAnswerTokenSeconds": 118.062,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-09-13: omitted mathIndex (not returned by API; never synthesized)",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "intelligenceIndex": 53.4
+    },
+    "claudeFable51Xhigh": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "name": "Claude Fable 5.1 (Adaptive Reasoning, Xhigh Effort)",
+      "effort": "xhigh",
+      "lifecycle": "benchmark-only",
+      "input": 10,
+      "output": 50,
+      "blended": 20,
+      "pricingSource": "artificialanalysis",
+      "term": 91.01123595505621,
+      "codingIndex": 80.7,
+      "outputTokensPerSecond": 63.634,
+      "timeToFirstTokenSeconds": 32.475,
+      "timeToFirstAnswerTokenSeconds": 32.475,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-09-13: omitted mathIndex (not returned by API; never synthesized)",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "intelligenceIndex": 53.2
+    },
+    "claudeFable51High": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "name": "Claude Fable 5.1 (Adaptive Reasoning, High Effort)",
+      "effort": "high",
+      "lifecycle": "benchmark-only",
+      "input": 10,
+      "output": 50,
+      "blended": 20,
+      "pricingSource": "artificialanalysis",
+      "term": 89.8876404494382,
+      "codingIndex": 79.1,
+      "outputTokensPerSecond": 58.345,
+      "timeToFirstTokenSeconds": 9.805,
+      "timeToFirstAnswerTokenSeconds": 9.805,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-09-13: omitted mathIndex (not returned by API; never synthesized)",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "intelligenceIndex": 51.2
+    },
+    "claudeFable51Medium": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "name": "Claude Fable 5.1 (Adaptive Reasoning, Medium Effort)",
+      "effort": "medium",
+      "lifecycle": "benchmark-only",
+      "input": 10,
+      "output": 50,
+      "blended": 20,
+      "pricingSource": "artificialanalysis",
+      "term": 88.0149812734082,
+      "codingIndex": 77.1,
+      "outputTokensPerSecond": 57.088,
+      "timeToFirstTokenSeconds": 6.355,
+      "timeToFirstAnswerTokenSeconds": 6.355,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-09-13: omitted mathIndex (not returned by API; never synthesized)",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "intelligenceIndex": 49.1
+    },
+    "claudeFable51Low": {
+      "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": false, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },
+      "name": "Claude Fable 5.1 (Adaptive Reasoning, Low Effort)",
+      "effort": "low",
+      "lifecycle": "benchmark-only",
+      "input": 10,
+      "output": 50,
+      "blended": 20,
+      "pricingSource": "artificialanalysis",
+      "term": 85.0187265917603,
+      "codingIndex": 75.2,
+      "outputTokensPerSecond": 53.254,
+      "timeToFirstTokenSeconds": 5.003,
+      "timeToFirstAnswerTokenSeconds": 5.003,
+      "benchlm": {
+        "score": null,
+        "verified": false,
+        "reliability": 0,
+        "categories": {}
+      },
+      "notes": "No BenchLM observation for this effort variant; scores documented as absent. AA optional fields absent: mathIndex. AA sync 2026-09-13: omitted mathIndex (not returned by API; never synthesized)",
+      "sources": [
+        {
+          "url": "https://artificialanalysis.ai/",
+          "date": "2026-09-13",
+          "scraper": "scrape-artificialanalysis"
+        }
+      ],
+      "intelligenceIndex": 47
     },
     "sonnet5": {
       "availability": { "opencode-go": false, "chatgpt-plus": false, "minimax": false, "anthropic": true, "kimi": false, "zai-glm": false, "qwen": false, "xai": false, "deepseek": false, "meta": false },

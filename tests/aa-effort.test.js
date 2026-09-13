@@ -82,6 +82,11 @@ const PRE_VARIANT_KEYS = new Set([
 ]);
 
 const NON_ACTIVE_NEW_VARIANTS = new Map([
+  ['claudeFable51', 'benchmark-only'],
+  ['claudeFable51Xhigh', 'benchmark-only'],
+  ['claudeFable51High', 'benchmark-only'],
+  ['claudeFable51Medium', 'benchmark-only'],
+  ['claudeFable51Low', 'benchmark-only'],
   ['glm51NonReasoning', 'legacy'],
   ['glm5NonReasoning', 'legacy'],
   ['gpt55High', 'reference'],
@@ -91,6 +96,11 @@ const NON_ACTIVE_NEW_VARIANTS = new Map([
 ]);
 
 const EXPECTED_VARIANT_NAMES = {
+  claudeFable51: 'Claude Fable 5.1',
+  claudeFable51Xhigh: 'Claude Fable 5.1 (Adaptive Reasoning, Xhigh Effort)',
+  claudeFable51High: 'Claude Fable 5.1 (Adaptive Reasoning, High Effort)',
+  claudeFable51Medium: 'Claude Fable 5.1 (Adaptive Reasoning, Medium Effort)',
+  claudeFable51Low: 'Claude Fable 5.1 (Adaptive Reasoning, Low Effort)',
   glm52NonReasoning: 'GLM-5.2 (Non-reasoning)',
   glm51NonReasoning: 'GLM-5.1 (Non-reasoning)',
   kimik3Low: 'Kimi K3 (low)',
@@ -608,6 +618,78 @@ describe('S2b II backfill — remaining catalog (live-exact)', () => {
     expect(models.kimik3.intelligenceIndex).not.toBe(44);
     expect(models.grok46.intelligenceIndex).toBe(44.4);
     expect(models.kimik3.benchlm.score).toBe(80.96);
+  });
+});
+
+// --- Fable 5.1 intake (2026-09-14) ------------------------------------------
+//
+// Fresh live capture 2026-09-13T22:21:11.276Z (650 items, HTTP 200). Five
+// `claude-fable-5-1*` slugs, exact payload II, pricing 10/50 on every row.
+// Bare slug takes max ONLY via the explicit "Max Effort" token in
+// "Claude Fable 5.1 (Adaptive Reasoning, Max Effort, Default Fallback)"
+// (same rule as Fable 5 → max; cf. grok-4-6 → high). Fail-closed newcomer
+// shape: benchmark-only + full-false availability + benchlm placeholder.
+const FABLE51_II = Object.freeze({
+  claudeFable51: 53.4,
+  claudeFable51Xhigh: 53.2,
+  claudeFable51High: 51.2,
+  claudeFable51Medium: 49.1,
+  claudeFable51Low: 47,
+});
+const FABLE51_SLUGS = Object.freeze({
+  claudeFable51: ['claude-fable-5-1', 'max'],
+  claudeFable51Xhigh: ['claude-fable-5-1-xhigh', 'xhigh'],
+  claudeFable51High: ['claude-fable-5-1-high', 'high'],
+  claudeFable51Medium: ['claude-fable-5-1-medium', 'medium'],
+  claudeFable51Low: ['claude-fable-5-1-low', 'low'],
+});
+describe('Fable 5.1 intake — aliases, live-exact II, fail-closed shape', () => {
+  test('five slugs curated with explicit effort, never inferred (bare slug = max on Max-Effort evidence)', () => {
+    expect(Object.keys(FABLE51_SLUGS)).toHaveLength(5);
+    for (const [to, [slug, effort]] of Object.entries(FABLE51_SLUGS)) {
+      const alias = aliases.find((candidate) => candidate.slug === slug);
+      expect(alias, `${slug} must be curated in data/aa-aliases.json`).toBeDefined();
+      expect(alias.to).toBe(to);
+      expect(alias.effort).toBe(effort);
+      expect(AA_EFFORTS, `${slug} effort closed-vocabulary`).toContain(alias.effort);
+    }
+    expect(aliases.find((a) => a.slug === 'claude-fable-5-1').effort).toBe('max');
+    expect(aliases.find((a) => a.slug === 'claude-fable-5-1').effort).not.toBe('high');
+  });
+  test('live-exact II lands verbatim with exactly one dated AA source tuple + 10/50 pricing', () => {
+    for (const [id, value] of Object.entries(FABLE51_II)) {
+      const model = models[id];
+      expect(model, `${id} must exist`).toBeDefined();
+      expect(model.intelligenceIndex, `${id}.intelligenceIndex`).toBe(value);
+      expect(model.sources, `${id}.sources`).toEqual(expect.arrayContaining([expect.objectContaining(S2A_SOURCE)]));
+      expect(model.sources.filter((s) => s.url === S2A_SOURCE.url && s.date === S2A_SOURCE.date && s.scraper === S2A_SOURCE.scraper), `${id} AA tuple once`).toHaveLength(1);
+      expect(model.input, `${id}.input`).toBe(10);
+      expect(model.output, `${id}.output`).toBe(50);
+      expect(model.blended, `${id}.blended`).toBeCloseTo((3 * 10 + 50) / 4, 10);
+      expect(model.pricingSource, `${id} AA-owned`).toBe('artificialanalysis');
+    }
+  });
+  test('fail-closed newcomer shape: benchmark-only + full-false maps + benchlm placeholder', () => {
+    for (const id of Object.keys(FABLE51_II)) {
+      const model = models[id];
+      expect(model.lifecycle, `${id}.lifecycle`).toBe('benchmark-only');
+      const values = Object.values(model.availability || {});
+      expect(values.length, `${id} availability map`).toBeGreaterThan(0);
+      expect(values.every((value) => value === false), `${id} all providers false`).toBe(true);
+      expect(model.benchlm).toEqual({ score: null, verified: false, reliability: 0, categories: {} });
+      expect(model.notes).toContain(NO_BENCHLM_NOTE);
+      expect(model.tier, `${id} no tier`).toBeUndefined();
+    }
+  });
+  test('TRIANGULATE — live-exact beats chart rounding (53.4 not 53, 47 not 47.0-synthesized)', () => {
+    expect(models.claudeFable51.intelligenceIndex).toBe(53.4);
+    expect(models.claudeFable51.intelligenceIndex).not.toBe(53);
+    expect(models.claudeFable51Low.intelligenceIndex).toBe(47);
+    expect(models.claudeFable5.intelligenceIndex, 'Fable 5 base untouched').toBe(49.7);
+  });
+  test('TRIANGULATE — no non-reasoning 6th row (slug absent from the 650-item payload)', () => {
+    expect(aliases.some((a) => a.slug === 'claude-fable-5-1-non-reasoning')).toBe(false);
+    expect(models.claudeFable51NonReasoning).toBeUndefined();
   });
 });
 

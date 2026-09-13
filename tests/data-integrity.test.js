@@ -684,8 +684,8 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
     return rows;
   };
 
-  // S2a/S2b live-exact tables in our change's manifest (sections
-  // "## S2a live-exact rows" / "## S2b live-exact rows"): rows shaped
+  // S2a/S2b/Fable live-exact tables in our change manifests (sections
+  // "## S2a live-exact rows" / "## S2b live-exact rows" / "## Fable 5.1 live-exact rows"): rows shaped
   // | `catalogId` | `live-slug` | <finite II> |. Verdict/non-numeric rows
   // and every other table are ignored by construction.
   const parseNewManifestRows = (markdown) => {
@@ -694,7 +694,7 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
     for (const rawLine of markdown.split(String.fromCharCode(10))) {
       const line = rawLine.trim();
       if (line.charAt(0) === '#') {
-        active = line.indexOf('S2a live-exact rows') !== -1 || line.indexOf('S2b live-exact rows') !== -1;
+        active = line.indexOf('S2a live-exact rows') !== -1 || line.indexOf('S2b live-exact rows') !== -1 || line.indexOf('Fable 5.1 live-exact rows') !== -1;
         continue;
       }
       if (!active || !line.startsWith('|')) continue;
@@ -714,15 +714,12 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
     }
     return rows;
   };
-  const AA_NEW_MANIFEST_PATH = join(
-    ROOT,
-    'openspec',
-    'changes',
-    '2026-09-14-aa-only-scoring',
-    'evidence',
-    'aa-live-manifest.md'
-  );
+  const AA_NEW_MANIFEST_PATHS = [
+    join(ROOT, 'openspec', 'changes', '2026-09-14-aa-only-scoring', 'evidence', 'aa-live-manifest.md'),
+    join(ROOT, 'openspec', 'changes', '2026-09-14-fable51-intake', 'intake.md'),
+  ];
   const manifestRows = parseBackfillManifest(readFileSync(MANIFEST_PATH, 'utf-8'));
+  const parseAllNewManifestRows = () => AA_NEW_MANIFEST_PATHS.flatMap((q) => parseNewManifestRows(readFileSync(q, 'utf-8')));
 
   test('the manifest enumerates every traced backfill number exactly once', () => {
     expect(manifestRows.length).toBeGreaterThanOrEqual(16); // >= 8 models x 2 fields
@@ -768,17 +765,31 @@ describe('data-integrity: AA 2026-09-13 backfill (manifest ↔ sources 1:1)', ()
       )
       .map(([id]) => id)
       .sort();
-    const newManifestRows = parseNewManifestRows(readFileSync(AA_NEW_MANIFEST_PATH, 'utf-8'));
+    const newManifestRows = parseAllNewManifestRows();
     const manifestIds = [...new Set([...manifestRows.map((row) => row.modelId), ...newManifestRows.map((row) => row.modelId)])].sort();
     expect(backfilled).toEqual(manifestIds);
   });
 
-  test('every S2a/S2b live-exact row resolves to the exact catalog II + AA tuple', () => {
-    const newRows = parseNewManifestRows(readFileSync(AA_NEW_MANIFEST_PATH, 'utf-8'));
-    expect(newRows.length).toBeGreaterThanOrEqual(60); // 43 S2a + 29 S2b finite rows (overlap allowed)
+  test('every S2a/S2b/Fable live-exact row resolves to the exact catalog II + AA tuple', () => {
+    const newRows = parseAllNewManifestRows();
+    expect(newRows.length).toBeGreaterThanOrEqual(60); // 43 S2a + 29 S2b + 5 Fable finite rows (overlap allowed)
     for (const row of newRows) {
       const model = models[row.modelId];
       expect(model, `${row.modelId} (S2 manifest row) must exist in data/models.json`).toBeDefined();
+      expect(model.intelligenceIndex, `${row.modelId}.intelligenceIndex`).toBe(row.value);
+      expect(model.sources, `${row.modelId}.sources`).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ url: 'https://artificialanalysis.ai/', date: '2026-09-13', scraper: 'scrape-artificialanalysis' }),
+        ])
+      );
+    }
+  });
+  test('every Fable 5.1 live-exact row resolves to the exact catalog II + AA tuple', () => {
+    const fableRows = parseAllNewManifestRows().filter((row) => row.modelId.startsWith('claudeFable51'));
+    expect(fableRows.map((row) => row.modelId).sort()).toEqual(['claudeFable51', 'claudeFable51High', 'claudeFable51Low', 'claudeFable51Medium', 'claudeFable51Xhigh']);
+    for (const row of fableRows) {
+      const model = models[row.modelId];
+      expect(model, `${row.modelId} (Fable manifest row) must exist in data/models.json`).toBeDefined();
       expect(model.intelligenceIndex, `${row.modelId}.intelligenceIndex`).toBe(row.value);
       expect(model.sources, `${row.modelId}.sources`).toEqual(
         expect.arrayContaining([
@@ -822,14 +833,14 @@ describe('data-integrity: S2a three-bucket + provenance (chatgpt-plus + anthropi
   const s2aDoc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
   const s2aModels = s2aDoc.models;
   const S2A_SRC = { url: 'https://artificialanalysis.ai/', date: '2026-09-13', scraper: 'scrape-artificialanalysis' };
-  test('three-bucket recount after S2b: 73 II-covered / 0 benchlm-only / 15 scoreless = 88', () => {
+  test('three-bucket recount after Fable 5.1 intake: 78 II-covered / 0 benchlm-only / 15 scoreless = 93', () => {
     let ii = 0, bench = 0, none = 0;
     for (const mo of Object.values(s2aModels)) {
       if (Number.isFinite(mo.intelligenceIndex)) ii++;
       else if (mo.benchlm && Number.isFinite(mo.benchlm.score)) bench++;
       else none++;
     }
-    expect(ii).toBe(73);
+    expect(ii).toBe(78);
     expect(bench).toBe(0);
     expect(none).toBe(15);
     expect(ii + bench + none).toBe(Object.keys(s2aModels).length);
@@ -838,7 +849,7 @@ describe('data-integrity: S2a three-bucket + provenance (chatgpt-plus + anthropi
   });
   test('every finite II carries its own AA 2026-09-13 source tuple', () => {
     const finite = Object.entries(s2aModels).filter(([, mo]) => Number.isFinite(mo.intelligenceIndex));
-    expect(finite.length).toBe(73);
+    expect(finite.length).toBe(78);
     for (const [id, mo] of finite) {
       expect(mo.sources, `${id}.sources`).toEqual(
         expect.arrayContaining([expect.objectContaining(S2A_SRC)])

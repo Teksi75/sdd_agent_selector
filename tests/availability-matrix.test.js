@@ -67,6 +67,15 @@ describe('availability matrix gate — curated catalog (schema 5)', () => {
     expect(metaFalse.length).toBe(bases.length - metaTrue.length);
   });
 
+  test('Fable 5.1 family is fail-closed: benchmark-only base with full-false map, variants inherit', () => {
+    expect(models.claudeFable51.lifecycle).toBe('benchmark-only');
+    expect(familyKey('claudeFable51', models)).toBe('claudeFable51');
+    for (const id of ['claudeFable51Xhigh', 'claudeFable51High', 'claudeFable51Medium', 'claudeFable51Low']) {
+      expect(familyKey(id, models), `${id} family`).toBe('claudeFable51');
+      expect(models[id].availability, `${id} inherits base`).toEqual(models.claudeFable51.availability);
+    }
+    expect(Object.values(models.claudeFable51.availability).every((value) => value === false)).toBe(true);
+  });
   test('effort variants resolve the identical base-family map (no overrides declared)', () => {
     expect(doc._meta.availabilityOverrides ?? []).toEqual([]);
     let variants = 0;

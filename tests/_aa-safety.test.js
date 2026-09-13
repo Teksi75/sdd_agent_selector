@@ -71,11 +71,11 @@ const V2_ALIASES = [
 ];
 
 describe('loadAaAliases (v2)', () => {
-  test('the real data/aa-aliases.json is the curated v2 table (69 entries + 2026-09-13 curation + S1 mass mapping)', () => {
+  test('the real data/aa-aliases.json is the curated v2 table (69 entries + 2026-09-13 curation + S1 mass mapping + Fable 5.1 intake)', () => {
     const doc = JSON.parse(fsImpl.readFileSync(REAL_ALIASES_PATH, 'utf-8'));
     expect(doc._meta.version).toBe(2);
     const aliases = loadAaAliases(REAL_ALIASES_PATH);
-    expect(aliases).toHaveLength(74);
+    expect(aliases).toHaveLength(79);
     const slugs = new Set();
     for (const a of aliases) {
       expect(typeof a.slug).toBe('string');
