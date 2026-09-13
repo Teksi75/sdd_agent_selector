@@ -134,3 +134,61 @@ Resumen: **37 unchecked** (S2a–S4), **0 restantes en S1**. Líneas exactas:
 - **Producido:** tasks 1.1–1.7 marcadas `[x]` (persistido en `tasks.md`); este apply-progress; manifest de evidencia.
 - **Warnings del parent respetados:** (a) worktree con dirt humano pre-existente intocado y fuera del commit (`.atl/.skill-registry.cache.json`, `.atl/skill-registry.md`, `.gitignore`, `openspec/specs/model-picker/spec.md`); (b) PRs #72–#78 y ramas humanas intactas; (c) CI Node 20 gobierna, fallo de colección pre-existente solo anotado; (d) pnpm only.
 - **Gate ask-on-risk de S1:** no se disparó (Astra gate es S2a; budget OK). No se requiere decisión humana para cerrar S1.
+
+---
+
+## S1 Verify Verdict — 2026-09-13 (slice-scoped, S1 ONLY)
+
+- **Scope:** tasks 1.1–1.7 on branch `feat/aa-only-s1-aliases`, commit `db06727` (6 files, +472/−18 vs base `7674ae6`). S2a/S2b/S3a/S3b/S4 absence is NOT a finding. No top-level `verify-report.md` written (reserved for whole-change verification).
+- **Verdict: PASS for S1.** S1 may proceed to PR 1 review; S2a unblocked (still gated on S1 landing per tasks.md).
+
+### 1. Task → delta-spec mapping (S1)
+
+| Task | Delta-spec scenario | Result |
+|---|---|---|
+| 1.1 live capture + manifest (646 items, fetchedAt 2026-09-13T03:53:18.345Z, payload outside repo, `git diff --stat -- data/` empty at capture) | Evidence base for ADDED Alias Mass-Mapping | ✅ manifest §1 confirms |
+| 1.2 duplicate-identity close (DeepSeek V4.1/0424/0420 unmapped; MiniMax same-identity; ambiguous fail-closed) | Supports "Effort is never inferred" + fail-closed mapping | ✅ manifest §3 + executable asserts |
+| 1.3 RED alias assertions (exact mapping, bare-slug ≠ max, ambiguous ignored, `detectMissing` WARN+preserve) | "Unknown newcomer is invisible until curated" + "Effort is never inferred" | ✅ |
+| 1.4 GREEN 71→74 rows (`grok-4-6→grok46 high`, `glm-5-3→glm53 max`, `gpt-6-astra-low→gpt6astraLow low`), `_meta.version` stays 2 | Alias Mass-Mapping rows with suffix-evidenced effort | ✅ re-verified: 74 rows, version 2, 0 bad-effort, 0 dup slugs |
+| 1.5 TRIANGULATE (xhigh≠max, uncurated slug → no catalog entry, duplicate identity ignored) + REFACTOR | Triangulation of the two S1 scenarios | ✅ 48/48 |
+| 1.6 Gate: S1 focused command + `git diff --stat` touches only allowed surfaces | "Matrix gate stays green after mapping" (within collection limits, see note) | ✅ 2 suites 48/48 + mirrors |
+| 1.7 Rollback check (prior table → missing-row failures, slice table → green) | Data-only rollback contract | ✅ procedure re-verified via `git show <base>` pattern; prior-table run reproduces missing-row failures |
+| Three-bucket coverage gate | ADDED Three-Bucket requirement, S2 task 2.1 — **correctly pending, NOT due in S1** | ✅ pending, not a finding |
+
+### 2. Focused evidence re-run (this verify)
+
+| Command | Observed |
+|---|---|
+| `pnpm vitest run tests/_aa-safety.test.js tests/aa-effort.test.js` | **2 passed, 48/48 tests passed** ✅ (expectation from parent: 48/48) |
+| `pnpm vitest run tests/_aa-safety.test.js tests/aa-effort.test.js tests/data-integrity.test.js tests/availability-matrix.test.js tests/propagate-provider-availability.test.js` | **2 passed / 3 failed-to-collect, 48 tests passed** ✅ — matches the known pre-existing condition (SyntaxError `node:vm` on `scripts/propagate-provider-availability.mjs` import under vitest 1.6.1, identical pre/post slice) |
+| Spot-check `data/aa-aliases.json` | 74 rows, `_meta.version` 2; `grok-4-6→grok46/high` ("Grok 4.6 (high)", bare slug NOT max), `glm-5-3→glm53/max`, `gpt-6-astra-low→gpt6astraLow/low`; closed vocabulary 100%, no duplicate slugs ✅ |
+
+### 3. No forbidden mutation (vs base 7674ae6)
+
+- `git diff --name-only 7674ae6..HEAD` filtered for `data/models.json|data/providers.json|js/|benchlm` → **CLEAN, zero hits** ✅
+- `git diff 7674ae6..HEAD -- data/models.json data/providers.json` → empty (byte-identical) ✅ — hence no II synthesis, no `benchlm`/`minReasoning` touch, no 18/9/5 count change from this slice.
+- Slice touches only: `data/aa-aliases.json` (+5/−2), `tests/_aa-safety.test.js`, `tests/aa-effort.test.js`, `tests/data-integrity.test.js`, + manifest + this log ✅
+
+### 4. Dark invariant for future S3
+
+- `js/services/model-scorer.js` contains **0** `intelligenceIndex` references; still reads `model.benchlm?.score` (benchlm-clamp contract intact) ✅
+- `tests/data-integrity.test.js` scorer-source assert still `expect(source).not.toContain('intelligenceIndex')` (the S3b flip is correctly NOT applied) ✅
+
+### 5. Maintainer-record items confirmed (not findings)
+
+- **Transitional `AA_MAPPED_PENDING_BACKFILL` (`glm53`, `gpt6astraLow`, `grok46`) is explicit** in `tests/data-integrity.test.js:52` and `tests/aa-effort.test.js:37`, with the strict-equality restore documented in manifest §5 and the S2-must-empty grip stated ✅ — S2-owned, intentional.
+- **size:exception for S1 accepted:** 224 review-surface lines (under the 400 budget) + 266 required SDD evidence lines (manifest + this log) ✅
+- **Human-owned dirt untouched:** `.atl/.skill-registry.cache.json`, `.atl/skill-registry.md`, `.gitignore`, `openspec/specs/model-picker/spec.md` remain **unstaged modifications** (not in the slice commit); `design.md`/`explore.md`/`proposal.md`/`specs/`/`tasks.md`/`archive/` remain **untracked**, none committed by this slice ✅
+
+### 6. Strict-TDD spot check (data-only substitution per tasks.md global rule)
+
+- TDD Cycle Evidence table present in apply-progress; RED (8 failed missing-row) → GREEN (48/48) → TRIANGULATE cycle is coherent; re-run confirms GREEN still true ✅
+- Assertion audit over the S1 test diff: value assertions on real production calls (`mapAaSlug`, `detectMissing`); no tautologies, no `toBeDefined`-only tests, no mocks, no ghost loops (loops iterate literal non-empty arrays, not query results) ✅
+- Coverage/quality tools: not run (data-only JSON slice; no production code changed) — informational only, not a finding.
+
+### Findings (all S1-scoped; zero blockers)
+
+1. (NOTE, pre-existing) 3 suites fail collection under local Node 24 AND Node 20.19.5 — evidence, never a blocker, tests never patched for it. **Open question flagged for the parent:** confirm CI Node 20 actually collects `data-integrity` / `availability-matrix` / `propagate-provider-availability`; if CI also fails collection, that is a pre-existing repo issue to fix OUTSIDE this change.
+2. (NOTE) `tests/data-integrity.test.js` deviation (transitional pending-backfill set) is conscious, bounded, and S2-owned — accepted as documented, not a finding.
+
+**Next:** S2a apply (blocked until S1 lands/reviews per tasks.md hard gates).
