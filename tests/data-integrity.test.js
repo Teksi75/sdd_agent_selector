@@ -5,7 +5,7 @@
 // every tracked V4 model:
 //   - every tracked V4 model has a `benchlm` block with valid {score,
 //     verified, reliability, categories}
-//   - catalog schemaVersion === 4 (the AA effort-level catalog bump)
+//   - catalog schemaVersion === 5 (V5 availability matrix bump)
 //   - legacy V3 identity fields (name and tier) still match as
 //     drift-detection sanity; non-AA-owned prices remain comparable while
 //     AA-owned prices are checked for finite numeric values instead.
@@ -206,11 +206,11 @@ const KNOWN_UPSTREAM_PRICE_UPDATES = new Set([
 describe('data-integrity: BenchLM-shape contract (PR3)', () => {
   const doc = JSON.parse(readFileSync(join(ROOT, 'data', 'models.json'), 'utf-8'));
 
-  test('_meta block declares catalog schemaVersion 4', () => {
-    // The catalog schema bump is independent of the loader cache migration;
-    // PR4 will update CURRENT_SCHEMA_VERSION in js/services/data-loader.js.
+  test('_meta block declares catalog schemaVersion 5', () => {
+    // V5 bumps the catalog schema for the required availability matrix; the
+    // loader cache constant is bumped independently in slice 2 (task 2.4).
     expect(doc._meta).toBeDefined();
-    expect(doc._meta.schemaVersion).toBe(4);
+    expect(doc._meta.schemaVersion).toBe(5);
     expect(doc._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 
@@ -374,9 +374,9 @@ describe('data-integrity: V3 source vs data/models.json (drift detector)', () =>
       expect(v4Model.tier).toBe('reference');
     }
   });
-  test('_meta block declares schemaVersion 4 (AA effort schema bump)', () => {
+  test('_meta block declares schemaVersion 5 (V5 availability schema bump)', () => {
     expect(v4raw._meta).toBeDefined();
-    expect(v4raw._meta.schemaVersion).toBe(4);
+    expect(v4raw._meta.schemaVersion).toBe(5);
     expect(v4raw._meta.lastSynced).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   });
 });
