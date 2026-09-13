@@ -3,7 +3,7 @@
 //
 // Three scenarios (per design.md "Cache layer" + tasks.md 1.28):
 //   1. Cache HIT  → no fetch, returns cached payload (parses sessionStorage).
-//   2. Cache MISS → fetches all 5 data/*.json files, returns composed object.
+//   2. Cache MISS → fetches all 6 data/*.json files, returns composed object.
 //   3. Schema mismatch → discards cache when schemaVersion changes.
 //
 // We mock globalThis.fetch + sessionStorage so the test stays pure.
@@ -36,8 +36,20 @@ class FakeStorage {
 
 const freshFiles = {
   'data/models.json': {
-    _meta: { schemaVersion: 1, lastSynced: '2026-07-04' },
-    models: { glm52: { name: 'GLM-5.2' } },
+    _meta: { schemaVersion: 5, lastSynced: '2026-07-04' },
+    models: {
+      glm52: {
+        name: 'GLM-5.2',
+        availability: { 'opencode-go': true, 'chatgpt-plus': false },
+      },
+    },
+  },
+  'data/providers.json': {
+    _meta: { schemaVersion: 1 },
+    providers: [
+      { id: 'opencode-go', name: 'Opencode Go', tier: 'Go', url: 'https://opencode.ai/docs/es/go/', updated: '2026-09-12' },
+      { id: 'chatgpt-plus', name: 'ChatGPT Plus', tier: 'Plus', url: 'https://openai.com/chatgpt/pricing/', updated: '2026-09-12' },
+    ],
   },
   'data/phases.json': {
     _meta: { schemaVersion: 1 },
@@ -77,7 +89,7 @@ function mockFetch(files) {
   });
 }
 
-describe('data-loader — cache MISS (fetch all 5 files)', () => {
+describe('data-loader — cache MISS (fetch all 6 files)', () => {
   beforeEach(async () => {
     globalThis.sessionStorage = new FakeStorage();
     mockFetch(freshFiles);
@@ -91,7 +103,7 @@ describe('data-loader — cache MISS (fetch all 5 files)', () => {
     delete globalThis.fetch;
   });
 
-  test('returns composed object with all 5 data files', async () => {
+  test('returns composed object with all 6 data files', async () => {
     const { loadAll, CACHE_KEY } = await import('../js/services/data-loader.js');
     expect(typeof CACHE_KEY).toBe('string');
     expect(CACHE_KEY).toMatch(/^sdd-models-v/);
@@ -114,6 +126,8 @@ describe('data-loader — cache MISS (fetch all 5 files)', () => {
     expect(data.roles['gentle-orchestrator'].minReasoning).toBe(95);
     expect(data.profiles['gentle-orchestrator'].inputTokens).toBe(4000);
     expect(data.phases[0].id).toBe('init');
+    expect(data.providers.map((p) => p.id)).toEqual(['opencode-go', 'chatgpt-plus']);
+    expect(data.availability.glm52['opencode-go']).toBe(true);
   });
 
   test('populates sessionStorage with a versioned cache entry', async () => {
@@ -122,14 +136,15 @@ describe('data-loader — cache MISS (fetch all 5 files)', () => {
     const cached = sessionStorage.getItem(CACHE_KEY);
     expect(cached).not.toBeNull();
     const parsed = JSON.parse(cached);
-    // Matches CURRENT_SCHEMA_VERSION (4 for the AA effort schema bump).
+    // Matches CURRENT_SCHEMA_VERSION (5 for the V5 catalog + registry join).
     // The loader writes its own constant into the cached envelope;
     // this assertion exists to catch silent regressions of the cache contract.
-    expect(parsed).toHaveProperty('schemaVersion', 4);
+    expect(parsed).toHaveProperty('schemaVersion', 5);
+    expect(parsed).toHaveProperty('sourceSchemaVersions', { models: 5, providers: 1 });
     expect(parsed).toHaveProperty('data');
   });
 
-  test('stores fresh schema-4 data under the new v6 cache key', async () => {
+  test('stores fresh schema-5 data under the new v6 cache key', async () => {
     const { loadAll, CACHE_KEY, LEGACY_CACHE_KEYS } = await import('../js/services/data-loader.js');
 
     expect(CACHE_KEY).toBe('sdd-models-v6');
@@ -138,14 +153,14 @@ describe('data-loader — cache MISS (fetch all 5 files)', () => {
     await loadAll();
 
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-    expect(cached.schemaVersion).toBe(4);
+    expect(cached.schemaVersion).toBe(5);
     expect(sessionStorage.getItem('sdd-models-v5')).toBeNull();
   });
 
-  test('makes exactly 5 fetch calls', async () => {
+  test('makes exactly 6 fetch calls', async () => {
     const { loadAll } = await import('../js/services/data-loader.js');
     await loadAll();
-    expect(globalThis.fetch).toHaveBeenCalledTimes(5);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(6);
   });
 });
 
@@ -165,11 +180,11 @@ describe('data-loader — cache HIT (no fetch)', () => {
   test('second call within same session uses cache', async () => {
     const { loadAll } = await import('../js/services/data-loader.js');
     const first = await loadAll();
-    expect(globalThis.fetch).toHaveBeenCalledTimes(5);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(6);
 
     const second = await loadAll();
     // No additional fetches on cache hit.
-    expect(globalThis.fetch).toHaveBeenCalledTimes(5);
+    expect(globalThis.fetch).toHaveBeenCalledTimes(6);
     expect(second.models).toEqual(first.models);
   });
 
@@ -197,17 +212,17 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     delete globalThis.fetch;
   });
 
-  test('caches a schema-3 payload → v4 loader discards it and refetches', async () => {
+  test('caches a schema-4 payload → v5 loader discards it and refetches', async () => {
     const { loadAll, CACHE_KEY, CURRENT_SCHEMA_VERSION } = await import('../js/services/data-loader.js');
 
-    expect(CURRENT_SCHEMA_VERSION).toBe(4);
+    expect(CURRENT_SCHEMA_VERSION).toBe(5);
 
-    // Pre-seed the new cache key with the previous schema version. The v4
+    // Pre-seed the new cache key with the previous schema version. The v5
     // loader must discard the stale cache and re-fetch.
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 3,
+        schemaVersion: 4,
         timestamp: Date.now(),
         data: { shouldNotBeUsed: true },
       })
@@ -222,7 +237,7 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     // The sessionStorage was repopulated with the fresh payload, now stamped
     //   with the loader's CURRENT_SCHEMA_VERSION.
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-    expect(cached.schemaVersion).toBe(4);
+    expect(cached.schemaVersion).toBe(5);
   });
 
   test('older schemaVersion (e.g., 0) is also discarded', async () => {
@@ -242,7 +257,7 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     expect(globalThis.fetch).toHaveBeenCalled();
   });
 
-  test('a v2 cached payload is discarded under the AA schema-v4 loader (2 !== 4)', async () => {
+  test('a v2 cached payload is discarded under the AA schema-v5 loader (2 !== 5)', async () => {
     const { loadAll, CACHE_KEY } = await import('../js/services/data-loader.js');
 
     // Pre-seed a cache envelope stamped with the PREVIOUS schema version (2,
@@ -263,7 +278,7 @@ describe('data-loader — schema mismatch (discard cache)', () => {
     expect(data.v2Only).toBeUndefined();
     expect(data.models.glm52.name).toBe('GLM-5.2');
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY));
-    expect(cached.schemaVersion).toBe(4);
+    expect(cached.schemaVersion).toBe(5);
   });
 
   test('corrupted cache JSON is discarded gracefully', async () => {
@@ -297,30 +312,34 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
   // resolved stale AFTER that, it would clobber the fresh memo).
 
   // Helper: deferred mock fetch — captures every resolver so we can
-  // resolve ALL pending fetches (Promise.all awaits all 5 file fetches;
+  // resolve ALL pending fetches (Promise.all awaits all 6 file fetches;
   // resolving only the last one leaves the others stuck).
   function deferredFetch() {
     const resolvers = [];
     globalThis.fetch = vi.fn(
-      () =>
+      (url) =>
         new Promise((res) => {
-          resolvers.push(res);
+          resolvers.push({ res, url: String(url) });
         })
     );
     return {
       count: () => resolvers.length,
       resolveAll: () => {
-        const payload = {
-          ok: true,
-          status: 200,
-          async json() {
-            return JSON.parse(JSON.stringify(freshFiles['data/models.json']));
-          },
-          async text() {
-            return '';
-          },
-        };
-        while (resolvers.length > 0) resolvers.shift()(payload);
+        while (resolvers.length > 0) {
+          const { res, url } = resolvers.shift();
+          const rel = url.replace(/^https?:\/\/[^/]+\//, '').replace(/^\//, '');
+          const body = freshFiles[rel] || freshFiles['data/models.json'];
+          res({
+            ok: true,
+            status: 200,
+            async json() {
+              return JSON.parse(JSON.stringify(body));
+            },
+            async text() {
+              return '';
+            },
+          });
+        }
       },
     };
   }
@@ -336,8 +355,8 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
 
     // 1) Start loadAll — the fetch hangs on our deferred promise.
     const inflightLoad = loadAll();
-    // All 5 fetches are now pending.
-    expect(gate.count()).toBe(5);
+    // All 6 fetches are now pending.
+    expect(gate.count()).toBe(6);
 
     // 2) Mid-flight invalidation (simulates dataSync.refresh clearing
     //    the in-memory memo after writing fresh data to sessionStorage).
@@ -349,10 +368,12 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 4,
+        schemaVersion: 5,
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },
+          providers: [],
+          availability: {},
           phases: [],
           configs: [],
           roles: {},
@@ -398,7 +419,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     const { loadAll, invalidateMemoryCache, CACHE_KEY } = mod;
 
     const inflightLoad = loadAll();
-    expect(gate.count()).toBe(5);
+    expect(gate.count()).toBe(6);
     invalidateMemoryCache();
 
     // Pre-populate FRESH cache (simulates dataSync.refresh writing fresh
@@ -406,10 +427,12 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     sessionStorage.setItem(
       CACHE_KEY,
       JSON.stringify({
-        schemaVersion: 4,
+        schemaVersion: 5,
         timestamp: Date.now(),
         data: {
           models: { freshModel: { name: 'FRESH' } },
+          providers: [],
+          availability: {},
           phases: [],
           configs: [],
           roles: {},
@@ -440,7 +463,7 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     const { loadAll, invalidateMemoryCache } = mod;
 
     const inflightLoad = loadAll();
-    expect(gate.count()).toBe(5);
+    expect(gate.count()).toBe(6);
 
     invalidateMemoryCache();
 
@@ -448,11 +471,82 @@ describe('data-loader — invalidateMemoryCache race protection', () => {
     // a fresh fetch (and clear inMemory so the cache path doesn't short-
     // circuit either).
     const second = loadAll();
-    // Now 5 more fetches are pending (10 total).
-    expect(gate.count()).toBe(10);
+    // Now 6 more fetches are pending (12 total).
+    expect(gate.count()).toBe(12);
 
     gate.resolveAll();
     await inflightLoad;
     await second;
+  });
+});
+
+describe('data-loader — V5 sixth file + registry gate', () => {
+  beforeEach(() => {
+    globalThis.sessionStorage = new FakeStorage();
+    vi.resetModules();
+  });
+  afterEach(() => {
+    delete globalThis.sessionStorage;
+    delete globalThis.fetch;
+  });
+
+  test('DATA_FILES descriptor has 6 [path, key] entries including providers', async () => {
+    const { DATA_FILES } = await import('../js/services/data-loader.js');
+    expect(DATA_FILES).toHaveLength(6);
+    expect(DATA_FILES).toContainEqual(['data/providers.json', 'providers']);
+    expect(DATA_FILES.map(([path]) => path)).toEqual([
+      'data/models.json',
+      'data/providers.json',
+      'data/phases.json',
+      'data/configs.json',
+      'data/agent-roles.json',
+      'data/agent-request-profiles.json',
+    ]);
+  });
+
+  test('providers._meta.schemaVersion !== 1 rejects the load', async () => {
+    mockFetch({
+      ...freshFiles,
+      'data/providers.json': {
+        _meta: { schemaVersion: 2 },
+        providers: freshFiles['data/providers.json'].providers,
+      },
+    });
+    const { loadAll } = await import('../js/services/data-loader.js');
+    await expect(loadAll()).rejects.toThrow(/providers|registry/i);
+  });
+
+  test('duplicate ids and non-exact registry records reject the load', async () => {
+    const records = freshFiles['data/providers.json'].providers;
+    mockFetch({
+      ...freshFiles,
+      'data/providers.json': { _meta: { schemaVersion: 1 }, providers: [records[0], records[0]] },
+    });
+    const { loadAll } = await import('../js/services/data-loader.js');
+    await expect(loadAll()).rejects.toThrow(/registry/i);
+
+    vi.resetModules();
+    mockFetch({
+      ...freshFiles,
+      'data/providers.json': {
+        _meta: { schemaVersion: 1 },
+        providers: [{ ...records[0], label: 'extra-field' }],
+      },
+    });
+    const reloaded = await import('../js/services/data-loader.js');
+    await expect(reloaded.loadAll()).rejects.toThrow(/registry/i);
+  });
+
+  test('cached envelope missing providers/availability is discarded and refetched', async () => {
+    const { loadAll, CACHE_KEY } = await import('../js/services/data-loader.js');
+    mockFetch(freshFiles);
+    sessionStorage.setItem(
+      CACHE_KEY,
+      JSON.stringify({ schemaVersion: 5, timestamp: 0, data: { models: { stale: {} }, phases: [], configs: [], roles: {}, profiles: {} } })
+    );
+    const data = await loadAll();
+    expect(globalThis.fetch).toHaveBeenCalled();
+    expect(data.models.stale).toBeUndefined();
+    expect(data.availability.glm52['opencode-go']).toBe(true);
   });
 });
