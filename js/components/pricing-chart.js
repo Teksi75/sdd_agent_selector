@@ -85,9 +85,69 @@ function tierOf(m) {
   return 'balanced';
 }
 
+/**
+ * Base display name of a model: the `name` without a trailing effort
+ * qualifier in parentheses (e.g. "GPT-5.6 Luna (xhigh)" -> "GPT-5.6 Luna").
+ * Falls back to the catalog key when the record has no usable name.
+ */
+function baseNameOf(key, m) {
+  const raw = m && m.name != null && String(m.name).trim() !== '' ? String(m.name) : String(key ?? '');
+  return raw.replace(/\s*\(.*\)\s*$/,'').trim() || String(key ?? '');
+}
+
+/**
+ * Family key used to collapse same-cost effort variants of one model.
+ * Normalized (case, hyphen/underscore and whitespace insensitive) so
+ * "MiMo V2.5 Pro" and "MiMo-V2.5-Pro (Non-reasoning)" map together
+ * while genuinely different models ("MiniMax M3" vs "MiniMax M2.7")
+ * stay apart even when their price coincides.
+ */
+function familyKeyOf(key, m) {
+  return baseNameOf(key, m)
+    .toLowerCase()
+    .replace(/[-_]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim() || String(key ?? '').toLowerCase();
+}
+
+/** Whether the record is the bare (unqualified) variant of its family. */
+function isBareVariant(key, m) {
+  const raw = m && m.name != null ? String(m.name) : String(key ?? '');
+  return !/\s*\(.*\)\s*$/.test(raw);
+}
+
+/**
+ * Collapse rows that repeat the same displayed cost within one model
+ * family (e.g. the six "GPT-5.6 Luna*" variants at $0.0008 become a
+ * single "GPT-5.6 Luna" row). Variants with a genuinely different cost
+ * (e.g. "DeepSeek V4 Flash (Non-reasoning)") are kept as their own row.
+ * The bare family name is preferred as the surviving row; otherwise the
+ * first row in sort order wins. Input order is the already-sorted order,
+ * so the output stays sorted by cost ascending.
+ */
+function dedupeSameCostVariants(rows) {
+  const seen = new Map();
+  const out = [];
+  for (const row of rows) {
+    const [key, m, cost] = row;
+    const group = `${familyKeyOf(key, m)}|${Number.isFinite(cost) ? cost.toFixed(COST_DECIMALS) : 'nan'}`;
+    if (!seen.has(group)) {
+      seen.set(group, out.length);
+      out.push(row);
+      continue;
+    }
+    const idx = seen.get(group);
+    const [keptKey, keptModel] = out[idx];
+    if (!isBareVariant(keptKey, keptModel) && isBareVariant(key, m)) {
+      out[idx] = row;
+    }
+  }
+  return out;
+}
+
 /** Filter out non-active models and sort the remainder by costEstimate ASCENDING. */
 function rowsFor(models) {
-  return Object.entries(models || {})
+  const rows = Object.entries(models || {})
     .filter(([, m]) => m && isActive(m))
     .map(([k, m]) => [k, m, costEstimate(m)])
     .sort((a, b) => {
@@ -96,6 +156,7 @@ function rowsFor(models) {
       const cb = Number.isFinite(b[1]?.input) ? b[1].input : Infinity;
       return ca - cb;
     });
+  return dedupeSameCostVariants(rows);
 }
 
 /** Width% anchored to maxCost, floored to MIN_PCT so cheap bars stay visible. */
