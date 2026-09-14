@@ -747,7 +747,7 @@ The function signature MUST be `render(targetEl, models)`.
 The `pricing-chart` component MUST render a horizontal bar chart
 of `costEstimate(model)` for all eligible non-reference models. The chart
 MUST sort bars by cost ascending (cheapest first). Each bar MUST
-show the cost value formatted as USD and the model name. Ineligible models
+show the cost value formatted as USD and the model name, plus the vendor per-1M input/output rates as a subtitle (omitted when the model has neither rate). Ineligible models
 MUST NOT appear. An empty eligible set MUST render an empty chart with the
 empty-state label.
 
@@ -777,6 +777,41 @@ The function signature MUST be `render(targetEl, models)`.
 
 ---
 
+### Requirement: UI Component — Task Cost Table
+
+The `task-cost-table` component MUST render one row per agent with the
+cost of its assigned model computed with the agent’s own request profile
+(`data/agent-request-profiles.json`) via `costEstimate(model, profile)`.
+Each row MUST show the agent key, the profile as `inputTokens/outputTokens`,
+the assigned model name, and the cost formatted as USD. Agents without an
+eligible assignment MUST render the `Sin modelo elegible` warning and
+contribute 0. Agents without a profile MUST fall back to the default
+request profile (1000/500). The table MUST show the workflow total (sum
+over assigned agents) in the footer. Rows MUST follow the canonical
+18-agent order. An empty role matrix MUST render the empty-state label.
+
+The function signature MUST be `render(targetEl, assignments, agentRoles, profiles)`.
+
+#### Scenario: Per-agent cost uses the agent profile
+
+- GIVEN `sdd-apply` (profile 6000/3500) assigned to a model with `input: 1.40`, `output: 4.40`
+- WHEN the table renders
+- THEN the `sdd-apply` row shows profile `6000/3500` and cost `$0.0238`
+
+#### Scenario: Workflow total sums assigned agents
+
+- GIVEN two assigned agents costing `$0.0238` and `$0.000266` plus one unassigned agent
+- WHEN the table renders
+- THEN the footer shows `$0.024066`
+
+#### Scenario: Unassigned agents warn and add nothing
+
+- GIVEN an agent with `{ key: null }`
+- WHEN the table renders
+- THEN its row shows `Sin modelo elegible` with no cost
+- AND the workflow total excludes it
+
+---
 ### Requirement: UI Component — CLI Mirror Table
 
 The `cli-mirror-table` component MUST render a table showing the 18 agents (11 SDD + 3 JD + 4 Review) and their real CLI mapping. Each row MUST include: agent key, role description, and assigned model (from the active config over the eligible set, resolved by II-ordered `getBestFor`) with at most the effort badge (`data-effort`, closed vocabulary). Any score shown MUST be the AA Intelligence Index. The assigned cell MUST NOT render `.tier-tag`/`data-tier`, `softBadge`/`.soft-badge`, or a `~` prefix. Ineligible models MUST never appear; II-less models MUST never appear as assignments; unassigned agents (including empty-eligible under frozen thresholds) MUST show the empty-state warning. The table MUST still render exactly 18 rows.

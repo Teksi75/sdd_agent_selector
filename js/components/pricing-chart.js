@@ -167,6 +167,28 @@ function widthPct(cost, maxCost) {
   return Math.round(clamped * 10) / 10;
 }
 
+/**
+ * Format a vendor per-1M rate for the row subtitle. Non-finite rates
+ * render as '$-' (data absent) — the subtitle is omitted entirely only
+ * when BOTH rates are missing (see rateSubtitle).
+ */
+function fmtRate(v) {
+  return Number.isFinite(v) ? '$' + String(v) : '$-';
+}
+
+/**
+ * Subtitle showing the vendor $/1M input/output rates behind costEstimate
+ * (e.g. '$1.4 in / $4.4 out por 1M'). Returns an empty string when the
+ * model has neither rate so rows without vendor pricing stay clean.
+ */
+function rateSubtitle(m) {
+  const hasIn = Number.isFinite(m && m.input);
+  const hasOut = Number.isFinite(m && m.output);
+  if (!hasIn && !hasOut) return '';
+  const txt = fmtRate(m.input) + ' in / ' + fmtRate(m.output) + ' out por 1M';
+  return '<div class="text-[10px] leading-tight text-slate-500 truncate" data-test="per-1m-rates">' + esc(txt) + '</div>';
+}
+
 /** Build one row's HTML. Pulled out for testability + readability. */
 function barRowHtml(key, m, cost, width, bgClass, bgValue) {
   const newBadge =
@@ -178,7 +200,7 @@ function barRowHtml(key, m, cost, width, bgClass, bgValue) {
   const fillClass = bgValue ? 'bar-fill' : `bar-fill ${bgClass}`;
   return `
     <div class="flex items-center gap-3" data-model-key="${esc(key)}" data-cost="${cost.toFixed(COST_DECIMALS)}" data-width="${width}" data-tier="${tierLabel}">
-      <div class="w-36 md:w-44 text-xs font-medium text-slate-200 truncate">${esc(m.name || key)}${newBadge}</div>
+      <div class="w-36 md:w-44 min-w-0"><div class="text-xs font-medium text-slate-200 truncate">${esc(m.name || key)}${newBadge}</div>${rateSubtitle(m)}</div>
       <div class="flex-1 bar-track rounded-full bg-slate-800/60 overflow-hidden h-3">
         <div class="${fillClass} h-3 rounded-full"${fillStyle}></div>
       </div>
@@ -230,7 +252,7 @@ export function render(targetEl, models, options) {
       </div>
       <p class="mt-3 text-[11px] text-slate-500">
         Colores desde <code>tokens.css</code> (--pricing-tier-{high,balanced,budget});
-        fallback a Tailwind cuando el token no está definido. Formato USD con ${COST_DECIMALS} decimales.
+        fallback a Tailwind cuando el token no está definido. Formato USD con ${COST_DECIMALS} decimales. El subtítulo de cada fila muestra la tarifa vendor ($ in / $ out por 1M) que origina el cálculo.
       </p>
     </div>`;
 

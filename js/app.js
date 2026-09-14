@@ -46,6 +46,7 @@ import {
 import { render as renderWorkflowTable } from './components/workflow-table.js';
 import { render as renderCompositeChart } from './components/composite-chart.js';
 import { render as renderPricingChart } from './components/pricing-chart.js';
+import { render as renderTaskCostTable } from './components/task-cost-table.js';
 import { render as renderCliMirrorTable } from './components/cli-mirror-table.js';
 import { render as renderFreshnessBadge } from './components/freshness-badge.js';
 import { render as renderJustificationUI } from './components/justification-ui.js';
@@ -161,7 +162,7 @@ export function createApp(options = {}) {
     return out;
   }
 
-  /** Re-render the assignment-dependent surfaces (workflow / CLI / justif). */
+  /** Re-render the assignment-dependent surfaces (workflow / CLI / justif / task-cost). */
   function renderAssignmentSurfaces() {
     if (!state.data || !state.eligibleModels) return;
     const exportContext = buildExportContext();
@@ -179,6 +180,9 @@ export function createApp(options = {}) {
         state.eligibleModels,
         { exportContext }
       )
+    );
+    renderInto('task-cost-mount', 'task-cost-table', (el) =>
+      renderTaskCostTable(el, state.assignments || {}, state.data.roles, state.data.profiles || {})
     );
   }
 

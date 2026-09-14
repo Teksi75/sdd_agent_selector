@@ -309,6 +309,30 @@ describe('pricing-chart - same-cost variant dedup (one row per model)', () => {
     expect(keys).toEqual(['base']);
   });
 
+  test('rows show vendor per-1M rates as subtitle', async () => {
+    ({ render } = await import('../js/components/pricing-chart.js'));
+    const FIXTURE = {
+      a: { name: 'A', input: 1.4, output: 4.4, tier: 'balanced' },
+      b: { name: 'B', input: 0.14, output: 0.28, tier: 'budget' },
+    };
+    render(target, FIXTURE);
+    const rows = target.querySelectorAll('[data-model-key]');
+    const byKey = {};
+    rows.forEach((el) => { byKey[el.getAttribute('data-model-key')] = el; });
+    expect(byKey.a.textContent).toContain('$1.4 in / $4.4 out por 1M');
+    expect(byKey.b.textContent).toContain('$0.14 in / $0.28 out por 1M');
+  });
+
+  test('rows without vendor rates render no subtitle', async () => {
+    ({ render } = await import('../js/components/pricing-chart.js'));
+    const FIXTURE = {
+      n: { name: 'N', tier: 'balanced' },
+    };
+    render(target, FIXTURE);
+    const row = target.querySelector('[data-model-key]');
+    expect(row.querySelector('[data-test="per-1m-rates"]')).toBeNull();
+  });
+
   test('family match ignores case and hyphens', async () => {
     ({ render } = await import('../js/components/pricing-chart.js'));
     const FIXTURE = {
